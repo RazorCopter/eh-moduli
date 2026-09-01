@@ -148,26 +148,48 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CSRF and Security for Reverse Proxy
 _allowed_hosts = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
-CSRF_TRUSTED_ORIGINS = [f'http://{h}' if not h.startswith('http') else h for h in _allowed_hosts]
+
+# Clean up whitespace in ALLOWED_HOSTS
+ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts]
+
+# CSRF_TRUSTED_ORIGINS should be set explicitly in .env
+# Format: http://domain.com or https://domain.com
+_csrf_origins = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:6000').split(',')
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins]
+
+# Reverse proxy SSL header (for HTTPS behind reverse proxy)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# SSL redirect - only in production with HTTPS reverse proxy
+# Should be handled by reverse proxy, not Django
 SECURE_SSL_REDIRECT = False
+
+# X-Forwarded-For header for getting real client IP
 X_FORWARDED_FOR_HEADER = 'HTTP_X_FORWARDED_FOR'
 
-# Security settings
+# Security headers
 SECURE_BROWSER_XSS_FILTER = True
+
+# Content Security Policy
 SECURE_CONTENT_SECURITY_POLICY = {
     "default-src": ("'self'",),
-    "script-src": ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"),
-    "style-src": ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"),
+    "script-src": ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"),
+    "style-src": ("'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"),
     "img-src": ("'self'", "data:", "https:"),
-    "font-src": ("'self'", "https://cdn.jsdelivr.net"),
+    "font-src": ("'self'", "https://fonts.googleapis.com", "https://fonts.gstatic.com"),
 }
 
-# Session settings
-SESSION_COOKIE_SECURE = os.getenv('ENVIRONMENT', 'development') == 'production'
+# Session and CSRF security
+# For HTTPS reverse proxy: uncomment SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE
+is_production = ENVIRONMENT == 'production'
+
+SESSION_COOKIE_SECURE = is_production and os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
 SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SECURE = os.getenv('ENVIRONMENT', 'development') == 'production'
-CSRF_COOKIE_HTTPONLY = False
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+CSRF_COOKIE_SECURE = is_production and os.getenv('CSRF_COOKIE_SECURE', 'False').lower() == 'true'
+CSRF_COOKIE_HTTPONLY = True  # CSRF protection shouldn't need to be accessed by JavaScript
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Login settings
 LOGIN_URL = 'login'

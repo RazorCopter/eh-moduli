@@ -1,59 +1,149 @@
-version: '3.8'
+# Docker Compose Configuration for EHModuli
+# Production-ready setup for Synology NAS with PostgreSQL
+#
+# Usage:
+#   cp .env.example .env
+#   # Edit .env with your values
+#   docker-compose up --build
 
 services:
+  # PostgreSQL Database Service
   db:
     image: postgres:15-alpine
-    container_name: document_collector_db
+    # Note: container_name removed for Synology compatibility
+    # Use compose project name instead: ${COMPOSE_PROJECT_NAME}_db_1
+
+    restart: unless-stopped
+
+    # Load environment from .env file
+    env_file:
+      - .env
+
+    # Override specific postgres settings
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-document_collector}
-      POSTGRES_USER: ${POSTGRES_USER:-collector_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
       TZ: ${TZ:-Europe/Rome}
+
     volumes:
-      - ${POSTGRES_DATA_PATH:-./data/postgres}:/var/lib/postgresql/data
+      # PostgreSQL data - persistent across restarts
+      - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
+
+    # Health check: verify database is accepting connections
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-collector_user} -d ${POSTGRES_DB:-document_collector}"]
+      test:
+        - "CMD-SHELL"
+        - "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
-    restart: unless-stopped
+
+    # Database should not be exposed to host
+    # Only accessible to other services via compose network
+
     networks:
       - collector-network
 
+    # Resource limits (adjust for your NAS)
+    # Uncomment to enable
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '1'
+    #       memory: 512M
+    #     reservations:
+    #       cpus: '0.5'
+    #       memory: 256M
+
+  # Django Application Service
   app:
-    build: .
-    container_name: document_collector_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Allow UID/GID customization for Synology alignment
+      args:
+        APPUSER_UID: ${APPUSER_UID:-1000}
+        APPUSER_GID: ${APPUSER_GID:-1000}
+
+    # Note: container_name removed for Synology compatibility
+    # Use: ${COMPOSE_PROJECT_NAME}_app_1
+
+    restart: unless-stopped
+
+    # Load environment from .env file
+    env_file:
+      - .env
+
+    # Port mapping: HOST:CONTAINER
     ports:
       - "${APP_PORT:-6000}:8000"
+
+    # Environment variables (override or extend .env if needed)
     environment:
       DEBUG: ${DEBUG:-False}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
       SECRET_KEY: ${SECRET_KEY}
-      POSTGRES_DB: ${POSTGRES_DB:-document_collector}
-      POSTGRES_USER: ${POSTGRES_USER:-collector_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password}
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
-      APP_PORT: ${APP_PORT:-6000}
-      TZ: ${TZ:-Europe/Rome}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost:6000}
+      TZ: ${TZ:-Europe/Rome}
+      # Deployment timeout for DB wait
+      DB_WAIT_TIMEOUT: ${DB_WAIT_TIMEOUT:-90}
+      # Gunicorn configuration
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-60}
+      GUNICORN_LOG_LEVEL: ${GUNICORN_LOG_LEVEL:-info}
+      # Superuser creation (set to true only for first deployment)
+      CREATE_SUPERUSER: ${CREATE_SUPERUSER:-false}
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:-}
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-}
+
     volumes:
-      - ${APP_DATA_PATH:-./data/app}:/app/data
-      - ${CUSTOMER_DOCUMENTS_PATH:-./data/clienti}:/storage/clienti
+      # Django application data and media files
+      - ${APP_DATA_PATH}:/app/data
+      # Customer documents (should be independent Synology path)
+      - ${CUSTOMER_DOCUMENTS_PATH}:/storage/clienti
+
+    # Depends on db service being healthy
     depends_on:
       db:
         condition: service_healthy
+
+    # Health check: verify application is responding
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      test:
+        - "CMD"
+        - "curl"
+        - "-f"
+        - "http://localhost:8000/health/"
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
-    restart: unless-stopped
+      start_period: 30s
+
     networks:
       - collector-network
 
+    # Resource limits (adjust for your NAS)
+    # Uncomment to enable
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '2'
+    #       memory: 1G
+    #     reservations:
+    #       cpus: '1'
+    #       memory: 512M
+
+# Dedicated network for container communication
 networks:
   collector-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
