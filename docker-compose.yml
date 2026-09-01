@@ -63,7 +63,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      network: host
       # Allow UID/GID customization for Synology alignment
       args:
         APPUSER_UID: ${APPUSER_UID:-1026}

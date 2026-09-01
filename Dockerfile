@@ -45,7 +45,7 @@ EXPOSE 8000
 # Health check: verify application is responding
 # This is a liveness check - just verifies process is alive
 # Readiness check (DB + filesystem) is in the app itself
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health/ || exit 1
 
 # Use entrypoint for initialization and startup
