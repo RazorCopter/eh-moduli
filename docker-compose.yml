@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: document_collector_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-document_collector}
+      POSTGRES_USER: ${POSTGRES_USER:-collector_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password}
+      TZ: ${TZ:-Europe/Rome}
+    volumes:
+      - ${POSTGRES_DATA_PATH:-./data/postgres}:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-collector_user} -d ${POSTGRES_DB:-document_collector}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - collector-network
+
+  app:
+    build: .
+    container_name: document_collector_app
+    ports:
+      - "${APP_PORT:-6000}:8000"
+    environment:
+      DEBUG: ${DEBUG:-False}
+      SECRET_KEY: ${SECRET_KEY}
+      POSTGRES_DB: ${POSTGRES_DB:-document_collector}
+      POSTGRES_USER: ${POSTGRES_USER:-collector_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      APP_PORT: ${APP_PORT:-6000}
+      TZ: ${TZ:-Europe/Rome}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+    volumes:
+      - ${APP_DATA_PATH:-./data/app}:/app/data
+      - ${CUSTOMER_DOCUMENTS_PATH:-./data/clienti}:/storage/clienti
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - collector-network
+
+networks:
+  collector-network:
+    driver: bridge

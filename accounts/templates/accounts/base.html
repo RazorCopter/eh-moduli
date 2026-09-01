@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Document Collector - etichub style{% endblock %}</title>
+
+    <!-- Google Fonts: Poppins + Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Design System CSS (etichub style) -->
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}">
+
+    <style>
+        /* Custom app-specific styles */
+        .navbar {
+            background: white;
+            border-bottom: 1px solid var(--color-border-light);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-xs);
+        }
+
+        .navbar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            font-family: var(--font-primary);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-text);
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+
+        .navbar-nav {
+            list-style: none;
+            display: flex;
+            gap: 32px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navbar-link {
+            font-family: var(--font-primary);
+            font-size: 1rem;
+            font-weight: 400;
+            color: var(--color-text);
+            text-decoration: none;
+            transition: color var(--transition-base);
+            position: relative;
+        }
+
+        .navbar-link:hover,
+        .navbar-link.active {
+            color: var(--color-primary);
+        }
+
+        .navbar-link::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--color-primary);
+            transform: scaleX(0);
+            transition: transform var(--transition-base);
+        }
+
+        .navbar-link:hover::after,
+        .navbar-link.active::after {
+            transform: scaleX(1);
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .navbar-username {
+            font-size: var(--text-base);
+            color: var(--color-text);
+        }
+
+        .main-container {
+            min-height: calc(100vh - 200px);
+            padding: 48px 0;
+        }
+
+        .alerts-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            margin-bottom: 32px;
+        }
+
+        .footer {
+            background: white;
+            border-top: 1px solid var(--color-border-light);
+            padding: 32px 0;
+            margin-top: 64px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            text-align: center;
+            color: var(--color-text-light);
+            font-size: var(--text-sm);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 16px;
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-link {
+            color: var(--color-text-light);
+            text-decoration: none;
+            transition: color var(--transition-base);
+        }
+
+        .footer-link:hover {
+            color: var(--color-primary);
+        }
+
+        /* Responsive Navigation */
+        @media (max-width: 768px) {
+            .navbar-nav {
+                gap: 16px;
+            }
+
+            .navbar-nav .navbar-link:nth-child(n+2) {
+                display: none;
+            }
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/" class="navbar-brand">📋 DOCUMENT COLLECTOR</a>
+
+            <ul class="navbar-nav">
+                {% if user.is_authenticated %}
+                    {% if user.is_staff or user.role == 'admin' %}
+                        <li><a href="{% url 'admin_dashboard' %}" class="navbar-link">Dashboard</a></li>
+                    {% endif %}
+                    <li><a href="#" class="navbar-link">Help</a></li>
+                {% endif %}
+            </ul>
+
+            <div class="navbar-user">
+                {% if user.is_authenticated %}
+                    <span class="navbar-username">{{ user.username }}</span>
+                    <a href="{% url 'logout' %}" class="btn btn-sm btn-ghost">Logout</a>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-sm btn-primary">Login</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <div class="alerts-container">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">×</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <ul class="footer-links">
+                <li><a href="#" class="footer-link">Privacy Policy</a></li>
+                <li><a href="#" class="footer-link">Terms of Service</a></li>
+                <li><a href="#" class="footer-link">Contact</a></li>
+            </ul>
+            <p>&copy; 2026 Document Collector. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+    <script>
+        // Close alert button handler
+        document.querySelectorAll('.btn-close').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.closest('.alert').style.display = 'none';
+            });
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

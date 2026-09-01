@@ -1,0 +1,29 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}{{ form_template.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card mt-5">
+            <div class="card-body p-5">
+                <h1>{{ form_template.name }}</h1>
+
+                <div class="alert alert-info mt-4">
+                    {{ form_template.intro_text|safe }}
+                </div>
+
+                {% if form_template.privacy_text %}
+                <div class="alert alert-light border">
+                    <small>{{ form_template.privacy_text|safe }}</small>
+                </div>
+                {% endif %}
+
+                <div class="mt-5">
+                    <a href="{% url 'form_step_view' assignment.id 1 %}" class="btn btn-primary btn-lg">Inizia</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

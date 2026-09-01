@@ -1,0 +1,42 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Moduli - Admin{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>📋 Moduli di Raccolta</h1>
+        <a href="{% url 'form_template_create' %}" class="btn btn-primary mt-3">+ Nuovo Modulo</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Versione</th>
+                    <th>Stato</th>
+                    <th>Step</th>
+                    <th>Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for template in templates %}
+                <tr>
+                    <td>{{ template.name }}</td>
+                    <td>v{{ template.version }}</td>
+                    <td><span class="badge bg-{{ template.status|default:'secondary' }}">{{ template.get_status_display }}</span></td>
+                    <td>{{ template.steps_count }}</td>
+                    <td>
+                        <a href="{% url 'form_template_edit' template.id %}" class="btn btn-sm btn-info">Modifica</a>
+                        <a href="{% url 'form_template_duplicate' template.id %}" class="btn btn-sm btn-warning">Duplica</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

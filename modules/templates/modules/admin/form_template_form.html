@@ -1,0 +1,40 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Nuovo Modulo{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <h1>Nuovo Modulo di Raccolta</h1>
+
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label">Nome Modulo *</label>
+                <input type="text" name="name" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Descrizione</label>
+                <textarea name="description" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Testo Introduttivo *</label>
+                <textarea name="intro_text" class="form-control" rows="4" required></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Testo Privacy/Informativa</label>
+                <textarea name="privacy_text" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary">Crea Modulo</button>
+                <a href="{% url 'form_template_list' %}" class="btn btn-secondary">Annulla</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

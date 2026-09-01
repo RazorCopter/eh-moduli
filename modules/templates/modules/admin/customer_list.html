@@ -1,0 +1,41 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Clienti - Admin{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>👥 Clienti</h1>
+        <a href="{% url 'customer_create' %}" class="btn btn-primary mt-3">+ Nuovo Cliente</a>
+    </div>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Codice</th>
+            <th>Nome</th>
+            <th>Email</th>
+            <th>Assegnazioni</th>
+            <th>Stato</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for customer in customers %}
+        <tr>
+            <td>{{ customer.code }}</td>
+            <td>{{ customer.first_name }} {{ customer.last_name }}</td>
+            <td>{{ customer.email }}</td>
+            <td>{{ customer.assignments_count }}</td>
+            <td>
+                {% if customer.active %}
+                <span class="badge bg-success">Attivo</span>
+                {% else %}
+                <span class="badge bg-danger">Inattivo</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

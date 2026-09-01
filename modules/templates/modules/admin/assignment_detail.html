@@ -1,0 +1,28 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Dettaglio Assegnazione{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1>Assegnazione: {{ assignment.customer.code }}</h1>
+        <p class="text-muted">Modulo: {{ assignment.form_template.name }}</p>
+
+        <h3>Stato</h3>
+        <p><strong>{{ assignment.get_status_display }}</strong> - {{ assignment.completion_percentage }}% completo</p>
+
+        <h3>Documenti Caricati</h3>
+        <ul>
+            {% for upload in uploads %}
+            <li>{{ upload.original_filename }} - {{ upload.file_size|filesizeformat }}</li>
+            {% endfor %}
+        </ul>
+
+        {% if not uploads %}
+        <p class="text-muted">Nessun documento ancora</p>
+        {% endif %}
+
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary mt-4">← Indietro</a>
+    </div>
+</div>
+{% endblock %}

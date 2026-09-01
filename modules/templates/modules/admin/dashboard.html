@@ -1,0 +1,82 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1>📊 Admin Dashboard</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="card-title">Moduli Pubblicati</h6>
+                <h2>{{ templates_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="card-title">Clienti Attivi</h6>
+                <h2>{{ customers_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="card-title">Assegnazioni Totali</h6>
+                <h2>{{ assignments_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h6 class="card-title">Completate</h6>
+                <h2 class="text-success">{{ submitted_count }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <h3>Assegnazioni Recenti</h3>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Modulo</th>
+                    <th>Completamento</th>
+                    <th>Stato</th>
+                    <th>Data</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for assignment in recent_assignments %}
+                <tr>
+                    <td>{{ assignment.customer.code }}</td>
+                    <td>{{ assignment.form_template.name }}</td>
+                    <td>{{ assignment.completion_percentage }}%</td>
+                    <td><span class="badge bg-info">{{ assignment.get_status_display }}</span></td>
+                    <td>{{ assignment.assignment_date|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <a href="{% url 'form_template_create' %}" class="btn btn-primary">+ Nuovo Modulo</a>
+        <a href="{% url 'customer_create' %}" class="btn btn-secondary">+ Nuovo Cliente</a>
+        <a href="{% url 'assign_form_to_customer' %}" class="btn btn-success">📋 Assegna Modulo</a>
+    </div>
+</div>
+{% endblock %}

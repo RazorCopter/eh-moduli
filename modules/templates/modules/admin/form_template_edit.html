@@ -1,0 +1,44 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Modifica Modulo{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <h1>Modifica Modulo: {{ template.name }}</h1>
+
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Nome *</label>
+                <input type="text" name="name" class="form-control" value="{{ template.name }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Stato</label>
+                <select name="status" class="form-control">
+                    <option value="draft" {% if template.status == 'draft' %}selected{% endif %}>Bozza</option>
+                    <option value="published" {% if template.status == 'published' %}selected{% endif %}>Pubblicato</option>
+                    <option value="archived" {% if template.status == 'archived' %}selected{% endif %}>Archiviato</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Descrizione</label>
+                <textarea name="description" class="form-control">{{ template.description }}</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Testo Introduttivo *</label>
+                <textarea name="intro_text" class="form-control" rows="4" required>{{ template.intro_text }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Salva</button>
+            <a href="{% url 'form_template_list' %}" class="btn btn-secondary">Annulla</a>
+        </form>
+
+        <h3 class="mt-5">Step ({{ steps.count }})</h3>
+        <ul>
+            {% for step in steps %}
+            <li>{{ step.order }}. {{ step.title }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

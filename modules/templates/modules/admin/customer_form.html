@@ -1,0 +1,40 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Nuovo Cliente{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <h1>Nuovo Cliente</h1>
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Codice Cliente *</label>
+                <input type="text" name="code" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Nome *</label>
+                <input type="text" name="first_name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Cognome</label>
+                <input type="text" name="last_name" class="form-control">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Email *</label>
+                <input type="email" name="email" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Cartella NAS *</label>
+                <input type="text" name="nas_folder_name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">
+                    <input type="checkbox" name="active"> Attivo
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary">Crea</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Assegna Modulo{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <h1>📋 Assegna Modulo a Cliente</h1>
+
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label">Cliente *</label>
+                <select name="customer_id" class="form-control" required>
+                    <option value="">-- Seleziona --</option>
+                    {% for customer in customers %}
+                    <option value="{{ customer.id }}">{{ customer.code }} - {{ customer.first_name }} {{ customer.last_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Modulo *</label>
+                <select name="template_id" class="form-control" required>
+                    <option value="">-- Seleziona --</option>
+                    {% for template in templates %}
+                    <option value="{{ template.id }}">{{ template.name }} (v{{ template.version }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success">Assegna</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

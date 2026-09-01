@@ -1,0 +1,230 @@
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.db.models import Count, Q
+from django.utils import timezone
+from .models import (
+    FormTemplate, FormStep, DocumentRequirement, Customer,
+    FormAssignment, DocumentUpload
+)
+from .utils import log_action, get_client_ip, get_user_agent
+
+def is_admin(user):
+    return user.is_staff or (hasattr(user, 'role') and user.role == 'admin')
+
+@login_required
+@user_passes_test(is_admin)
+def admin_dashboard(request):
+    templates_count = FormTemplate.objects.filter(status='published').count()
+    customers_count = Customer.objects.filter(active=True).count()
+    assignments_count = FormAssignment.objects.count()
+    submitted_count = FormAssignment.objects.filter(status='submitted').count()
+
+    recent_assignments = FormAssignment.objects.select_related(
+        'customer', 'form_template'
+    ).order_by('-assignment_date')[:10]
+
+    context = {
+        'templates_count': templates_count,
+        'customers_count': customers_count,
+        'assignments_count': assignments_count,
+        'submitted_count': submitted_count,
+        'recent_assignments': recent_assignments,
+    }
+
+    log_action(
+        request.user,
+        'view',
+        'AdminDashboard',
+        'dashboard',
+        ip=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+
+    return render(request, 'modules/admin/dashboard.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def form_template_list(request):
+    templates = FormTemplate.objects.annotate(
+        steps_count=Count('formstep')
+    ).order_by('-created_at')
+
+    context = {'templates': templates}
+    return render(request, 'modules/admin/form_template_list.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def form_template_create(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        description = request.POST.get('description')
+        intro_text = request.POST.get('intro_text')
+        privacy_text = request.POST.get('privacy_text')
+
+        template = FormTemplate.objects.create(
+            name=name,
+            description=description,
+            intro_text=intro_text,
+            privacy_text=privacy_text,
+            author=request.user,
+            status='draft'
+        )
+
+        log_action(
+            request.user,
+            'create',
+            'FormTemplate',
+            str(template.id),
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        return redirect('form_template_edit', pk=template.id)
+
+    return render(request, 'modules/admin/form_template_form.html')
+
+@login_required
+@user_passes_test(is_admin)
+def form_template_edit(request, pk):
+    template = get_object_or_404(FormTemplate, id=pk)
+
+    if request.method == 'POST':
+        template.name = request.POST.get('name', template.name)
+        template.description = request.POST.get('description', template.description)
+        template.intro_text = request.POST.get('intro_text', template.intro_text)
+        template.privacy_text = request.POST.get('privacy_text', template.privacy_text)
+        template.status = request.POST.get('status', template.status)
+        template.save()
+
+        log_action(
+            request.user,
+            'update',
+            'FormTemplate',
+            str(template.id),
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        return redirect('form_template_list')
+
+    steps = template.formstep_set.all().order_by('order')
+    context = {'template': template, 'steps': steps}
+    return render(request, 'modules/admin/form_template_edit.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def form_template_duplicate(request, pk):
+    template = get_object_or_404(FormTemplate, id=pk)
+    new_template = template.duplicate()
+
+    log_action(
+        request.user,
+        'create',
+        'FormTemplate',
+        str(new_template.id),
+        {'duplicated_from': str(template.id)},
+        ip=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+
+    return redirect('form_template_edit', pk=new_template.id)
+
+@login_required
+@user_passes_test(is_admin)
+def customer_list(request):
+    customers = Customer.objects.annotate(
+        assignments_count=Count('formassignment')
+    ).order_by('-created_at')
+
+    context = {'customers': customers}
+    return render(request, 'modules/admin/customer_list.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def customer_create(request):
+    if request.method == 'POST':
+        customer = Customer.objects.create(
+            code=request.POST.get('code'),
+            first_name=request.POST.get('first_name'),
+            last_name=request.POST.get('last_name'),
+            email=request.POST.get('email'),
+            phone=request.POST.get('phone', ''),
+            fiscal_code=request.POST.get('fiscal_code', ''),
+            vat_number=request.POST.get('vat_number', ''),
+            nas_folder_name=request.POST.get('nas_folder_name'),
+            notes=request.POST.get('notes', ''),
+            active=request.POST.get('active') == 'on'
+        )
+
+        log_action(
+            request.user,
+            'create',
+            'Customer',
+            str(customer.id),
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        return redirect('customer_list')
+
+    return render(request, 'modules/admin/customer_form.html')
+
+@login_required
+@user_passes_test(is_admin)
+def assignment_detail(request, pk):
+    assignment = get_object_or_404(FormAssignment, id=pk)
+    uploads = assignment.documentupload_set.all()
+    declarations = assignment.awarenessdeclaration_set.all()
+
+    context = {
+        'assignment': assignment,
+        'uploads': uploads,
+        'declarations': declarations,
+    }
+
+    return render(request, 'modules/admin/assignment_detail.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def assign_form_to_customer(request):
+    if request.method == 'POST':
+        customer_id = request.POST.get('customer_id')
+        template_id = request.POST.get('template_id')
+
+        customer = get_object_or_404(Customer, id=customer_id)
+        template = get_object_or_404(FormTemplate, id=template_id)
+
+        assignment = FormAssignment.objects.create(
+            customer=customer,
+            form_template=template,
+            expiry_date=timezone.now() + timezone.timedelta(days=30),
+            operator=request.user,
+            status='draft'
+        )
+
+        log_action(
+            request.user,
+            'create',
+            'FormAssignment',
+            str(assignment.id),
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        return JsonResponse({
+            'status': 'success',
+            'token': assignment.secure_token,
+            'form_url': f"/modules/form/{assignment.secure_token}/"
+        })
+
+    customers = Customer.objects.filter(active=True)
+    templates = FormTemplate.objects.filter(status='published')
+
+    context = {
+        'customers': customers,
+        'templates': templates,
+    }
+
+    return render(request, 'modules/admin/assign_form.html', context)

@@ -1,0 +1,46 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Riepilogo - Modulo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card mt-5">
+            <div class="card-body p-5">
+                <h2>✓ Riepilogo</h2>
+
+                <div class="mt-4">
+                    <h5>Documenti Caricati</h5>
+                    {% for upload in uploads %}
+                    <div class="alert alert-success">
+                        📎 {{ upload.original_filename }} ({{ upload.file_size|filesizeformat }})
+                    </div>
+                    {% endfor %}
+
+                    {% if declarations %}
+                    <h5 class="mt-4">Dichiarazioni di Consapevolezza</h5>
+                    {% for decl in declarations %}
+                    <div class="alert alert-info">
+                        ✓ {{ decl.document_requirement.name }}
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="mt-5 p-3 bg-light rounded">
+                    <p>Tutti i documenti sono stati raccolti correttamente.</p>
+                    <p>Confermando, la pratica verrà inviata e non potrai più modificarla.</p>
+                </div>
+
+                <div class="mt-5">
+                    <form method="post" action="{% url 'form_submission_view' assignment.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-lg">✓ Conferma e Invia</button>
+                        <a href="javascript:history.back()" class="btn btn-secondary">← Indietro</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
