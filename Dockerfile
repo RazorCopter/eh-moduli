@@ -10,6 +10,7 @@ WORKDIR /app
 # Install system dependencies with minimal bloat
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
+    libmagic1 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -25,7 +26,9 @@ RUN chmod +x entrypoint.sh
 
 # Create non-root user with custom UID/GID (important for Synology bind mounts)
 # Group creation must come before user creation
-RUN groupadd -g ${APPUSER_GID} appuser && \
+RUN if ! getent group ${APPUSER_GID} >/dev/null; then \
+        groupadd -g ${APPUSER_GID} appuser; \
+    fi && \
     useradd -m -u ${APPUSER_UID} -g ${APPUSER_GID} appuser
 
 # Create and set permissions on necessary directories

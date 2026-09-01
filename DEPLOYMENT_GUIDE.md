@@ -107,7 +107,7 @@ hostname -I
 ENVIRONMENT=production
 DEBUG=False
 SECRET_KEY=CHANGE_ME_TO_RANDOM_VALUE
-APP_PORT=6000
+APP_PORT=6060
 TZ=Europe/Rome
 
 # Generate SECRET_KEY on a Linux/Mac machine:
@@ -127,7 +127,7 @@ POSTGRES_PORT=5432
 
 # Allowed hosts (CRITICAL - use your NAS IP or hostname)
 ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.100
-CSRF_TRUSTED_ORIGINS=http://localhost:6000,http://192.168.1.100:6000
+CSRF_TRUSTED_ORIGINS=http://localhost:6060,http://192.168.1.100:6060
 
 # Storage paths (Synology)
 APP_DATA_PATH=/volume1/docker/eh-moduli/appdata
@@ -268,7 +268,7 @@ docker-compose restart app
 Open browser and navigate to:
 
 ```
-http://192.168.1.100:6000
+http://192.168.1.100:6060
 ```
 
 Replace `192.168.1.100` with your actual NAS IP.
@@ -276,7 +276,7 @@ Replace `192.168.1.100` with your actual NAS IP.
 ### Admin Panel
 
 Login with superuser credentials:
-- URL: `http://192.168.1.100:6000/admin`
+- URL: `http://192.168.1.100:6060/admin`
 - Username: `admin` (or whatever you set)
 - Password: (the password you configured)
 
@@ -323,10 +323,10 @@ docker-compose logs -f db
 docker-compose ps
 
 # Test liveness endpoint
-curl http://192.168.1.100:6000/health/
+curl http://192.168.1.100:6060/health/
 
 # Test readiness endpoint (detailed)
-curl http://192.168.1.100:6000/health/ready/
+curl http://192.168.1.100:6060/health/ready/
 
 # Expected readiness output (if ready):
 # {"status": "ready", "checks": {"database": true, "storage": true, "data_dir": true}}
@@ -439,7 +439,7 @@ docker-compose logs db
 | Issue | Solution |
 |-------|----------|
 | `POSTGRES_PASSWORD not set` | Edit .env, ensure `POSTGRES_PASSWORD` is set |
-| `bind: permission denied` | Check port 6000 not in use: `docker ps` |
+| `bind: permission denied` | Check port 6060 not in use: `docker ps` |
 | `directory not writable` | Fix permissions: `chmod 755 /volume1/docker/eh-moduli` |
 | `connection refused` | Wait longer for DB to start, check `docker-compose logs db` |
 
@@ -447,7 +447,7 @@ docker-compose logs db
 
 ```bash
 # Check health
-curl http://192.168.1.100:6000/health/ready/
+curl http://192.168.1.100:6060/health/ready/
 
 # Check logs
 docker-compose logs -f app
@@ -559,8 +559,8 @@ docker-compose logs -f app >> /volume1/docker/eh-moduli/logs/app.log &
 ### Uptime Monitoring
 
 External monitoring can use:
-- `http://NAS_IP:6000/health/live/` - Liveness check
-- `http://NAS_IP:6000/health/ready/` - Full readiness check
+- `http://NAS_IP:6060/health/live/` - Liveness check
+- `http://NAS_IP:6060/health/ready/` - Full readiness check
 
 ---
 
@@ -619,7 +619,7 @@ docker-compose up -d
 docker-compose logs -f app
 
 # 5. Verify health
-curl http://192.168.1.100:6000/health/ready/
+curl http://192.168.1.100:6060/health/ready/
 ```
 
 ---

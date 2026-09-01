@@ -63,10 +63,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
       # Allow UID/GID customization for Synology alignment
       args:
-        APPUSER_UID: ${APPUSER_UID:-1000}
-        APPUSER_GID: ${APPUSER_GID:-1000}
+        APPUSER_UID: ${APPUSER_UID:-1026}
+        APPUSER_GID: ${APPUSER_GID:-100}
 
     # Note: container_name removed for Synology compatibility
     # Use: ${COMPOSE_PROJECT_NAME}_app_1
@@ -79,7 +80,7 @@ services:
 
     # Port mapping: HOST:CONTAINER
     ports:
-      - "${APP_PORT:-6000}:8000"
+      - "${APP_PORT:-6060}:8000"
 
     # Environment variables (override or extend .env if needed)
     environment:
@@ -89,7 +90,7 @@ services:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost:6000}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost:6060}
       TZ: ${TZ:-Europe/Rome}
       # Deployment timeout for DB wait
       DB_WAIT_TIMEOUT: ${DB_WAIT_TIMEOUT:-90}

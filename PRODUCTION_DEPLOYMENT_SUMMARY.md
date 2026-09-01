@@ -250,7 +250,7 @@ docker-compose build
 docker-compose up -d
 
 # 5. Access
-# http://192.168.1.100:6000
+# http://192.168.1.100:6060
 ```
 
 ### Detailed Path (with explanations)
@@ -268,13 +268,13 @@ After deployment:
 docker-compose ps
 
 # 2. Test liveness
-curl http://192.168.1.100:6000/health/
+curl http://192.168.1.100:6060/health/
 
 # 3. Test readiness
-curl http://192.168.1.100:6000/health/ready/
+curl http://192.168.1.100:6060/health/ready/
 
 # 4. Access admin
-curl http://192.168.1.100:6000/admin/
+curl http://192.168.1.100:6060/admin/
 
 # 5. View logs
 docker-compose logs -f app

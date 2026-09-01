@@ -332,9 +332,9 @@ Before first production deployment, verify:
 - [ ] `docker-compose build` succeeds without errors
 - [ ] `docker-compose up` starts both services
 - [ ] `docker-compose logs app` shows "Starting Gunicorn"
-- [ ] `curl http://localhost:6000/health/` returns 200
-- [ ] `curl http://localhost:6000/health/ready/` returns 200 with all checks true
-- [ ] Can access `http://localhost:6000/admin` with superuser credentials
+- [ ] `curl http://localhost:6060/health/` returns 200
+- [ ] `curl http://localhost:6060/health/ready/` returns 200 with all checks true
+- [ ] Can access `http://localhost:6060/admin` with superuser credentials
 - [ ] `/volume1/Clienti` has proper permissions
 - [ ] `/volume1/docker/eh-moduli/appdata` created with correct permissions
 - [ ] `docker-compose down` and `up` again - container restarts cleanly
@@ -363,7 +363,7 @@ docker-compose up -d
 
 # 5. Verify health
 docker-compose logs -f app
-curl http://localhost:6000/health/ready/
+curl http://localhost:6060/health/ready/
 ```
 
 ### Backward Compatibility

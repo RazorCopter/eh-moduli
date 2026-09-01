@@ -90,7 +90,7 @@ POSTGRES_PASSWORD=paste_password_here
 ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.100
 
 # Line 27 - Your NAS IP
-CSRF_TRUSTED_ORIGINS=http://localhost:6000,http://192.168.1.100:6000
+CSRF_TRUSTED_ORIGINS=http://localhost:6060,http://192.168.1.100:6060
 
 # Line 47-49 - Set to true ONLY for first deployment
 CREATE_SUPERUSER=true
@@ -133,14 +133,14 @@ docker-compose logs -f app
 docker-compose ps
 
 # Test application
-curl http://192.168.1.100:6000/
+curl http://192.168.1.100:6060/
 
 # Test admin login
-curl http://192.168.1.100:6000/admin/
+curl http://192.168.1.100:6060/admin/
 
 # Test health endpoints
-curl http://192.168.1.100:6000/health/
-curl http://192.168.1.100:6000/health/ready/
+curl http://192.168.1.100:6060/health/
+curl http://192.168.1.100:6060/health/ready/
 ```
 
 ---
@@ -150,11 +150,11 @@ curl http://192.168.1.100:6000/health/ready/
 Open browser to:
 
 ```
-http://192.168.1.100:6000
+http://192.168.1.100:6060
 ```
 
 Login:
-- **URL**: http://192.168.1.100:6000/admin/
+- **URL**: http://192.168.1.100:6060/admin/
 - **Username**: admin
 - **Password**: (the one you set in step 5)
 
@@ -183,7 +183,7 @@ docker-compose restart app
 
 ## Done! ✅
 
-Your EHModuli instance is running on `http://NAS_IP:6000`
+Your EHModuli instance is running on `http://NAS_IP:6060`
 
 ---
 
@@ -205,7 +205,7 @@ docker-compose start
 docker-compose restart app
 
 # View health status
-curl http://NAS_IP:6000/health/ready/
+curl http://NAS_IP:6060/health/ready/
 
 # Stop and remove (keeps data)
 docker-compose down
@@ -220,7 +220,7 @@ docker-compose down
 | `Connection refused` | Wait 60 seconds, then try again. Check `docker-compose logs app` |
 | `Database error` | Check `docker-compose logs db`. Verify POSTGRES_PASSWORD in .env |
 | `Permission denied` | Run `chmod 755 /volume1/docker/eh-moduli` |
-| `Port 6000 in use` | Change APP_PORT in .env to 6001, rebuild with `docker-compose build` |
+| `Port 6060 in use` | Change APP_PORT in .env to 6001, rebuild with `docker-compose build` |
 
 ---
 
