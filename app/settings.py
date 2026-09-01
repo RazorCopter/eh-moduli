@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,8 +26,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-me-in-production')
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+
+logger = logging.getLogger('django')
 
 
 # Application definition
@@ -44,6 +46,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -134,6 +137,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# WhiteNoise: serve static files directly from Gunicorn (no Nginx needed)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'data' / 'media'
@@ -146,22 +152,41 @@ AUTH_USER_MODEL = 'modules.User'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CSRF and Security for Reverse Proxy
-_allowed_hosts = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# ==========================================================
+# CSRF, Hosts, and Security for Reverse Proxy
+# ==========================================================
 
-# Clean up whitespace in ALLOWED_HOSTS
-ALLOWED_HOSTS = [h.strip() for h in _allowed_hosts]
+# Robust ALLOWED_HOSTS parsing: split, strip, discard empties
+_raw_hosts = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(',') if h.strip()]
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+    logger.warning('ALLOWED_HOSTS was empty after parsing, using defaults: %s', ALLOWED_HOSTS)
 
-# CSRF_TRUSTED_ORIGINS should be set explicitly in .env
-# Format: http://domain.com or https://domain.com
-_csrf_origins = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:6000').split(',')
-CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_origins]
+# Robust CSRF_TRUSTED_ORIGINS parsing:
+# - split by comma, strip whitespace, discard empties
+# - validate each value starts with http:// or https://
+# - log and skip malformed values instead of crashing
+_raw_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+_csrf_parsed = []
+for _origin in _raw_csrf.split(','):
+    _origin = _origin.strip()
+    if not _origin:
+        continue
+    if _origin.startswith('http://') or _origin.startswith('https://'):
+        _csrf_parsed.append(_origin)
+    else:
+        logger.warning(
+            'CSRF_TRUSTED_ORIGINS: skipping malformed value "%s" '
+            '(must start with http:// or https://)', _origin
+        )
+CSRF_TRUSTED_ORIGINS = _csrf_parsed
 
-# Reverse proxy SSL header (for HTTPS behind reverse proxy)
+# Reverse proxy support
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
 
-# SSL redirect - only in production with HTTPS reverse proxy
-# Should be handled by reverse proxy, not Django
+# SSL redirect - should be handled by reverse proxy, not Django
 SECURE_SSL_REDIRECT = False
 
 # X-Forwarded-For header for getting real client IP

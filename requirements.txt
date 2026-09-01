@@ -4,4 +4,5 @@ gunicorn==22.0.0
 python-dotenv==1.0.1
 Pillow==10.2.0
 requests==2.32.3
-python-magic-bin==0.4.14
+python-magic==0.4.27
+whitenoise==6.7.0
