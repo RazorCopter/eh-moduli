@@ -78,6 +78,15 @@ def published_form_access(request, form_id):
 
 
 @require_http_methods(["GET"])
+def form_success_view(request):
+    """Show success message after form submission."""
+    context = {
+        'timestamp': timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
+    }
+    return render(request, 'modules/form_success.html', context)
+
+
+@require_http_methods(["GET"])
 def get_form_by_token(request, token):
     try:
         assignment = FormAssignment.objects.get(secure_token=token)

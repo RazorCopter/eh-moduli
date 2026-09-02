@@ -477,11 +477,10 @@
             fileList.appendChild(item);
         }
 
-        // Form submission
+        // Form submission - just redirect to success page
+        // Documents are uploaded via AJAX as they are selected, not on form submit
         document.getElementById('publishedForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            // For now, show success message
-            alert('Form submitted! Your documents have been received.');
             window.location.href = '/modules/form/success/';
         });
     </script>
