@@ -1223,7 +1223,7 @@
                 },
 
                 async publish() {
-                    if (!confirm('Publish this form? It will become read-only.')) return;
+                    if (!confirm('Publish this form? It will become read-only and create the NAS folder structure.')) return;
                     try {
                         const response = await fetch(`/modules/api/v1/forms/{{ template.id }}/publish/`, {
                             method: 'POST',
@@ -1234,8 +1234,20 @@
                         const result = await response.json();
                         if (result.success) {
                             this.form.status = 'published';
-                            this.publishLink = result.data.public_link_template;
-                            alert(`✅ Form published!\n\nTo create customer assignments and generate their links, go to:\n/modules/admin/assign-form/\n\nForm ID: ${result.data.form_id}`);
+                            const pubUrl = `${window.location.origin}${result.data.public_url}`;
+                            const password = result.data.access_password;
+                            const customer = result.data.customer;
+                            const project = result.data.project;
+
+                            const message = `✅ Form published successfully!\n\n` +
+                                `Customer: ${customer}\n` +
+                                `Project: ${project}\n\n` +
+                                `Public URL:\n${pubUrl}\n\n` +
+                                `Password:\n${password}\n\n` +
+                                `Share this URL and password with your customer.`;
+
+                            alert(message);
+                            this.publishLink = pubUrl;
                         } else {
                             alert('Error: ' + result.error);
                         }
