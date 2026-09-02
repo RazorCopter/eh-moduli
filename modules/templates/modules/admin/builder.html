@@ -660,6 +660,9 @@
                 <button class="btn-publish" @click="publish()" x-show="form.status === 'draft'">
                     <i class="bi bi-cloud-check"></i> Publish
                 </button>
+                <button class="btn-share" @click="showShareModal()" x-show="form.status === 'published'" style="background: #17a2b8;">
+                    <i class="bi bi-share"></i> Condividi
+                </button>
                 <button class="btn-delete" @click="deleteForm()" style="background: #dc3545;">
                     <i class="bi bi-trash"></i> Delete
                 </button>
@@ -1005,6 +1008,57 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal: Share Form -->
+        <div class="modal-overlay" x-show="showShareModal_" @click.self="showShareModal_ = false" style="display: none; z-index: 2000;">
+            <div class="modal-content" style="max-width: 500px;">
+                <button class="modal-close" @click="showShareModal_ = false">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+                <div class="modal-header" style="text-align: center; color: #17a2b8;">
+                    <i class="bi bi-share" style="font-size: 3rem; display: block; margin-bottom: 1rem;"></i>
+                    <h2 class="modal-title">Condividi Modulo</h2>
+                </div>
+                <div style="padding: 1.5rem; text-align: center;">
+                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                        <p style="margin: 0 0 1rem 0; color: #6c757d; font-size: 0.9rem;">
+                            <strong>Cliente:</strong> <span x-text="shareData.customer"></span>
+                        </p>
+                        <p style="margin: 0; color: #6c757d; font-size: 0.9rem;">
+                            <strong>Progetto:</strong> <span x-text="shareData.project"></span>
+                        </p>
+                    </div>
+
+                    <div style="background: #f0f7ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #0d6efd;">
+                        <p style="margin: 0 0 0.5rem 0; color: #6c757d; font-size: 0.85rem; font-weight: 600;">URL di Condivisione:</p>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="text" :value="shareData.url" readonly style="flex: 1; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.85rem; font-family: monospace;">
+                            <button type="button" class="btn btn-sm btn-primary" @click="copyToClipboard(shareData.url)" style="padding: 0.75rem 1rem;">
+                                <i class="bi bi-files"></i> Copia
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #ffc107;">
+                        <p style="margin: 0 0 0.5rem 0; color: #856404; font-size: 0.85rem; font-weight: 600;">Password di Accesso:</p>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="text" :value="shareData.password" readonly style="flex: 1; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.85rem; font-family: monospace; font-weight: 600;">
+                            <button type="button" class="btn btn-sm btn-warning" @click="copyToClipboard(shareData.password)" style="padding: 0.75rem 1rem;">
+                                <i class="bi bi-files"></i> Copia
+                            </button>
+                        </div>
+                    </div>
+
+                    <p style="color: #6c757d; font-size: 0.9rem; margin-bottom: 1.5rem;">
+                        ✓ Condividi l'URL e la password con il tuo cliente per permettergli di compilare il modulo e caricare i documenti.
+                    </p>
+
+                    <button type="button" class="btn btn-primary" @click="showShareModal_ = false" style="padding: 0.75rem 2rem;">
+                        <i class="bi bi-check"></i> Chiudi
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -1029,11 +1083,18 @@
                 publishLink: null,
                 csrfToken: '{{ csrf_token }}',
                 showPublishModal: false,
+                showShareModal_: false,
                 publishData: {
                     url: '',
                     password: '',
                     customer: '',
                     project: ''
+                },
+                shareData: {
+                    url: '{{ request.build_absolute_uri }}'.replace('/edit/', '/'),
+                    password: '{{ template.access_password }}',
+                    customer: '{{ template.customer.code|default:"" }}',
+                    project: '{{ template.project_name }}'
                 },
 
                 init() {
@@ -1319,6 +1380,10 @@
 
                 closePublishModal() {
                     this.showPublishModal = false;
+                },
+
+                showShareModal() {
+                    this.showShareModal_ = true;
                 },
 
                 copyToClipboard(text) {
