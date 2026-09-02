@@ -287,170 +287,166 @@
                 <p class="step-description">{{ step.description }}</p>
                 {% endif %}
 
-                {% with elements=step.formelement_set.all documents=step.documentrequirement_set.all %}
-
-                <!-- Regular elements (text, email, etc.) -->
-                {% for element in elements %}
+                <!-- Render all items (FormElements + DocumentRequirements) in their original order -->
+                {% for item in step.combined_items %}
                 <div class="element-item">
-                    {% if element.element_type == 'text_info' %}
-                    <div class="text-info">
-                        {{ element.config.text|default:"" }}
-                    </div>
-
-                    {% elif element.element_type == 'separator' %}
-                    <hr class="separator">
-
-                    {% elif element.element_type == 'awareness_declaration' %}
-                    <div class="awareness-declaration">
-                        <strong>⚠️ Important Notice:</strong><br>
-                        {{ element.config.text|default:"" }}
-                    </div>
-
-                    {% elif element.element_type == 'text_field' %}
-                    <label class="element-label">
-                        {{ element.config.label|default:"Text Field" }}
-                        {% if element.config.required %}
-                        <span class="required-badge">Required</span>
-                        {% endif %}
-                    </label>
-                    <input type="text" class="form-control" name="element_{{ element.id }}"
-                        placeholder="{{ element.config.placeholder|default:'' }}"
-                        {% if element.config.required %}required{% endif %}>
-
-                    {% elif element.element_type == 'email_field' %}
-                    <label class="element-label">
-                        {{ element.config.label|default:"Email" }}
-                        {% if element.config.required %}
-                        <span class="required-badge">Required</span>
-                        {% endif %}
-                    </label>
-                    <input type="email" class="form-control" name="element_{{ element.id }}"
-                        placeholder="{{ element.config.placeholder|default:'' }}"
-                        {% if element.config.required %}required{% endif %}>
-
-                    {% elif element.element_type == 'phone_field' %}
-                    <label class="element-label">
-                        {{ element.config.label|default:"Phone" }}
-                        {% if element.config.required %}
-                        <span class="required-badge">Required</span>
-                        {% endif %}
-                    </label>
-                    <input type="tel" class="form-control" name="element_{{ element.id }}"
-                        placeholder="{{ element.config.placeholder|default:'' }}"
-                        {% if element.config.required %}required{% endif %}>
-
-                    {% elif element.element_type == 'date_field' %}
-                    <label class="element-label">
-                        {{ element.config.label|default:"Date" }}
-                        {% if element.config.required %}
-                        <span class="required-badge">Required</span>
-                        {% endif %}
-                    </label>
-                    <input type="date" class="form-control" name="element_{{ element.id }}"
-                        {% if element.config.required %}required{% endif %}>
-                    {% endif %}
-                </div>
-                {% endfor %}
-
-                <!-- Documents with availability status -->
-                {% for document in documents %}
-                <div class="element-item" x-data="documentState('{{ document.id }}')" >
-                    <label class="element-label">
-                        {{ document.name }}
-                        {% if document.required %}
-                        <span class="required-badge">Required</span>
-                        {% endif %}
-                    </label>
-                    {% if document.description %}
-                    <p class="element-description">{{ document.description }}</p>
-                    {% endif %}
-
-                    <div class="document-availability">
-                        <!-- Availability choice buttons -->
-                        <div class="availability-buttons">
-                            <button type="button" class="btn-availability"
-                                :class="{ active: status === 'uploaded' }"
-                                @click="setStatus('uploaded')">
-                                <i class="bi bi-cloud-arrow-up"></i> Carica Documento
-                            </button>
-                            <button type="button" class="btn-availability"
-                                :class="{ active: status === 'not_available' }"
-                                @click="setStatus('not_available')">
-                                <i class="bi bi-exclamation-circle"></i> Non Disponibile
-                            </button>
+                    <!-- If item has element_type, it's a FormElement; otherwise it's a DocumentRequirement -->
+                    {% if item.element_type %}
+                        {% if item.element_type == 'text_info' %}
+                        <div class="text-info">
+                            {{ item.config.text|default:"" }}
                         </div>
 
-                        <!-- Hidden status field -->
-                        <input type="hidden" :name="'availability_{{ document.id }}'" :value="status">
+                        {% elif item.element_type == 'separator' %}
+                        <hr class="separator">
 
-                        <!-- Upload section (shown when status === 'uploaded') -->
-                        <template x-if="status === 'uploaded'">
-                            <div>
-                                <div class="file-upload-section" @drop="dropFiles" @dragover="dragOver = true"
-                                    @dragleave="dragOver = false" :class="{ dragover: dragOver }"
-                                    @click="document.querySelector('input[name=file_{{ document.id }}]').click()">
-                                    <div class="file-upload-icon">
-                                        <i class="bi bi-cloud-arrow-up"></i>
-                                    </div>
-                                    <p>Click to upload or drag and drop</p>
-                                    <small style="color: #6c757d;">
-                                        Allowed: {{ document.allowed_extensions }} • Max {{ document.max_file_size|filesizeformat }}
-                                    </small>
-                                    <input type="file" class="d-none" name="file_{{ document.id }}"
-                                        accept=".{{ document.allowed_extensions|cut:' '|cut:',' }}"
-                                        @change="handleFileUpload">
-                                </div>
+                        {% elif item.element_type == 'awareness_declaration' %}
+                        <div class="awareness-declaration">
+                            <strong>⚠️ Important Notice:</strong><br>
+                            {{ item.config.text|default:"" }}
+                        </div>
 
-                                <ul class="file-list" x-show="files.length > 0">
-                                    <template x-for="file in files" :key="file.name">
-                                        <li class="file-item">
-                                            <span>
-                                                <i class="bi bi-file"></i>
-                                                <span x-text="file.name"></span>
-                                                <span class="file-size" x-text="'(' + (file.size / 1024).toFixed(1) + ' KB)'"></span>
-                                            </span>
-                                            <button type="button" class="btn-remove" @click="removeFile(file.name)">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </li>
-                                    </template>
-                                </ul>
-
-                                {% if document.allow_file_description %}
-                                <textarea class="form-control mt-2" name="description_{{ document.id }}"
-                                    placeholder="Optional: Describe what this file contains..." rows="2"></textarea>
-                                {% endif %}
-                            </div>
-                        </template>
-
-                        <!-- Unavailable section (shown when status === 'not_available') -->
-                        <template x-if="status === 'not_available'">
-                            <div class="unavailable-section">
-                                <strong style="display: block; margin-bottom: 0.5rem;">⚠️ Motivo indisponibilità *</strong>
-                                <textarea class="form-control" name="motivazione_indisponibilita_{{ document.id }}"
-                                    placeholder="Es. Smarrimento, in corso di acquisizione, documento non applicabile..."
-                                    rows="3" x-model="reason" required></textarea>
-                                <small style="display: block; margin-top: 0.5rem; color: #666;">
-                                    Spiegare brevemente il motivo per cui questo documento non è disponibile
-                                </small>
-                            </div>
-                        </template>
-                    </div>
-
-                    {% if document.awareness_text %}
-                    <div class="awareness-checkbox mt-2">
-                        <input type="checkbox" id="awareness_{{ document.id }}"
-                            name="awareness_{{ document.id }}"
-                            {% if document.awareness_required_when_empty %}required{% endif %}>
-                        <label for="awareness_{{ document.id }}" style="margin-left: 0.5rem;">
-                            {{ document.awareness_text }}
+                        {% elif item.element_type == 'text_field' %}
+                        <label class="element-label">
+                            {{ item.config.label|default:"Text Field" }}
+                            {% if item.config.required %}
+                            <span class="required-badge">Required</span>
+                            {% endif %}
                         </label>
-                    </div>
+                        <input type="text" class="form-control" name="element_{{ item.id }}"
+                            placeholder="{{ item.config.placeholder|default:'' }}"
+                            {% if item.config.required %}required{% endif %}>
+
+                        {% elif item.element_type == 'email_field' %}
+                        <label class="element-label">
+                            {{ item.config.label|default:"Email" }}
+                            {% if item.config.required %}
+                            <span class="required-badge">Required</span>
+                            {% endif %}
+                        </label>
+                        <input type="email" class="form-control" name="element_{{ item.id }}"
+                            placeholder="{{ item.config.placeholder|default:'' }}"
+                            {% if item.config.required %}required{% endif %}>
+
+                        {% elif item.element_type == 'phone_field' %}
+                        <label class="element-label">
+                            {{ item.config.label|default:"Phone" }}
+                            {% if item.config.required %}
+                            <span class="required-badge">Required</span>
+                            {% endif %}
+                        </label>
+                        <input type="tel" class="form-control" name="element_{{ item.id }}"
+                            placeholder="{{ item.config.placeholder|default:'' }}"
+                            {% if item.config.required %}required{% endif %}>
+
+                        {% elif item.element_type == 'date_field' %}
+                        <label class="element-label">
+                            {{ item.config.label|default:"Date" }}
+                            {% if item.config.required %}
+                            <span class="required-badge">Required</span>
+                            {% endif %}
+                        </label>
+                        <input type="date" class="form-control" name="element_{{ item.id }}"
+                            {% if item.config.required %}required{% endif %}>
+                        {% endif %}
+
+                    {% else %}
+                        <!-- It's a DocumentRequirement -->
+                        <label class="element-label">
+                            {{ item.name }}
+                            {% if item.required %}
+                            <span class="required-badge">Required</span>
+                            {% endif %}
+                        </label>
+                        {% if item.description %}
+                        <p class="element-description">{{ item.description }}</p>
+                        {% endif %}
+
+                        <div class="document-availability">
+                            <!-- Availability choice buttons -->
+                            <div class="availability-buttons">
+                                <button type="button" class="btn-availability"
+                                    :class="{ active: status === 'uploaded' }"
+                                    @click="setStatus('uploaded')">
+                                    <i class="bi bi-cloud-arrow-up"></i> Carica Documento
+                                </button>
+                                <button type="button" class="btn-availability"
+                                    :class="{ active: status === 'not_available' }"
+                                    @click="setStatus('not_available')">
+                                    <i class="bi bi-exclamation-circle"></i> Non Disponibile
+                                </button>
+                            </div>
+
+                            <!-- Hidden status field -->
+                            <input type="hidden" :name="'availability_{{ item.id }}'" :value="status">
+
+                            <!-- Upload section (shown when status === 'uploaded') -->
+                            <template x-if="status === 'uploaded'">
+                                <div>
+                                    <div class="file-upload-section" @drop="dropFiles" @dragover="dragOver = true"
+                                        @dragleave="dragOver = false" :class="{ dragover: dragOver }"
+                                        @click="document.querySelector('input[name=file_{{ item.id }}]').click()">
+                                        <div class="file-upload-icon">
+                                            <i class="bi bi-cloud-arrow-up"></i>
+                                        </div>
+                                        <p>Click to upload or drag and drop</p>
+                                        <small style="color: #6c757d;">
+                                            Allowed: {{ item.allowed_extensions }} • Max {{ item.max_file_size|filesizeformat }}
+                                        </small>
+                                        <input type="file" class="d-none" name="file_{{ item.id }}"
+                                            accept=".{{ item.allowed_extensions|cut:' '|cut:',' }}"
+                                            @change="handleFileUpload">
+                                    </div>
+
+                                    <ul class="file-list" x-show="files.length > 0">
+                                        <template x-for="file in files" :key="file.name">
+                                            <li class="file-item">
+                                                <span>
+                                                    <i class="bi bi-file"></i>
+                                                    <span x-text="file.name"></span>
+                                                    <span class="file-size" x-text="'(' + (file.size / 1024).toFixed(1) + ' KB)'"></span>
+                                                </span>
+                                                <button type="button" class="btn-remove" @click="removeFile(file.name)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </li>
+                                        </template>
+                                    </ul>
+
+                                    {% if item.allow_file_description %}
+                                    <textarea class="form-control mt-2" name="description_{{ item.id }}"
+                                        placeholder="Optional: Describe what this file contains..." rows="2"></textarea>
+                                    {% endif %}
+                                </div>
+                            </template>
+
+                            <!-- Unavailable section (shown when status === 'not_available') -->
+                            <template x-if="status === 'not_available'">
+                                <div class="unavailable-section">
+                                    <strong style="display: block; margin-bottom: 0.5rem;">⚠️ Motivo indisponibilità *</strong>
+                                    <textarea class="form-control" name="motivazione_indisponibilita_{{ item.id }}"
+                                        placeholder="Es. Smarrimento, in corso di acquisizione, documento non applicabile..."
+                                        rows="3" x-model="reason" required></textarea>
+                                    <small style="display: block; margin-top: 0.5rem; color: #666;">
+                                        Spiegare brevemente il motivo per cui questo documento non è disponibile
+                                    </small>
+                                </div>
+                            </template>
+                        </div>
+
+                        {% if item.awareness_text %}
+                        <div class="awareness-checkbox mt-2">
+                            <input type="checkbox" id="awareness_{{ item.id }}"
+                                name="awareness_{{ item.id }}"
+                                {% if item.awareness_required_when_empty %}required{% endif %}>
+                            <label for="awareness_{{ item.id }}" style="margin-left: 0.5rem;">
+                                {{ item.awareness_text }}
+                            </label>
+                        </div>
+                        {% endif %}
                     {% endif %}
                 </div>
                 {% endfor %}
-
-                {% endwith %}
             </div>
             {% endfor %}
 

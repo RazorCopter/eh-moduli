@@ -50,7 +50,15 @@ def published_form_access(request, form_id):
             )
 
             # Render the form directly (not in assignment context)
+            from itertools import chain
             steps = form.formstep_set.all().order_by('order')
+
+            # Combine FormElement and DocumentRequirement for each step, ordered by order field
+            for step in steps:
+                elements = step.formelement_set.all().order_by('order')
+                documents = step.documentrequirement_set.all().order_by('order')
+                step.combined_items = sorted(chain(elements, documents), key=lambda x: x.order)
+
             context = {
                 'form': form,
                 'steps': steps,
@@ -65,7 +73,15 @@ def published_form_access(request, form_id):
 
     # GET request
     if is_authenticated:
+        from itertools import chain
         steps = form.formstep_set.all().order_by('order')
+
+        # Combine FormElement and DocumentRequirement for each step, ordered by order field
+        for step in steps:
+            elements = step.formelement_set.all().order_by('order')
+            documents = step.documentrequirement_set.all().order_by('order')
+            step.combined_items = sorted(chain(elements, documents), key=lambda x: x.order)
+
         context = {
             'form': form,
             'steps': steps,
