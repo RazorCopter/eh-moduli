@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Form Builder - Dashboard</title>
+    <title>Etichub - Form Builder</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
@@ -12,67 +12,120 @@
         * {
             font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
-        body {
-            background-color: #F5F3F0;
+        html, body {
+            background: linear-gradient(135deg, #E8E5E0 0%, #F5F3F0 100%);
+            min-height: 100vh;
+            color: #2C2C2C;
         }
         .header {
             background: white;
-            border-bottom: 1px solid #e9ecef;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(232, 155, 167, 0.1);
+            padding: 2rem 3rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 3rem;
         }
-        .header h1 {
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        .logo-section img {
+            height: 50px;
+            width: auto;
+        }
+        .header-title-block h1 {
             margin: 0;
+            font-size: 2rem;
             font-weight: 700;
             color: #2C2C2C;
         }
-        .header-actions {
-            display: flex;
-            gap: 1rem;
-            margin-top: 1rem;
+        .header-title-block p {
+            margin: 0.25rem 0 0 0;
+            color: #9B9B9B;
+            font-size: 0.95rem;
+        }
+        .btn-new-form {
+            background: linear-gradient(135deg, #E89BA7, #E0849B);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-new-form:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(232, 155, 167, 0.3);
+            color: white;
         }
         .forms-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 2rem;
-            padding: 0 2rem;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 2.5rem;
+            padding: 0 3rem 3rem 3rem;
         }
         .form-card {
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             overflow: hidden;
-            transition: all 0.3s;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             flex-direction: column;
+            border: 1px solid rgba(232, 155, 167, 0.1);
         }
         .form-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(232, 155, 167, 0.15);
+            transform: translateY(-4px);
         }
         .form-card-header {
-            background: linear-gradient(135deg, #E89BA7, #E0849B);
+            background: linear-gradient(135deg, #E89BA7 0%, #E0849B 100%);
             color: white;
-            padding: 1.5rem;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .form-card-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
         }
         .form-card-title {
             font-size: 1.25rem;
-            font-weight: 600;
-            margin: 0 0 0.5rem 0;
+            font-weight: 700;
+            margin: 0 0 0.75rem 0;
+            position: relative;
+            z-index: 1;
         }
         .form-card-status {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.25rem 0.75rem;
-            background: rgba(255,255,255,0.2);
+            padding: 0.35rem 0.85rem;
+            background: rgba(255,255,255,0.25);
+            backdrop-filter: blur(10px);
             border-radius: 20px;
             font-size: 0.75rem;
             font-weight: 600;
+            position: relative;
+            z-index: 1;
         }
         .form-card-body {
-            padding: 1.5rem;
+            padding: 2rem;
             flex: 1;
         }
         .form-meta {
@@ -80,28 +133,28 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1rem;
-            font-size: 0.875rem;
+            font-size: 0.85rem;
             color: #9B9B9B;
         }
-        .form-steps {
-            font-size: 0.875rem;
-        }
-        .form-date {
-            font-size: 0.875rem;
+        .form-description {
+            color: #6c757d;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 0;
         }
         .form-card-actions {
             display: flex;
             gap: 0.5rem;
-            border-top: 1px solid #e9ecef;
+            border-top: 1px solid #E8E5E0;
             padding: 1rem;
-            background: #f8f9fa;
+            background: linear-gradient(135deg, #FAFAF9 0%, #F5F3F0 100%);
         }
         .form-card-actions button {
             flex: 1;
-            padding: 0.5rem;
+            padding: 0.65rem;
             border: none;
-            border-radius: 4px;
-            font-size: 0.875rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
@@ -112,45 +165,53 @@
         }
         .btn-edit:hover {
             background: #E0849B;
+            transform: scale(1.02);
         }
         .btn-duplicate {
-            background: #9B9B9B;
+            background: #E8B5C1;
             color: white;
         }
         .btn-duplicate:hover {
-            background: #5c636a;
+            background: #E0A0B3;
+            transform: scale(1.02);
         }
         .btn-delete {
-            background: #dc3545;
-            color: white;
+            background: #F5D4D4;
+            color: #8B3C3C;
         }
         .btn-delete:hover {
-            background: #bb2d3b;
+            background: #E8B5B5;
+            transform: scale(1.02);
         }
         .empty-state {
             text-align: center;
-            padding: 4rem 2rem;
+            padding: 6rem 2rem;
         }
         .empty-state-icon {
-            font-size: 3rem;
-            color: #ddd;
-            margin-bottom: 1rem;
+            font-size: 4rem;
+            color: #E8B5C1;
+            margin-bottom: 1.5rem;
+            opacity: 0.5;
         }
         .empty-state-text {
             color: #9B9B9B;
-            font-size: 1.125rem;
+            font-size: 1.25rem;
             margin-bottom: 2rem;
+            font-weight: 500;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <h1><i class="bi bi-window-split"></i> Form Builder</h1>
-                <p class="text-muted" style="margin: 0.5rem 0 0 0;">Crea e gestisci i tuoi moduli</p>
+        <div class="header-top">
+            <div class="logo-section">
+                <img src="{% static 'images/Etichub_Logo_V2_Verticale_Color.svg' %}" alt="Etichub">
+                <div class="header-title-block">
+                    <h1>Form Builder</h1>
+                    <p>Crea e gestisci i tuoi moduli di raccolta documenti</p>
+                </div>
             </div>
-            <a href="{% url 'builder_create' %}" class="btn btn-primary btn-lg">
+            <a href="{% url 'builder_create' %}" class="btn-new-form">
                 <i class="bi bi-plus-circle"></i> Nuovo Modulo
             </a>
         </div>
@@ -182,7 +243,7 @@
                             </span>
                         </div>
                         {% if form.description %}
-                            <p style="margin: 0; font-size: 0.875rem; color: #9B9B9B;">
+                            <p class="form-description">
                                 {{ form.description|truncatewords:20 }}
                             </p>
                         {% endif %}
@@ -207,7 +268,7 @@
                 <i class="bi bi-inbox"></i>
             </div>
             <p class="empty-state-text">Nessun modulo ancora</p>
-            <a href="{% url 'builder_create' %}" class="btn btn-primary btn-lg">
+            <a href="{% url 'builder_create' %}" class="btn-new-form" style="margin-bottom: 2rem;">
                 <i class="bi bi-plus-circle"></i> Crea il tuo primo modulo
             </a>
         </div>
