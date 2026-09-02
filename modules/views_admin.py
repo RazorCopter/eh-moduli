@@ -4,11 +4,15 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Q
 from django.utils import timezone
+import logging
+import traceback
 from .models import (
     FormTemplate, FormStep, DocumentRequirement, Customer,
     FormAssignment, DocumentUpload, FormElement
 )
 from .utils import log_action, get_client_ip, get_user_agent
+
+logger = logging.getLogger('modules')
 
 def is_admin(user):
     return user.is_staff or (hasattr(user, 'role') and user.role == 'admin')
@@ -234,22 +238,28 @@ def assign_form_to_customer(request):
 @user_passes_test(is_admin)
 def builder_list(request):
     """List all forms (drafts and published)."""
+    logger.info(f"builder_list called by {request.user}")
     try:
+        logger.debug("Querying FormTemplate objects...")
         forms = FormTemplate.objects.annotate(
             steps_count=Count('formstep')
         ).order_by('-created_at')
 
-        context = {'forms': forms}
+        logger.debug(f"Converting queryset to list (count: {forms.count()})...")
+        forms_list = list(forms)
+        logger.info(f"Successfully loaded {len(forms_list)} forms")
+
+        context = {'forms': forms_list}
         return render(request, 'modules/admin/builder_list.html', context)
     except Exception as e:
-        import traceback
         error_detail = traceback.format_exc()
+        logger.error(f"BUILDER_LIST ERROR: {str(e)}\n{error_detail}")
         log_action(
             request.user,
             'error',
             'builder_list',
             'dashboard',
-            {'error': str(e), 'traceback': error_detail},
+            {'error': str(e)},
             ip=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
