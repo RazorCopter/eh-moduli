@@ -338,14 +338,14 @@ def api_form_duplicate(request, form_id):
 @csrf_protect
 @require_http_methods(['DELETE'])
 def api_form_delete(request, form_id):
-    """Delete form (only drafts)."""
+    """Delete form (draft or published)."""
     form = get_object_or_404(FormTemplate, id=form_id)
-
-    if form.status != 'draft':
-        return JsonResponse({'success': False, 'error': 'Only draft forms can be deleted'}, status=400)
 
     try:
         form_name = form.name
+        form_status = form.status
+
+        # Delete the form and all related data
         form.delete()
 
         log_action(
@@ -353,12 +353,12 @@ def api_form_delete(request, form_id):
             'delete',
             'FormTemplate',
             form_id,
-            {'name': form_name, 'via': 'api'},
+            {'name': form_name, 'status': form_status, 'via': 'api'},
             ip=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
 
-        return JsonResponse({'success': True})
+        return JsonResponse({'success': True, 'message': f'Modulo "{form_name}" eliminato'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 

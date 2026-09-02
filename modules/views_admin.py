@@ -250,13 +250,34 @@ def builder_create(request):
         import secrets
         import string
 
-        name = request.POST.get('name', 'Untitled Form')
-        description = request.POST.get('description', '')
-        intro_text = request.POST.get('intro_text', '')
-        privacy_text = request.POST.get('privacy_text', '')
-        customer_id = request.POST.get('customer_id')
-        project_name = request.POST.get('project_name', '')
-        access_password = request.POST.get('access_password', '')
+        name = request.POST.get('name', '').strip()
+        description = request.POST.get('description', '').strip()
+        intro_text = request.POST.get('intro_text', '').strip()
+        privacy_text = request.POST.get('privacy_text', '').strip()
+        customer_id = request.POST.get('customer_id', '').strip()
+        project_name = request.POST.get('project_name', '').strip()
+        access_password = request.POST.get('access_password', '').strip()
+
+        # Validate required fields
+        errors = []
+        if not name:
+            errors.append('Nome modulo è obbligatorio')
+        if not customer_id:
+            errors.append('Devi selezionare un cliente')
+        if not project_name:
+            errors.append('Nome progetto è obbligatorio')
+
+        if errors:
+            return render(request, 'modules/admin/builder_create.html', {
+                'customers': Customer.objects.filter(active=True).order_by('first_name'),
+                'errors': errors,
+                'form_data': {
+                    'name': name,
+                    'description': description,
+                    'intro_text': intro_text,
+                    'privacy_text': privacy_text,
+                }
+            })
 
         # Auto-generate password if empty
         if not access_password:
@@ -264,15 +285,13 @@ def builder_create(request):
             access_password = ''.join(secrets.choice(alphabet) for _ in range(16))
 
         # Fetch customer
-        customer = None
-        if customer_id:
-            try:
-                customer = Customer.objects.get(id=customer_id)
-            except Customer.DoesNotExist:
-                return render(request, 'modules/admin/builder_create.html', {
-                    'customers': Customer.objects.all(),
-                    'error': 'Selected customer not found'
-                })
+        try:
+            customer = Customer.objects.get(id=customer_id)
+        except Customer.DoesNotExist:
+            return render(request, 'modules/admin/builder_create.html', {
+                'customers': Customer.objects.filter(active=True).order_by('first_name'),
+                'errors': ['Cliente selezionato non trovato']
+            })
 
         template = FormTemplate.objects.create(
             name=name,

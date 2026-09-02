@@ -216,6 +216,17 @@
             <p class="create-subtitle">Crea un nuovo modulo di raccolta documenti guidata</p>
         </div>
 
+        {% if errors %}
+        <div style="background: #F5D4D4; border: 1px solid #E8B5C1; color: #8B3C3C; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+            <strong style="display: block; margin-bottom: 0.5rem;">⚠️ Errori nella form:</strong>
+            <ul style="margin: 0; padding-left: 1.5rem;">
+                {% for error in errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
         <form method="POST" id="formCreate">
             {% csrf_token %}
 

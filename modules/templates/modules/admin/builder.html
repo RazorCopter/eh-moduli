@@ -654,11 +654,14 @@
                 <button class="btn-preview" @click="preview()">
                     <i class="bi bi-eye"></i> Preview
                 </button>
-                <button class="btn-save" @click="save()">
+                <button class="btn-save" @click="save()" x-show="form.status === 'draft'">
                     <i class="bi bi-save"></i> Save
                 </button>
                 <button class="btn-publish" @click="publish()" x-show="form.status === 'draft'">
                     <i class="bi bi-cloud-check"></i> Publish
+                </button>
+                <button class="btn-delete" @click="deleteForm()" style="background: #dc3545;">
+                    <i class="bi bi-trash"></i> Delete
                 </button>
             </div>
         </div>
@@ -1336,6 +1339,28 @@
 
                 preview() {
                     window.open(`/modules/admin/builder/{{ template.id }}/preview/`, '_blank');
+                },
+
+                async deleteForm() {
+                    if (!confirm('⚠️ Sei sicuro di voler eliminare questo modulo? Questa azione non può essere annullata.\n\nVerranno eliminati anche:\n- Tutti gli step e gli elementi\n- Tutte le assegnazioni a clienti\n- Tutti i documenti caricati')) return;
+
+                    try {
+                        const response = await fetch(`/modules/api/v1/forms/{{ template.id }}/delete/`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRFToken': this.csrfToken
+                            }
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            alert('✓ ' + result.message);
+                            window.location.href = '/modules/admin/builder/';
+                        } else {
+                            alert('Errore: ' + result.error);
+                        }
+                    } catch (e) {
+                        alert('Errore: ' + e.message);
+                    }
                 },
 
                 autoSave() {
