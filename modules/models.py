@@ -81,6 +81,12 @@ class FormTemplate(models.Model):
     validity_start_date = models.DateTimeField(null=True, blank=True)
     validity_end_date = models.DateTimeField(null=True, blank=True)
     privacy_text = models.TextField(blank=True)
+
+    # NEW: Form-specific customer + project + password
+    customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True, help_text="Specific customer this form is for (optional)")
+    project_name = models.CharField(max_length=255, blank=True, help_text="Project name for NAS folder structure")
+    access_password = models.CharField(max_length=255, blank=True, help_text="Password to access this form (auto-generated if empty)")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -183,6 +189,9 @@ class DocumentRequirement(models.Model):
     order = models.IntegerField()
     awareness_text = models.TextField(blank=True)
     awareness_required_when_empty = models.BooleanField(default=False)
+
+    # NEW: Allow customer to provide description for each file
+    allow_file_description = models.BooleanField(default=True, help_text="Allow customer to add description for each file")
 
     class Meta:
         ordering = ['order']
