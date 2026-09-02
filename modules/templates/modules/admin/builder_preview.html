@@ -187,15 +187,16 @@
 <body>
     <div class="preview-header">
         <div class="preview-badge">
-            <i class="bi bi-eye"></i> PREVIEW MODE
+            <i class="bi bi-eye"></i> PREVIEW MODE - INTERATTIVO
         </div>
         <h1 style="margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700;">{{ template.name }}</h1>
-        <p style="margin: 0; color: #6c757d;">Read-only preview. Elements are not functional.</p>
+        <p style="margin: 0; color: #6c757d;">Test the form as your customer will see it. No data is saved in preview mode.</p>
     </div>
 
     <div class="form-container">
         <div class="preview-note">
-            <i class="bi bi-info-circle"></i> This is how your form will appear to customers. No data is saved in preview mode.
+            <i class="bi bi-info-circle"></i>
+            <strong>Modalità Test:</strong> Puoi compilare i campi e caricare file per testare l'esperienza del cliente. I file non vengono salvati.
         </div>
 
         {% if template.intro_text %}
@@ -221,28 +222,28 @@
                                 <label class="form-label" {% if element.config.required %}required{% endif %}>
                                     {{ element.config.label|default:"Text Input" }}
                                 </label>
-                                <input type="text" class="form-control" placeholder="{{ element.config.placeholder|default:'' }}" disabled>
+                                <input type="text" class="form-control" placeholder="{{ element.config.placeholder|default:'' }}" {% if element.config.required %}required{% endif %}>
                             </div>
                         {% elif element.element_type == 'email_field' %}
                             <div class="element">
                                 <label class="form-label" {% if element.config.required %}required{% endif %}>
                                     {{ element.config.label|default:"Email Address" }}
                                 </label>
-                                <input type="email" class="form-control" placeholder="{{ element.config.placeholder|default:'name@example.com' }}" disabled>
+                                <input type="email" class="form-control" placeholder="{{ element.config.placeholder|default:'name@example.com' }}" {% if element.config.required %}required{% endif %}>
                             </div>
                         {% elif element.element_type == 'phone_field' %}
                             <div class="element">
                                 <label class="form-label" {% if element.config.required %}required{% endif %}>
                                     {{ element.config.label|default:"Phone Number" }}
                                 </label>
-                                <input type="tel" class="form-control" placeholder="{{ element.config.placeholder|default:'+39 0XX XXXX XXXX' }}" disabled>
+                                <input type="tel" class="form-control" placeholder="{{ element.config.placeholder|default:'+39 0XX XXXX XXXX' }}" {% if element.config.required %}required{% endif %}>
                             </div>
                         {% elif element.element_type == 'date_field' %}
                             <div class="element">
                                 <label class="form-label" {% if element.config.required %}required{% endif %}>
                                     {{ element.config.label|default:"Date" }}
                                 </label>
-                                <input type="date" class="form-control" disabled>
+                                <input type="date" class="form-control" {% if element.config.required %}required{% endif %}>
                             </div>
                         {% elif element.element_type == 'text_info' %}
                             <div class="element text-info">
@@ -255,7 +256,7 @@
                                 <strong>{{ element.config.label|default:"Declaration" }}</strong>
                                 <p style="margin: 0.75rem 0 0 0; font-size: 0.875rem;">{{ element.config.text|default:"" }}</p>
                                 <div class="awareness-checkbox">
-                                    <input type="checkbox" id="aware-{{ element.id }}" disabled>
+                                    <input type="checkbox" id="aware-{{ element.id }}" {% if element.config.required %}required{% endif %}>
                                     <label for="aware-{{ element.id }}" style="margin: 0;">
                                         I accept the above terms
                                     </label>
@@ -272,7 +273,7 @@
                                     <small class="text-muted">{{ element.config.description }}</small>
                                 {% endif %}
                                 <div class="document-section">
-                                    <div class="document-upload" style="cursor: not-allowed;">
+                                    <div class="document-upload preview-file-upload" data-field-id="element-{{ element.id }}" style="cursor: pointer;">
                                         <div>
                                             <i class="bi bi-cloud-upload" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
                                             <strong>Click to upload or drag</strong>
@@ -287,7 +288,7 @@
                                     <div class="awareness-declaration" style="margin-top: 1rem;">
                                         <small><strong>Note:</strong> This document is optional.</small>
                                         <div class="awareness-checkbox">
-                                            <input type="checkbox" disabled>
+                                            <input type="checkbox">
                                             <label style="margin: 0;">
                                                 {{ element.config.awareness_text }}
                                             </label>
@@ -307,7 +308,7 @@
                                 <small class="text-muted">{{ doc_req.description }}</small>
                             {% endif %}
                             <div class="document-section">
-                                <div class="document-upload" style="cursor: not-allowed;">
+                                <div class="document-upload preview-file-upload" data-field-id="element-{{ element.id }}" style="cursor: pointer;">
                                     <div>
                                         <i class="bi bi-cloud-upload" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
                                         <strong>Click to upload or drag</strong>
@@ -345,11 +346,99 @@
 
     <div class="form-container" style="text-align: center; padding-bottom: 4rem;">
         <button class="btn btn-primary btn-lg" disabled>
-            <i class="bi bi-check-circle"></i> Submit Form (disabled in preview)
+            <i class="bi bi-check-circle"></i> Submit Form (not active in preview)
         </button>
         <a href="{% url 'builder_edit' template.id %}" class="btn btn-secondary btn-lg" style="margin-left: 1rem;">
-            <i class="bi bi-pencil"></i> Back to Editor
+            <i class="bi bi-pencil"></i> Torna all'Editor
         </a>
     </div>
+
+    <script>
+        // Make file uploads interactive in preview
+        document.querySelectorAll('.preview-file-upload').forEach(section => {
+            const filesList = document.createElement('div');
+            filesList.className = 'mt-3';
+            filesList.style.display = 'none';
+            section.parentElement.appendChild(filesList);
+
+            // Create hidden file input
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.multiple = true;
+            fileInput.style.display = 'none';
+            fileInput.addEventListener('change', () => handleFilesSelected(fileInput.files, section, filesList));
+            section.appendChild(fileInput);
+
+            // Click to select files
+            section.addEventListener('click', () => fileInput.click());
+
+            // Drag and drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                section.addEventListener(eventName, preventDefaults, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                section.addEventListener(eventName, () => {
+                    section.style.background = '#e7f1ff';
+                    section.style.borderColor = '#0d6efd';
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                section.addEventListener(eventName, () => {
+                    section.style.background = '#f0f7ff';
+                    section.style.borderColor = '#0d6efd';
+                }, false);
+            });
+
+            section.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFilesSelected(files, section, filesList);
+            }, false);
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function handleFilesSelected(files, section, filesList) {
+                if (files.length === 0) return;
+
+                filesList.innerHTML = '';
+                filesList.style.display = 'block';
+
+                for (let file of files) {
+                    const item = document.createElement('div');
+                    item.className = 'p-2 mb-2';
+                    item.style.background = '#f0f7ff';
+                    item.style.borderRadius = '6px';
+                    item.style.display = 'flex';
+                    item.style.justifyContent = 'space-between';
+                    item.style.alignItems = 'center';
+                    item.innerHTML = `
+                        <div>
+                            <i class="bi bi-check-circle" style="color: #28a745; margin-right: 0.5rem;"></i>
+                            <strong>${file.name}</strong>
+                            <small style="color: #6c757d; margin-left: 0.5rem;">${(file.size / 1024).toFixed(1)} KB</small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-link text-danger" style="padding: 0;">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    `;
+
+                    // Remove button
+                    item.querySelector('button').addEventListener('click', () => {
+                        item.remove();
+                        if (filesList.children.length === 0) {
+                            filesList.style.display = 'none';
+                        }
+                    });
+
+                    filesList.appendChild(item);
+                }
+            }
+        });
+    </script>
 </body>
 </html>
