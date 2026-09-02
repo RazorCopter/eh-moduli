@@ -247,16 +247,41 @@ def builder_list(request):
 def builder_create(request):
     """Create new form (opens builder)."""
     if request.method == 'POST':
+        import secrets
+        import string
+
         name = request.POST.get('name', 'Untitled Form')
         description = request.POST.get('description', '')
         intro_text = request.POST.get('intro_text', '')
         privacy_text = request.POST.get('privacy_text', '')
+        customer_id = request.POST.get('customer_id')
+        project_name = request.POST.get('project_name', '')
+        access_password = request.POST.get('access_password', '')
+
+        # Auto-generate password if empty
+        if not access_password:
+            alphabet = string.ascii_letters + string.digits + '!@#$%^&*'
+            access_password = ''.join(secrets.choice(alphabet) for _ in range(16))
+
+        # Fetch customer
+        customer = None
+        if customer_id:
+            try:
+                customer = Customer.objects.get(id=customer_id)
+            except Customer.DoesNotExist:
+                return render(request, 'modules/admin/builder_create.html', {
+                    'customers': Customer.objects.all(),
+                    'error': 'Selected customer not found'
+                })
 
         template = FormTemplate.objects.create(
             name=name,
             description=description,
             intro_text=intro_text,
             privacy_text=privacy_text,
+            customer=customer,
+            project_name=project_name,
+            access_password=access_password,
             author=request.user,
             status='draft'
         )
@@ -266,14 +291,15 @@ def builder_create(request):
             'create',
             'FormTemplate',
             str(template.id),
-            {'via': 'builder'},
+            {'customer': str(customer.id) if customer else None, 'project': project_name},
             ip=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
 
         return redirect('builder_edit', pk=template.id)
 
-    return render(request, 'modules/admin/builder_create.html')
+    customers = Customer.objects.filter(active=True).order_by('first_name')
+    return render(request, 'modules/admin/builder_create.html', {'customers': customers})
 
 
 @login_required

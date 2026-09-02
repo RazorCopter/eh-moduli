@@ -231,11 +231,39 @@ def api_form_save(request, form_id):
 @csrf_protect
 @require_http_methods(['POST'])
 def api_form_publish(request, form_id):
-    """Publish form (create new version, set status to published)."""
+    """Publish form and create NAS folder structure."""
+    import os
+    import json
+
     form = get_object_or_404(FormTemplate, id=form_id)
+
+    if not form.customer or not form.project_name:
+        return JsonResponse({
+            'success': False,
+            'error': 'Form must have a specific customer and project name before publishing'
+        }, status=400)
 
     try:
         with transaction.atomic():
+            # Create NAS folder structure
+            nas_base = os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti')
+            nas_path = os.path.join(nas_base, form.customer.nas_folder_name, form.project_name)
+            os.makedirs(nas_path, exist_ok=True)
+
+            # Create initial manifest.json
+            manifest = {
+                'form_id': str(form.id),
+                'form_name': form.name,
+                'customer': form.customer.first_name + ' ' + form.customer.last_name,
+                'customer_code': form.customer.code,
+                'project': form.project_name,
+                'created_at': timezone.now().isoformat(),
+                'uploads': []
+            }
+            manifest_path = os.path.join(nas_path, 'manifest.json')
+            with open(manifest_path, 'w', encoding='utf-8') as f:
+                json.dump(manifest, f, indent=2, ensure_ascii=False)
+
             form.status = 'published'
             form.save()
 
@@ -244,15 +272,15 @@ def api_form_publish(request, form_id):
                 'update',
                 'FormTemplate',
                 str(form.id),
-                {'action': 'publish', 'version': form.version, 'via': 'api'},
+                {
+                    'action': 'publish',
+                    'version': form.version,
+                    'nas_path': nas_path,
+                    'via': 'api'
+                },
                 ip=get_client_ip(request),
                 user_agent=get_user_agent(request)
             )
-
-        # Generate public link for the published form
-        # URL format: /modules/form/<assignment_token>/
-        # This will be used to create FormAssignment and send to customers
-        public_link_template = f"/modules/form/{{token}}/"
 
         return JsonResponse({
             'success': True,
@@ -260,8 +288,11 @@ def api_form_publish(request, form_id):
                 'status': 'published',
                 'form_id': str(form.id),
                 'form_name': form.name,
-                'public_link_template': public_link_template,
-                'note': 'To create customer assignments, use the assignment endpoint'
+                'customer': form.customer.code,
+                'project': form.project_name,
+                'access_password': form.access_password,
+                'public_url': f'/modules/form/published/{form.id}/',
+                'note': 'Share this URL and password with the customer'
             }
         })
     except Exception as e:

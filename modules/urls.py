@@ -28,6 +28,8 @@ urlpatterns = [
     path('api/v1/forms/<uuid:form_id>/delete/', forms_api.api_form_delete, name='api_form_delete'),
 
     # Public form views
+    path('form/published/<uuid:form_id>/', views.published_form_access, name='published_form_access'),
+    path('form/published/<uuid:form_id>/upload/', views.published_form_upload, name='published_form_upload'),
     path('form/<str:token>/', views.get_form_by_token, name='get_form_by_token'),
     path('form/<uuid:assignment_id>/step/<int:step_order>/', views.form_step_view, name='form_step_view'),
     path('form/<uuid:assignment_id>/upload/', views.upload_document_view, name='upload_document_view'),
