@@ -277,7 +277,7 @@
 
         <div class="validation-error" id="validationError"></div>
 
-        <form id="publishedForm" method="POST" x-data="formState()">
+        <form id="publishedForm" method="POST" action="/modules/form/published/{{ form.id }}/submit/" x-data="formState()">
             {% csrf_token %}
 
             {% for step in steps %}

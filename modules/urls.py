@@ -30,6 +30,7 @@ urlpatterns = [
 
     # Public form views
     path('form/published/<uuid:form_id>/', views.published_form_access, name='published_form_access'),
+    path('form/published/<uuid:form_id>/submit/', views.published_form_submit, name='published_form_submit'),
     path('form/published/<uuid:form_id>/upload/', views.published_form_upload, name='published_form_upload'),
     path('form/success/', views.form_success_view, name='form_success_view'),
     path('form/<str:token>/', views.get_form_by_token, name='get_form_by_token'),

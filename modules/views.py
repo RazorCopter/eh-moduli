@@ -560,3 +560,150 @@ def form_submission_view(request, assignment_id):
     )
 
     return JsonResponse({'status': 'success', 'redirect': '/modules/form/success/'})
+
+
+@require_http_methods(["POST"])
+def published_form_submit(request, form_id):
+    """Submit a published form with document availability tracking."""
+    import os
+    import json
+    import hashlib
+    from datetime import datetime
+
+    try:
+        form = FormTemplate.objects.get(id=form_id, status='published')
+    except FormTemplate.DoesNotExist:
+        return render(request, 'modules/form_not_found.html', status=404)
+
+    session_key = f'form_access_{form_id}'
+    if not request.session.get(session_key, False):
+        return render(request, 'modules/form_password.html', {
+            'form_id': form_id,
+            'error': 'Session expired. Please enter password again.'
+        }, status=401)
+
+    if not form.customer:
+        return render(request, 'modules/form_not_found.html', status=400)
+
+    try:
+        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+        nas_project_path = os.path.join(nas_base, form.customer.nas_folder_name, form.project_name)
+        os.makedirs(nas_project_path, exist_ok=True)
+
+        manifest_path = os.path.join(nas_project_path, 'manifest.json')
+
+        if os.path.exists(manifest_path):
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                manifest = json.load(f)
+        else:
+            manifest = {
+                'form_id': str(form.id),
+                'form_name': form.name,
+                'customer': form.customer.first_name + ' ' + form.customer.last_name,
+                'customer_code': form.customer.code,
+                'project': form.project_name,
+                'created_at': timezone.now().isoformat(),
+                'uploads': []
+            }
+
+        # Process each document requirement
+        for requirement in form.formstep_set.first().documentrequirement_set.all():
+            requirement_id = str(requirement.id)
+            availability_key = f'availability_{requirement_id}'
+            motivation_key = f'motivazione_indisponibilita_{requirement_id}'
+            file_key = f'file_{requirement_id}'
+
+            availability_status = request.POST.get(availability_key, 'uploaded')
+            motivation = request.POST.get(motivation_key, '')
+            uploaded_file = request.FILES.get(file_key)
+
+            doc_record = {
+                'document_name': requirement.name,
+                'requirement_id': requirement_id,
+                'required': requirement.required,
+                'availability_status': availability_status,
+                'upload_datetime': timezone.now().isoformat(),
+                'uploaded_from_ip': get_client_ip(request)
+            }
+
+            if availability_status == 'not_available':
+                doc_record['indisponibile'] = True
+                doc_record['motivazione_indisponibilita'] = motivation
+            elif availability_status == 'uploaded' and uploaded_file:
+                doc_record['indisponibile'] = False
+                doc_record['original_filename'] = uploaded_file.name
+
+                # Generate safe filename
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                ext = uploaded_file.name.split('.')[-1] if '.' in uploaded_file.name else ''
+                import secrets
+                safe_filename = f"{secrets.token_hex(4)}_{timestamp}.{ext}"
+
+                # Save file
+                dest_subfolder = requirement.destination_subfolder or ''
+                file_path_dest = os.path.join(nas_project_path, dest_subfolder)
+                os.makedirs(file_path_dest, exist_ok=True)
+
+                file_full_path = os.path.join(file_path_dest, safe_filename)
+
+                import tempfile
+                with tempfile.NamedTemporaryFile(delete=False, dir=file_path_dest) as tmp:
+                    for chunk in uploaded_file.chunks():
+                        tmp.write(chunk)
+                    tmp_path = tmp.name
+
+                os.replace(tmp_path, file_full_path)
+
+                # Calculate SHA256
+                sha256 = hashlib.sha256()
+                with open(file_full_path, 'rb') as f:
+                    for chunk in iter(lambda: f.read(4096), b''):
+                        sha256.update(chunk)
+
+                doc_record['stored_filename'] = safe_filename
+                doc_record['file_size'] = uploaded_file.size
+                doc_record['sha256'] = sha256.hexdigest()
+                doc_record['mime_type'] = uploaded_file.content_type
+            else:
+                doc_record['indisponibile'] = True
+
+            manifest['uploads'].append(doc_record)
+
+        # Save manifest
+        with open(manifest_path, 'w', encoding='utf-8') as f:
+            json.dump(manifest, f, indent=2, ensure_ascii=False)
+
+        log_action(
+            None,
+            'submit',
+            'PublishedForm',
+            str(form.id),
+            {
+                'customer': form.customer.code,
+                'project': form.project_name,
+                'document_count': len(manifest['uploads'])
+            },
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        return redirect('form_success_view')
+
+    except Exception as e:
+        logger = logging.getLogger('modules')
+        logger.error(f"published_form_submit ERROR: {str(e)}\n{traceback.format_exc()}")
+
+        log_action(
+            None,
+            'submit',
+            'PublishedForm',
+            'ERROR',
+            {'error': str(e), 'form_id': str(form.id)},
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request),
+            success=False
+        )
+
+        return render(request, 'modules/form_not_found.html', {
+            'error': f'Submission failed: {str(e)}'
+        }, status=500)
