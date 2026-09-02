@@ -56,16 +56,25 @@
             font-size: 1.5rem;
             font-weight: 600;
             color: var(--dark);
-            border: none;
+            border: 2px solid transparent;
             background: transparent;
             padding: 0.25rem 0.5rem;
             cursor: text;
             min-width: 200px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .form-title-inline:hover {
+            background: rgba(13, 110, 253, 0.05);
+            border-radius: 4px;
         }
 
         .form-title-inline:focus {
-            outline: 2px solid var(--primary);
+            outline: none;
+            background: #f0f7ff;
+            border-color: var(--primary);
             border-radius: 4px;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
         }
 
         .form-status {
@@ -100,37 +109,75 @@
             font-weight: 600;
             cursor: pointer;
             font-size: 0.875rem;
-            transition: all 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .builder-header-right button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: left 0.3s;
+        }
+
+        .builder-header-right button:hover::before {
+            left: 100%;
         }
 
         .btn-save {
-            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary), #0b5ed7);
             color: white;
             border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
         }
 
         .btn-save:hover {
-            background: #0b5ed7;
+            background: linear-gradient(135deg, #0b5ed7, #0a58ca);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(13, 110, 253, 0.4);
+        }
+
+        .btn-save:active {
+            transform: translateY(0);
         }
 
         .btn-preview {
             background: white;
             color: var(--primary);
-            border-color: var(--primary);
+            border: 2px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.1);
         }
 
         .btn-preview:hover {
             background: #e7f1ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(13, 110, 253, 0.2);
+        }
+
+        .btn-preview:active {
+            transform: translateY(0);
         }
 
         .btn-publish {
-            background: var(--success);
+            background: linear-gradient(135deg, var(--success), #157347);
             color: white;
             border-color: var(--success);
+            box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3);
         }
 
         .btn-publish:hover {
-            background: #157347;
+            background: linear-gradient(135deg, #157347, #0d6935);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(25, 135, 84, 0.4);
+        }
+
+        .btn-publish:active {
+            transform: translateY(0);
         }
 
         .builder-body {
@@ -291,23 +338,47 @@
         .element-item {
             background: var(--light);
             border-left: 4px solid var(--primary);
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 0.75rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 0.875rem;
             cursor: move;
-            transition: all 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .element-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, rgba(13, 110, 253, 0.05), transparent);
+            border-radius: 6px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
         }
 
         .element-item:hover {
-            background: #e9ecef;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: #e7f1ff;
+            border-left-color: #0b5ed7;
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.12);
+            transform: translateX(4px);
+        }
+
+        .element-item:hover::before {
+            opacity: 1;
         }
 
         .element-item.dragging {
-            opacity: 0.5;
+            opacity: 0.6;
+            background: #f0f2f5;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            transform: scale(0.98) rotateZ(-2deg);
         }
 
         .element-info {
@@ -451,6 +522,120 @@
                 font-size: 0.75rem;
                 padding: 0.5rem;
             }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #f0f2f5;
+            padding-bottom: 1rem;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin: 0;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--secondary);
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            color: var(--dark);
+            transform: rotate(90deg);
+        }
+
+        .element-type-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .element-type-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 1.5rem;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .element-type-btn:hover {
+            border-color: var(--primary);
+            background: #f0f7ff;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(13, 110, 253, 0.15);
+        }
+
+        .element-type-btn i {
+            font-size: 1.75rem;
+            color: var(--primary);
+        }
+
+        .element-type-btn span {
+            font-size: 0.875rem;
         }
     </style>
 </head>
@@ -633,45 +818,71 @@
                             <template x-if="form.steps[selectedStep].elements[selectedElement].type === 'document'">
                                 <div>
                                     <div class="form-group">
-                                        <label>Document Name</label>
-                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].name">
+                                        <label>📄 Document Name <span class="text-danger">*</span></label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].name" placeholder="e.g., ID Card, Invoice">
                                     </div>
                                     <div class="form-group">
                                         <label>Description</label>
-                                        <textarea x-model="form.steps[selectedStep].elements[selectedElement].description"></textarea>
+                                        <textarea x-model="form.steps[selectedStep].elements[selectedElement].description" placeholder="Instructions or requirements for this document"></textarea>
+                                    </div>
+                                    <hr style="margin: 1rem 0;">
+                                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+                                        <strong style="font-size: 0.875rem; text-transform: uppercase; color: var(--secondary);">Upload Settings</strong>
                                     </div>
                                     <div class="form-group">
                                         <label>
-                                            <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].required">
-                                            Required
+                                            <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].required" @change="form.steps[selectedStep].elements[selectedElement].awareness_required_when_empty = false">
+                                            <strong>Required Document</strong>
                                         </label>
+                                        <small class="text-muted">Customer must upload to proceed</small>
                                     </div>
                                     <div class="form-group">
-                                        <label>Allowed Extensions (comma-separated)</label>
-                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].allowed_extensions" placeholder="pdf,docx,xlsx">
+                                        <label>Allowed File Types</label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].allowed_extensions" placeholder="pdf,docx,xlsx,jpg,png" title="Comma-separated extensions">
+                                        <small class="text-muted">Comma-separated (e.g.: pdf,docx,jpg)</small>
                                     </div>
                                     <div class="form-group">
-                                        <label>Max File Size (bytes)</label>
-                                        <input type="number" x-model.number="form.steps[selectedStep].elements[selectedElement].max_file_size" placeholder="10485760">
+                                        <label>Max File Size (MB)</label>
+                                        <input type="number" x-model.number="form.steps[selectedStep].elements[selectedElement].max_file_size" @change="form.steps[selectedStep].elements[selectedElement].max_file_size = form.steps[selectedStep].elements[selectedElement].max_file_size * 1024 * 1024" placeholder="10" value="10">
+                                        <small class="text-muted">Default: 10 MB</small>
                                     </div>
                                     <div class="form-group">
-                                        <label>Max Files</label>
-                                        <input type="number" x-model.number="form.steps[selectedStep].elements[selectedElement].max_files" placeholder="1">
+                                        <label>Max Files to Upload</label>
+                                        <input type="number" x-model.number="form.steps[selectedStep].elements[selectedElement].max_files" placeholder="1" min="1" value="1">
+                                        <small class="text-muted">Number of files customer can upload</small>
                                     </div>
                                     <div class="form-group">
-                                        <label>Destination Subfolder</label>
-                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].destination_subfolder" placeholder="subfolder">
+                                        <label>NAS Destination Subfolder</label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].destination_subfolder" placeholder="e.g., /identity_docs" title="NAS subfolder path">
+                                        <small class="text-muted">Subfolder on NAS where files are saved</small>
                                     </div>
-                                    <div class="form-group">
-                                        <label>Awareness Text (optional)</label>
-                                        <textarea x-model="form.steps[selectedStep].elements[selectedElement].awareness_text" placeholder="Text shown if document is optional"></textarea>
+                                    <hr style="margin: 1rem 0;">
+                                    <div style="background: #fff3cd; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
+                                        <strong style="font-size: 0.875rem; text-transform: uppercase; color: #856404;">Optional Document Settings</strong>
                                     </div>
                                     <div class="form-group">
                                         <label>
-                                            <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].awareness_required_when_empty">
-                                            Require awareness if not uploaded
+                                            <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].required" @change="form.steps[selectedStep].elements[selectedElement].required = !form.steps[selectedStep].elements[selectedElement].required">
+                                            <strong>Optional Document</strong>
                                         </label>
+                                        <small class="text-muted">Customer can skip this document</small>
                                     </div>
+                                    <template x-if="!form.steps[selectedStep].elements[selectedElement].required">
+                                        <div>
+                                            <div class="form-group">
+                                                <label>Awareness Declaration Text</label>
+                                                <textarea x-model="form.steps[selectedStep].elements[selectedElement].awareness_text" placeholder="e.g., 'I declare that I don't have this document'" style="min-height: 60px;"></textarea>
+                                                <small class="text-muted">Text shown when customer skips this document</small>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>
+                                                    <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].awareness_required_when_empty">
+                                                    <strong>☑️ Declaration is Required</strong>
+                                                </label>
+                                                <small class="text-muted">Customer must accept the declaration to proceed without uploading</small>
+                                            </div>
+                                        </div>
+                                    </template>
                                 </div>
                             </template>
                         </div>
@@ -684,6 +895,52 @@
                         Select a step or element to edit properties
                     </div>
                 </template>
+            </div>
+        </div>
+
+        <!-- Modal: Element Type Selector -->
+        <div class="modal-overlay" x-show="showElementModal" @click.self="closeElementModal()" style="display: none;">
+            <div class="modal-content">
+                <button class="modal-close" @click="closeElementModal()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+                <div class="modal-header">
+                    <h2 class="modal-title">Add Element to Step</h2>
+                </div>
+                <div class="element-type-grid">
+                    <button class="element-type-btn" @click="addElement('text_field')">
+                        <i class="bi bi-input-cursor-text"></i>
+                        <span>Text Field</span>
+                    </button>
+                    <button class="element-type-btn" @click="addElement('email_field')">
+                        <i class="bi bi-envelope"></i>
+                        <span>Email</span>
+                    </button>
+                    <button class="element-type-btn" @click="addElement('phone_field')">
+                        <i class="bi bi-telephone"></i>
+                        <span>Phone</span>
+                    </button>
+                    <button class="element-type-btn" @click="addElement('date_field')">
+                        <i class="bi bi-calendar"></i>
+                        <span>Date</span>
+                    </button>
+                    <button class="element-type-btn" @click="addElement('text_info')">
+                        <i class="bi bi-info-circle"></i>
+                        <span>Info Text</span>
+                    </button>
+                    <button class="element-type-btn" @click="addElement('separator')">
+                        <i class="bi bi-dash"></i>
+                        <span>Separator</span>
+                    </button>
+                    <button class="element-type-btn" @click="addElement('awareness_declaration')">
+                        <i class="bi bi-check-circle"></i>
+                        <span>Declaration</span>
+                    </button>
+                    <button class="element-type-btn" @click="addElement('doc_upload')">
+                        <i class="bi bi-file-earmark-arrow-up"></i>
+                        <span>Document</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -705,6 +962,8 @@
                 },
                 selectedStep: null,
                 selectedElement: null,
+                showElementModal: false,
+                currentStepForElement: null,
                 csrfToken: '{{ csrf_token }}',
 
                 init() {
@@ -765,9 +1024,60 @@
                     this.selectedElement = null;
                 },
 
+                openElementModal(stepIndex) {
+                    this.currentStepForElement = stepIndex;
+                    this.showElementModal = true;
+                },
+
+                closeElementModal() {
+                    this.showElementModal = false;
+                    this.currentStepForElement = null;
+                },
+
+                addElement(elementType) {
+                    const stepIndex = this.currentStepForElement;
+                    const step = this.form.steps[stepIndex];
+
+                    let newElement;
+
+                    if (elementType === 'doc_upload') {
+                        newElement = {
+                            id: 'doc-' + Date.now(),
+                            type: 'document',
+                            name: 'New Document',
+                            description: '',
+                            required: true,
+                            allowed_extensions: 'pdf,docx',
+                            mime_types: 'application/pdf,application/msword',
+                            max_file_size: 10485760,
+                            max_files: 1,
+                            destination_subfolder: '',
+                            order: step.elements.length,
+                            awareness_text: '',
+                            awareness_required_when_empty: false
+                        };
+                    } else {
+                        newElement = {
+                            id: 'elem-' + Date.now(),
+                            type: 'element',
+                            element_type: elementType,
+                            order: step.elements.length,
+                            config: {
+                                label: elementType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                                placeholder: '',
+                                text: '',
+                                required: elementType !== 'separator'
+                            }
+                        };
+                    }
+
+                    step.elements.push(newElement);
+                    this.selectElement(stepIndex, step.elements.length - 1);
+                    this.closeElementModal();
+                },
+
                 addElementToStep(stepIndex) {
-                    // Modal or quick-add dialog would go here
-                    alert('Element type selection modal would appear here');
+                    this.openElementModal(stepIndex);
                 },
 
                 deleteElement(stepIndex, elemIndex) {
