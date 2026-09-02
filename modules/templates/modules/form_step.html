@@ -21,6 +21,75 @@
                 {% endif %}
 
                 <div class="mt-5">
+                    {% for element in step.formelement_set.all %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            {% if element.element_type == 'text_field' %}
+                            <div class="mb-3">
+                                <label for="elem-{{ element.id }}" class="form-label">
+                                    {{ element.config.label|default:"Text Input" }}
+                                    {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                <input type="text" class="form-control" id="elem-{{ element.id }}"
+                                       placeholder="{{ element.config.placeholder|default:'' }}"
+                                       {% if element.config.required %}required{% endif %}>
+                            </div>
+
+                            {% elif element.element_type == 'email_field' %}
+                            <div class="mb-3">
+                                <label for="elem-{{ element.id }}" class="form-label">
+                                    {{ element.config.label|default:"Email Address" }}
+                                    {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                <input type="email" class="form-control" id="elem-{{ element.id }}"
+                                       placeholder="{{ element.config.placeholder|default:'name@example.com' }}"
+                                       {% if element.config.required %}required{% endif %}>
+                            </div>
+
+                            {% elif element.element_type == 'phone_field' %}
+                            <div class="mb-3">
+                                <label for="elem-{{ element.id }}" class="form-label">
+                                    {{ element.config.label|default:"Phone Number" }}
+                                    {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                <input type="tel" class="form-control" id="elem-{{ element.id }}"
+                                       placeholder="{{ element.config.placeholder|default:'+39 0XX XXXX XXXX' }}"
+                                       {% if element.config.required %}required{% endif %}>
+                            </div>
+
+                            {% elif element.element_type == 'date_field' %}
+                            <div class="mb-3">
+                                <label for="elem-{{ element.id }}" class="form-label">
+                                    {{ element.config.label|default:"Date" }}
+                                    {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                <input type="date" class="form-control" id="elem-{{ element.id }}"
+                                       {% if element.config.required %}required{% endif %}>
+                            </div>
+
+                            {% elif element.element_type == 'text_info' %}
+                            <div class="alert alert-info" role="alert">
+                                {{ element.config.text|default:"Information" }}
+                            </div>
+
+                            {% elif element.element_type == 'separator' %}
+                            <hr>
+
+                            {% elif element.element_type == 'awareness_declaration' %}
+                            <div class="alert alert-warning" role="alert">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="aware-{{ element.id }}"
+                                           {% if element.config.required %}required{% endif %}>
+                                    <label class="form-check-label" for="aware-{{ element.id }}">
+                                        {{ element.config.text|default:"I accept the terms" }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+
                     {% for req in requirements %}
                     <div class="card mb-3">
                         <div class="card-header">
@@ -53,6 +122,17 @@
                                     hx-confirm="Sei sicuro di voler saltare questo documento?">
                                 ⊘ Salta documento
                             </button>
+                            {% endif %}
+
+                            {% if not req.required and req.awareness_text and req.awareness_required_when_empty %}
+                            <div class="alert alert-info mt-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="aware-doc-{{ req.id }}" required>
+                                    <label class="form-check-label" for="aware-doc-{{ req.id }}">
+                                        {{ req.awareness_text }}
+                                    </label>
+                                </div>
+                            </div>
                             {% endif %}
                         </div>
                     </div>

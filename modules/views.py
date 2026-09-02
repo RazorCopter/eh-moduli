@@ -13,7 +13,8 @@ from .upload_security import (
 from .views_admin import (
     admin_dashboard, form_template_list, form_template_create,
     form_template_edit, form_template_duplicate, customer_list,
-    customer_create, assignment_detail, assign_form_to_customer
+    customer_create, assignment_detail, assign_form_to_customer,
+    builder_list, builder_create, builder_edit, builder_preview
 )
 import os
 

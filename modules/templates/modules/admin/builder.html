@@ -1,0 +1,871 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Builder - {{ template.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0d6efd;
+            --secondary: #6c757d;
+            --success: #198754;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --light: #f8f9fa;
+            --dark: #212529;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        .builder-container {
+            display: flex;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .builder-header {
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .builder-header-left {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .form-title-inline {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark);
+            border: none;
+            background: transparent;
+            padding: 0.25rem 0.5rem;
+            cursor: text;
+            min-width: 200px;
+        }
+
+        .form-title-inline:focus {
+            outline: 2px solid var(--primary);
+            border-radius: 4px;
+        }
+
+        .form-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .form-status.draft {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .form-status.published {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .builder-header-right {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .builder-header-right button {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .btn-save {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .btn-save:hover {
+            background: #0b5ed7;
+        }
+
+        .btn-preview {
+            background: white;
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .btn-preview:hover {
+            background: #e7f1ff;
+        }
+
+        .btn-publish {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .btn-publish:hover {
+            background: #157347;
+        }
+
+        .builder-body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .builder-sidebar-left {
+            width: 250px;
+            background: white;
+            border-right: 1px solid #e9ecef;
+            padding: 1.5rem;
+            overflow-y: auto;
+            box-shadow: 1px 0 3px rgba(0,0,0,0.05);
+        }
+
+        .sidebar-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1rem;
+        }
+
+        .element-palette {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .palette-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--light);
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: move;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--dark);
+            transition: all 0.2s;
+        }
+
+        .palette-item:hover {
+            background: #e9ecef;
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .palette-item i {
+            font-size: 1.25rem;
+        }
+
+        .builder-canvas {
+            flex: 1;
+            background: #f0f2f5;
+            padding: 2rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .canvas-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .step-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: move;
+        }
+
+        .step-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .step-card.dragging {
+            opacity: 0.5;
+        }
+
+        .step-header {
+            background: linear-gradient(135deg, var(--primary), #0a58ca);
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .step-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .step-drag-handle {
+            cursor: grab;
+            font-size: 1.25rem;
+            opacity: 0.7;
+        }
+
+        .step-drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .step-title {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .step-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .step-actions button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .step-actions button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .step-content {
+            padding: 1.5rem;
+        }
+
+        .step-content.collapsed {
+            display: none;
+        }
+
+        .element-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .element-item {
+            background: var(--light);
+            border-left: 4px solid var(--primary);
+            border-radius: 4px;
+            padding: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            cursor: move;
+            transition: all 0.2s;
+        }
+
+        .element-item:hover {
+            background: #e9ecef;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .element-item.dragging {
+            opacity: 0.5;
+        }
+
+        .element-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .element-icon {
+            font-size: 1rem;
+            color: var(--primary);
+        }
+
+        .element-name {
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .element-actions {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .element-actions button {
+            background: none;
+            border: none;
+            color: var(--secondary);
+            cursor: pointer;
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .element-actions button:hover {
+            color: var(--primary);
+        }
+
+        .add-element-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--light);
+            border: 2px dashed var(--primary);
+            border-radius: 6px;
+            color: var(--primary);
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .add-element-btn:hover {
+            background: #e7f1ff;
+        }
+
+        .builder-sidebar-right {
+            width: 300px;
+            background: white;
+            border-left: 1px solid #e9ecef;
+            padding: 1.5rem;
+            overflow-y: auto;
+            box-shadow: -1px 0 3px rgba(0,0,0,0.05);
+        }
+
+        .properties-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .properties-section {
+            border-bottom: 1px solid #e9ecef;
+            padding-bottom: 1.5rem;
+        }
+
+        .properties-section:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: var(--dark);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .no-selection {
+            color: var(--secondary);
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 1200px) {
+            .builder-sidebar-right {
+                width: 250px;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .builder-sidebar-left {
+                width: 200px;
+                padding: 1rem;
+            }
+
+            .builder-sidebar-right {
+                width: 200px;
+                padding: 1rem;
+            }
+
+            .palette-item {
+                font-size: 0.75rem;
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="builder-container" x-data="builderApp()">
+        <!-- Header -->
+        <div class="builder-header">
+            <div class="builder-header-left">
+                <input type="text" class="form-title-inline" x-model="form.name" placeholder="Form Title" @blur="autoSave()">
+                <span class="form-status" :class="form.status">
+                    <i :class="form.status === 'published' ? 'bi-check-circle' : 'bi-pencil'"></i>
+                    <span x-text="form.status === 'published' ? 'Published' : 'Draft'"></span>
+                </span>
+            </div>
+            <div class="builder-header-right">
+                <button class="btn-preview" @click="preview()">
+                    <i class="bi bi-eye"></i> Preview
+                </button>
+                <button class="btn-save" @click="save()">
+                    <i class="bi bi-save"></i> Save
+                </button>
+                <button class="btn-publish" @click="publish()" x-show="form.status === 'draft'">
+                    <i class="bi bi-cloud-check"></i> Publish
+                </button>
+            </div>
+        </div>
+
+        <!-- Body: 3-zone layout -->
+        <div class="builder-body">
+            <!-- Left Sidebar: Palette -->
+            <div class="builder-sidebar-left">
+                <div class="sidebar-title">Elements Palette</div>
+                <div class="element-palette">
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'text_field')">
+                        <i class="bi bi-input-cursor-text"></i>
+                        <span>Text Field</span>
+                    </div>
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'email_field')">
+                        <i class="bi bi-envelope"></i>
+                        <span>Email</span>
+                    </div>
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'phone_field')">
+                        <i class="bi bi-telephone"></i>
+                        <span>Phone</span>
+                    </div>
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'date_field')">
+                        <i class="bi bi-calendar"></i>
+                        <span>Date</span>
+                    </div>
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'text_info')">
+                        <i class="bi bi-info-circle"></i>
+                        <span>Info Text</span>
+                    </div>
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'separator')">
+                        <i class="bi bi-dash"></i>
+                        <span>Separator</span>
+                    </div>
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'doc_upload')">
+                        <i class="bi bi-file-earmark-arrow-up"></i>
+                        <span>Document Upload</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center: Canvas -->
+            <div class="builder-canvas">
+                <div class="canvas-title">Steps</div>
+
+                <template x-if="form.steps.length === 0">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> Add a step to get started
+                    </div>
+                </template>
+
+                <div id="steps-container">
+                    <template x-for="(step, stepIndex) in form.steps" :key="step.id">
+                        <div class="step-card" :class="{dragging: step.dragging}" draggable="true"
+                             @dragstart="dragStartStep($event, stepIndex)"
+                             @dragend="dragEndStep($event)"
+                             @dragover.prevent
+                             @drop="dropStep($event, stepIndex)">
+                            <div class="step-header">
+                                <div class="step-header-left">
+                                    <span class="step-drag-handle" draggable="true">
+                                        <i class="bi bi-grip-vertical"></i>
+                                    </span>
+                                    <input type="text" class="step-title" x-model="step.title" placeholder="Step Title" style="background: transparent; border: none; color: white;">
+                                </div>
+                                <div class="step-actions">
+                                    <button @click="selectStep(stepIndex)" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button @click="deleteStep(stepIndex)" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="step-content" :class="{collapsed: selectedStep !== stepIndex}">
+                                <div class="element-list" :id="`step-${step.id}`">
+                                    <template x-for="(element, elemIndex) in step.elements" :key="element.id">
+                                        <div class="element-item" draggable="true"
+                                             @dragstart="dragStartElement($event, stepIndex, elemIndex)"
+                                             @dragend="dragEndElement($event)"
+                                             @dragover.prevent
+                                             @drop="dropElement($event, stepIndex, elemIndex)"
+                                             @click="selectElement(stepIndex, elemIndex)">
+                                            <div class="element-info">
+                                                <i class="element-icon bi" :class="getElementIcon(element)"></i>
+                                                <span class="element-name" x-text="element.type === 'element' ? element.element_type : element.name"></span>
+                                            </div>
+                                            <div class="element-actions">
+                                                <button @click.stop="deleteElement(stepIndex, elemIndex)">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <button class="add-element-btn" @click="addElementToStep(stepIndex)">
+                                    + Add Element
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <button class="btn btn-primary" @click="addStep()" style="align-self: flex-start;">
+                    <i class="bi bi-plus"></i> Add Step
+                </button>
+            </div>
+
+            <!-- Right Sidebar: Properties -->
+            <div class="builder-sidebar-right">
+                <template x-if="selectedStep !== null && form.steps[selectedStep]">
+                    <div class="properties-panel">
+                        <div>
+                            <div class="section-title">Step Properties</div>
+                            <div class="form-group">
+                                <label>Title</label>
+                                <input type="text" x-model="form.steps[selectedStep].title" placeholder="Step title">
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea x-model="form.steps[selectedStep].description" placeholder="Optional description"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="selectedStep !== null && selectedElement !== null && form.steps[selectedStep] && form.steps[selectedStep].elements[selectedElement]">
+                    <div class="properties-panel">
+                        <div>
+                            <div class="section-title">Element Properties</div>
+                            <template x-if="form.steps[selectedStep].elements[selectedElement].type === 'element'">
+                                <div>
+                                    <div class="form-group">
+                                        <label>Type</label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].element_type" readonly>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Label</label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.label" placeholder="Field label">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Placeholder</label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.placeholder" placeholder="Placeholder text">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>
+                                            <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].config.required">
+                                            Required
+                                        </label>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="form.steps[selectedStep].elements[selectedElement].type === 'document'">
+                                <div>
+                                    <div class="form-group">
+                                        <label>Document Name</label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Description</label>
+                                        <textarea x-model="form.steps[selectedStep].elements[selectedElement].description"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>
+                                            <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].required">
+                                            Required
+                                        </label>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Allowed Extensions (comma-separated)</label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].allowed_extensions" placeholder="pdf,docx,xlsx">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Max File Size (bytes)</label>
+                                        <input type="number" x-model.number="form.steps[selectedStep].elements[selectedElement].max_file_size" placeholder="10485760">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Max Files</label>
+                                        <input type="number" x-model.number="form.steps[selectedStep].elements[selectedElement].max_files" placeholder="1">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Destination Subfolder</label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].destination_subfolder" placeholder="subfolder">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Awareness Text (optional)</label>
+                                        <textarea x-model="form.steps[selectedStep].elements[selectedElement].awareness_text" placeholder="Text shown if document is optional"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>
+                                            <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].awareness_required_when_empty">
+                                            Require awareness if not uploaded
+                                        </label>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="selectedStep === null && selectedElement === null">
+                    <div class="no-selection">
+                        <i class="bi bi-cursor-text" style="font-size: 2rem; margin-bottom: 1rem; display: block; color: var(--secondary);"></i>
+                        Select a step or element to edit properties
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="{% static 'js/builder.js' %}"></script>
+
+    <script>
+        function builderApp() {
+            return {
+                form: {
+                    id: '{{ template.id }}',
+                    name: '{{ template.name }}',
+                    description: '{{ template.description }}',
+                    intro_text: '{{ template.intro_text }}',
+                    privacy_text: '{{ template.privacy_text }}',
+                    status: '{{ template.status }}',
+                    steps: []
+                },
+                selectedStep: null,
+                selectedElement: null,
+                csrfToken: '{{ csrf_token }}',
+
+                init() {
+                    this.loadForm();
+                    this.initSortable();
+                },
+
+                async loadForm() {
+                    try {
+                        const response = await fetch(`/modules/api/v1/forms/{{ template.id }}/`);
+                        const result = await response.json();
+                        if (result.success) {
+                            this.form = result.data;
+                        }
+                    } catch (e) {
+                        console.error('Error loading form:', e);
+                    }
+                },
+
+                initSortable() {
+                    // TODO: Initialize Sortable for steps and elements
+                },
+
+                getElementIcon(element) {
+                    const iconMap = {
+                        text_field: 'bi-input-cursor-text',
+                        email_field: 'bi-envelope',
+                        phone_field: 'bi-telephone',
+                        date_field: 'bi-calendar',
+                        text_info: 'bi-info-circle',
+                        separator: 'bi-dash',
+                        document: 'bi-file-earmark'
+                    };
+                    return iconMap[element.element_type] || iconMap[element.type] || 'bi-question-circle';
+                },
+
+                addStep() {
+                    this.form.steps.push({
+                        id: 'step-' + Date.now(),
+                        title: `Step ${this.form.steps.length + 1}`,
+                        description: '',
+                        order: this.form.steps.length,
+                        required: true,
+                        active: true,
+                        elements: []
+                    });
+                },
+
+                deleteStep(index) {
+                    if (confirm('Delete this step?')) {
+                        this.form.steps.splice(index, 1);
+                        this.selectedStep = null;
+                    }
+                },
+
+                selectStep(index) {
+                    this.selectedStep = index;
+                    this.selectedElement = null;
+                },
+
+                addElementToStep(stepIndex) {
+                    // Modal or quick-add dialog would go here
+                    alert('Element type selection modal would appear here');
+                },
+
+                deleteElement(stepIndex, elemIndex) {
+                    this.form.steps[stepIndex].elements.splice(elemIndex, 1);
+                },
+
+                selectElement(stepIndex, elemIndex) {
+                    this.selectedStep = stepIndex;
+                    this.selectedElement = elemIndex;
+                },
+
+                dragStartPalette(e, elementType) {
+                    e.dataTransfer.effectAllowed = 'copy';
+                    e.dataTransfer.setData('elementType', elementType);
+                },
+
+                dragStartStep(e, stepIndex) {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('stepIndex', stepIndex);
+                    this.form.steps[stepIndex].dragging = true;
+                },
+
+                dragEndStep(e) {
+                    this.form.steps.forEach(s => s.dragging = false);
+                },
+
+                dropStep(e, stepIndex) {
+                    e.preventDefault();
+                    const sourceIndex = parseInt(e.dataTransfer.getData('stepIndex'));
+                    if (sourceIndex !== stepIndex) {
+                        const step = this.form.steps.splice(sourceIndex, 1)[0];
+                        this.form.steps.splice(stepIndex, 0, step);
+                    }
+                },
+
+                dragStartElement(e, stepIndex, elemIndex) {
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('elementInfo', JSON.stringify({stepIndex, elemIndex}));
+                },
+
+                dragEndElement(e) {
+                    // TODO
+                },
+
+                dropElement(e, stepIndex, elemIndex) {
+                    // TODO: Handle element reordering
+                },
+
+                async save() {
+                    try {
+                        const response = await fetch(`/modules/api/v1/forms/{{ template.id }}/save/`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': this.csrfToken
+                            },
+                            body: JSON.stringify(this.form)
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            alert('Form saved successfully!');
+                        } else {
+                            alert('Error saving form: ' + result.error);
+                        }
+                    } catch (e) {
+                        alert('Error: ' + e.message);
+                    }
+                },
+
+                async publish() {
+                    if (!confirm('Publish this form? It will become read-only.')) return;
+                    try {
+                        const response = await fetch(`/modules/api/v1/forms/{{ template.id }}/publish/`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': this.csrfToken
+                            }
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            this.form.status = 'published';
+                            alert('Form published!');
+                        }
+                    } catch (e) {
+                        alert('Error: ' + e.message);
+                    }
+                },
+
+                preview() {
+                    window.open(`/modules/admin/builder/{{ template.id }}/preview/`, '_blank');
+                },
+
+                autoSave() {
+                    // Debounced auto-save on blur
+                    clearTimeout(this.autoSaveTimer);
+                    this.autoSaveTimer = setTimeout(() => this.save(), 1000);
+                }
+            };
+        }
+    </script>
+</body>
+</html>

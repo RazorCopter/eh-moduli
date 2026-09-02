@@ -1,0 +1,321 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview: {{ template.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f2f5;
+        }
+        .preview-header {
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .preview-badge {
+            display: inline-block;
+            background: #ffc107;
+            color: #212529;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .form-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 1rem 2rem 1rem;
+        }
+        .form-intro {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .form-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #212529;
+            margin-bottom: 1rem;
+        }
+        .form-description {
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+        .step-container {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .step-header {
+            background: linear-gradient(135deg, #0d6efd, #0a58ca);
+            color: white;
+            padding: 1rem;
+            margin: -2rem -2rem 1.5rem -2rem;
+            border-radius: 8px 8px 0 0;
+        }
+        .step-number {
+            display: inline-block;
+            background: rgba(255,255,255,0.3);
+            color: white;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin-right: 1rem;
+        }
+        .step-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        .step-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .element {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .element.text-info {
+            background: #e7f3ff;
+            border-left: 4px solid #0d6efd;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+        .element.separator {
+            margin: 1rem 0;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #212529;
+        }
+        .form-label.required::after {
+            content: ' *';
+            color: #dc3545;
+        }
+        .form-control {
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.1);
+        }
+        .document-section {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 1rem;
+            border: 2px dashed #ddd;
+        }
+        .document-upload {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 120px;
+            border: 2px dashed #0d6efd;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #f0f7ff;
+            text-align: center;
+            color: #0d6efd;
+        }
+        .document-upload:hover {
+            background: #e7f1ff;
+        }
+        .awareness-declaration {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+        .awareness-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+        }
+        .awareness-checkbox input {
+            margin-top: 0.25rem;
+        }
+        .privacy-section {
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid #6c757d;
+        }
+        .privacy-title {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #212529;
+        }
+        .privacy-text {
+            font-size: 0.875rem;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+        .preview-note {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 2rem;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-header">
+        <div class="preview-badge">
+            <i class="bi bi-eye"></i> PREVIEW MODE
+        </div>
+        <h1 style="margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700;">{{ template.name }}</h1>
+        <p style="margin: 0; color: #6c757d;">Read-only preview. Elements are not functional.</p>
+    </div>
+
+    <div class="form-container">
+        <div class="preview-note">
+            <i class="bi bi-info-circle"></i> This is how your form will appear to customers. No data is saved in preview mode.
+        </div>
+
+        {% if template.intro_text %}
+            <div class="form-intro">
+                <h2 class="form-title">{{ template.name }}</h2>
+                <div class="form-description" style="white-space: pre-wrap;">{{ template.intro_text }}</div>
+            </div>
+        {% endif %}
+
+        {% for step in steps %}
+            <div class="step-container">
+                <div class="step-header">
+                    <div style="display: flex; align-items: center;">
+                        <div class="step-number">{{ forloop.counter }}</div>
+                        <div class="step-title">{{ step.title }}</div>
+                    </div>
+                </div>
+
+                <div class="step-content">
+                    {% for element in step.formelement_set.all %}
+                        {% if element.element_type == 'text_field' %}
+                            <div class="element">
+                                <label class="form-label" {% if element.config.required %}required{% endif %}>
+                                    {{ element.config.label|default:"Text Input" }}
+                                </label>
+                                <input type="text" class="form-control" placeholder="{{ element.config.placeholder|default:'' }}" disabled>
+                            </div>
+                        {% elif element.element_type == 'email_field' %}
+                            <div class="element">
+                                <label class="form-label" {% if element.config.required %}required{% endif %}>
+                                    {{ element.config.label|default:"Email Address" }}
+                                </label>
+                                <input type="email" class="form-control" placeholder="{{ element.config.placeholder|default:'name@example.com' }}" disabled>
+                            </div>
+                        {% elif element.element_type == 'phone_field' %}
+                            <div class="element">
+                                <label class="form-label" {% if element.config.required %}required{% endif %}>
+                                    {{ element.config.label|default:"Phone Number" }}
+                                </label>
+                                <input type="tel" class="form-control" placeholder="{{ element.config.placeholder|default:'+39 0XX XXXX XXXX' }}" disabled>
+                            </div>
+                        {% elif element.element_type == 'date_field' %}
+                            <div class="element">
+                                <label class="form-label" {% if element.config.required %}required{% endif %}>
+                                    {{ element.config.label|default:"Date" }}
+                                </label>
+                                <input type="date" class="form-control" disabled>
+                            </div>
+                        {% elif element.element_type == 'text_info' %}
+                            <div class="element text-info">
+                                <p style="margin: 0; white-space: pre-wrap;">{{ element.config.text|default:"Information text" }}</p>
+                            </div>
+                        {% elif element.element_type == 'separator' %}
+                            <div class="element separator"></div>
+                        {% elif element.element_type == 'awareness_declaration' %}
+                            <div class="element awareness-declaration">
+                                <strong>{{ element.config.label|default:"Declaration" }}</strong>
+                                <p style="margin: 0.75rem 0 0 0; font-size: 0.875rem;">{{ element.config.text|default:"" }}</p>
+                                <div class="awareness-checkbox">
+                                    <input type="checkbox" id="aware-{{ element.id }}" disabled>
+                                    <label for="aware-{{ element.id }}" style="margin: 0;">
+                                        I accept the above terms
+                                    </label>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% for doc_req in step.documentrequirement_set.all %}
+                        <div class="element">
+                            <label class="form-label" {% if doc_req.required %}required{% endif %}>
+                                {{ doc_req.name }}
+                            </label>
+                            {% if doc_req.description %}
+                                <small class="text-muted">{{ doc_req.description }}</small>
+                            {% endif %}
+                            <div class="document-section">
+                                <div class="document-upload" style="cursor: not-allowed;">
+                                    <div>
+                                        <i class="bi bi-cloud-upload" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                                        <strong>Click to upload or drag</strong>
+                                        <br>
+                                        <small>Allowed: {{ doc_req.allowed_extensions }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% if not doc_req.required and doc_req.awareness_text %}
+                                <div class="awareness-declaration" style="margin-top: 1rem;">
+                                    <small><strong>Note:</strong> This document is optional.</small>
+                                    <div class="awareness-checkbox">
+                                        <input type="checkbox" disabled>
+                                        <label style="margin: 0;">
+                                            {{ doc_req.awareness_text }}
+                                        </label>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+
+        {% if template.privacy_text %}
+            <div class="privacy-section">
+                <div class="privacy-title">
+                    <i class="bi bi-shield-lock"></i> Privacy & Data Protection
+                </div>
+                <div class="privacy-text" style="white-space: pre-wrap;">{{ template.privacy_text }}</div>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="form-container" style="text-align: center; padding-bottom: 4rem;">
+        <button class="btn btn-primary btn-lg" disabled>
+            <i class="bi bi-check-circle"></i> Submit Form (disabled in preview)
+        </button>
+        <a href="{% url 'builder_edit' template.id %}" class="btn btn-secondary btn-lg" style="margin-left: 1rem;">
+            <i class="bi bi-pencil"></i> Back to Editor
+        </a>
+    </div>
+</body>
+</html>

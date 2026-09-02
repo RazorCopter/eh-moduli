@@ -4,6 +4,7 @@ from django.utils import timezone
 import uuid
 import secrets
 import string
+import json
 from .validators import (
     validate_folder_name,
     validate_subfolder_name,
@@ -70,6 +71,7 @@ class FormTemplate(models.Model):
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    family_id = models.UUIDField(default=uuid.uuid4, editable=False, db_index=True, help_text="Groups all versions of the same logical form")
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     intro_text = models.TextField()
@@ -87,6 +89,7 @@ class FormTemplate(models.Model):
         indexes = [
             models.Index(fields=['status']),
             models.Index(fields=['created_at']),
+            models.Index(fields=['family_id']),
         ]
 
     def __str__(self):
@@ -94,6 +97,7 @@ class FormTemplate(models.Model):
 
     def duplicate(self):
         new_form = FormTemplate.objects.create(
+            family_id=self.family_id,
             name=f"{self.name} (copy)",
             description=self.description,
             intro_text=self.intro_text,
@@ -125,6 +129,13 @@ class FormTemplate(models.Model):
                     order=requirement.order,
                     awareness_text=requirement.awareness_text,
                     awareness_required_when_empty=requirement.awareness_required_when_empty
+                )
+            for element in step.formelement_set.all():
+                FormElement.objects.create(
+                    form_step=new_step,
+                    element_type=element.element_type,
+                    order=element.order,
+                    config=element.config
                 )
         return new_form
 
@@ -181,6 +192,33 @@ class DocumentRequirement(models.Model):
 
     def __str__(self):
         return f"{self.form_step.form_template.name} - {self.name}"
+
+class FormElement(models.Model):
+    ELEMENT_TYPE_CHOICES = [
+        ('text_field', 'Text Field'),
+        ('email_field', 'Email Field'),
+        ('phone_field', 'Phone Field'),
+        ('date_field', 'Date Field'),
+        ('text_info', 'Info Text'),
+        ('awareness_declaration', 'Awareness Declaration'),
+        ('separator', 'Separator'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    form_step = models.ForeignKey(FormStep, on_delete=models.CASCADE)
+    element_type = models.CharField(max_length=50, choices=ELEMENT_TYPE_CHOICES)
+    order = models.IntegerField(help_text="Display order within the step")
+    config = models.JSONField(default=dict, blank=True, help_text="Type-specific configuration (label, placeholder, required, etc.)")
+
+    class Meta:
+        ordering = ['order']
+        indexes = [
+            models.Index(fields=['form_step', 'order']),
+        ]
+
+    def __str__(self):
+        return f"{self.form_step.form_template.name} - {self.element_type} (order {self.order})"
+
 
 class FormAssignment(models.Model):
     STATUS_CHOICES = [

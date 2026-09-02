@@ -6,7 +6,7 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from .models import (
     FormTemplate, FormStep, DocumentRequirement, Customer,
-    FormAssignment, DocumentUpload
+    FormAssignment, DocumentUpload, FormElement
 )
 from .utils import log_action, get_client_ip, get_user_agent
 
@@ -228,3 +228,74 @@ def assign_form_to_customer(request):
     }
 
     return render(request, 'modules/admin/assign_form.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def builder_list(request):
+    """List all forms (drafts and published)."""
+    forms = FormTemplate.objects.annotate(
+        steps_count=Count('formstep')
+    ).order_by('-created_at')
+
+    context = {'forms': forms}
+    return render(request, 'modules/admin/builder_list.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def builder_create(request):
+    """Create new form (opens builder)."""
+    if request.method == 'POST':
+        name = request.POST.get('name', 'Untitled Form')
+        description = request.POST.get('description', '')
+        intro_text = request.POST.get('intro_text', '')
+        privacy_text = request.POST.get('privacy_text', '')
+
+        template = FormTemplate.objects.create(
+            name=name,
+            description=description,
+            intro_text=intro_text,
+            privacy_text=privacy_text,
+            author=request.user,
+            status='draft'
+        )
+
+        log_action(
+            request.user,
+            'create',
+            'FormTemplate',
+            str(template.id),
+            {'via': 'builder'},
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        return redirect('builder_edit', pk=template.id)
+
+    return render(request, 'modules/admin/builder_create.html')
+
+
+@login_required
+@user_passes_test(is_admin)
+def builder_edit(request, pk):
+    """Edit form in builder."""
+    template = get_object_or_404(FormTemplate, id=pk)
+
+    context = {'template': template}
+    return render(request, 'modules/admin/builder.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def builder_preview(request, pk):
+    """Preview form as client would see it (read-only)."""
+    template = get_object_or_404(FormTemplate, id=pk)
+    steps = template.formstep_set.all().order_by('order')
+
+    context = {
+        'template': template,
+        'steps': steps,
+        'is_preview': True
+    }
+    return render(request, 'modules/admin/builder_preview.html', context)

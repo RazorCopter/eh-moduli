@@ -1,0 +1,254 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Builder - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f2f5;
+        }
+        .header {
+            background: white;
+            border-bottom: 1px solid #e9ecef;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .header h1 {
+            margin: 0;
+            font-weight: 700;
+            color: #212529;
+        }
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .forms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 2rem;
+            padding: 0 2rem;
+        }
+        .form-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+        .form-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+        .form-card-header {
+            background: linear-gradient(135deg, #0d6efd, #0a58ca);
+            color: white;
+            padding: 1.5rem;
+        }
+        .form-card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+        }
+        .form-card-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .form-card-body {
+            padding: 1.5rem;
+            flex: 1;
+        }
+        .form-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        .form-steps {
+            font-size: 0.875rem;
+        }
+        .form-date {
+            font-size: 0.875rem;
+        }
+        .form-card-actions {
+            display: flex;
+            gap: 0.5rem;
+            border-top: 1px solid #e9ecef;
+            padding: 1rem;
+            background: #f8f9fa;
+        }
+        .form-card-actions button {
+            flex: 1;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-edit {
+            background: #0d6efd;
+            color: white;
+        }
+        .btn-edit:hover {
+            background: #0b5ed7;
+        }
+        .btn-duplicate {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-duplicate:hover {
+            background: #5c636a;
+        }
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-delete:hover {
+            background: #bb2d3b;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+        .empty-state-icon {
+            font-size: 3rem;
+            color: #ddd;
+            margin-bottom: 1rem;
+        }
+        .empty-state-text {
+            color: #6c757d;
+            font-size: 1.125rem;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1><i class="bi bi-window-split"></i> Form Builder</h1>
+                <p class="text-muted" style="margin: 0.5rem 0 0 0;">Create and manage your forms</p>
+            </div>
+            <a href="{% url 'builder_create' %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-plus-circle"></i> New Form
+            </a>
+        </div>
+    </div>
+
+    {% if forms %}
+        <div class="forms-grid">
+            {% for form in forms %}
+                <div class="form-card">
+                    <div class="form-card-header">
+                        <h2 class="form-card-title">{{ form.name }}</h2>
+                        <span class="form-card-status">
+                            {% if form.status == 'published' %}
+                                <i class="bi bi-check-circle"></i> Published
+                            {% elif form.status == 'draft' %}
+                                <i class="bi bi-pencil"></i> Draft
+                            {% else %}
+                                <i class="bi bi-archive"></i> Archived
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="form-card-body">
+                        <div class="form-meta">
+                            <span class="form-steps">
+                                <i class="bi bi-layers"></i> {{ form.steps_count }} steps
+                            </span>
+                            <span class="form-date">
+                                v{{ form.version }}
+                            </span>
+                        </div>
+                        {% if form.description %}
+                            <p style="margin: 0; font-size: 0.875rem; color: #6c757d;">
+                                {{ form.description|truncatewords:20 }}
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div class="form-card-actions">
+                        <button class="btn-edit" onclick="window.location='/modules/admin/builder/{{ form.id }}/edit/'">
+                            <i class="bi bi-pencil"></i> Edit
+                        </button>
+                        <button class="btn-duplicate" onclick="duplicateForm('{{ form.id }}')">
+                            <i class="bi bi-files"></i> Duplicate
+                        </button>
+                        <button class="btn-delete" onclick="deleteForm('{{ form.id }}')">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <i class="bi bi-inbox"></i>
+            </div>
+            <p class="empty-state-text">No forms yet</p>
+            <a href="{% url 'builder_create' %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-plus-circle"></i> Create Your First Form
+            </a>
+        </div>
+    {% endif %}
+
+    <script>
+        async function duplicateForm(formId) {
+            if (!confirm('Duplicate this form?')) return;
+            try {
+                const response = await fetch(`/modules/api/v1/forms/${formId}/duplicate/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'
+                    }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function deleteForm(formId) {
+            if (!confirm('Delete this form? This cannot be undone.')) return;
+            try {
+                const response = await fetch(`/modules/api/v1/forms/${formId}/delete/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'
+                    }
+                });
+                const result = await response.json();
+                if (result.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>
