@@ -663,6 +663,9 @@
                 <button class="btn-share" @click="showShareModal()" x-show="form.status === 'published'" style="background: #17a2b8;">
                     <i class="bi bi-share"></i> Condividi
                 </button>
+                <button class="btn-draft" @click="revertToDraft()" x-show="form.status === 'published'" style="background: #fd7e14;">
+                    <i class="bi bi-arrow-counterclockwise"></i> Ripristina in Bozza
+                </button>
                 <button class="btn-delete" @click="deleteForm()" style="background: #dc3545;">
                     <i class="bi bi-trash"></i> Delete
                 </button>
@@ -1384,6 +1387,28 @@
 
                 showShareModal() {
                     this.showShareModal_ = true;
+                },
+
+                async revertToDraft() {
+                    if (!confirm('⚠️ Ripristinare questo modulo in bozza?\n\nI clienti non potranno più accedere al link pubblico.\nPotrai modificare il modulo e ripubblicarlo in seguito.')) return;
+
+                    try {
+                        const response = await fetch(`/modules/api/v1/forms/{{ template.id }}/revert-to-draft/`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': this.csrfToken
+                            }
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            this.form.status = 'draft';
+                            alert('✓ ' + result.data.message);
+                        } else {
+                            alert('Errore: ' + result.error);
+                        }
+                    } catch (e) {
+                        alert('Errore: ' + e.message);
+                    }
                 },
 
                 copyToClipboard(text) {

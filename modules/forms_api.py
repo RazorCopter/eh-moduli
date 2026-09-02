@@ -336,6 +336,43 @@ def api_form_duplicate(request, form_id):
 @login_required
 @user_passes_test(is_admin)
 @csrf_protect
+@require_http_methods(['POST'])
+def api_form_revert_to_draft(request, form_id):
+    """Revert a published form back to draft status."""
+    form = get_object_or_404(FormTemplate, id=form_id)
+
+    if form.status != 'published':
+        return JsonResponse({'success': False, 'error': 'Only published forms can be reverted'}, status=400)
+
+    try:
+        form.status = 'draft'
+        form.save()
+
+        log_action(
+            request.user,
+            'update',
+            'FormTemplate',
+            str(form.id),
+            {'action': 'revert_to_draft', 'version': form.version},
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'id': str(form.id),
+                'status': 'draft',
+                'message': f'Form "{form.name}" reverted to draft'
+            }
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+@csrf_protect
 @require_http_methods(['DELETE'])
 def api_form_delete(request, form_id):
     """Delete form (draft or published)."""

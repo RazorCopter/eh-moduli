@@ -24,6 +24,7 @@ urlpatterns = [
     path('api/v1/forms/<uuid:form_id>/', forms_api.api_form_detail, name='api_form_detail'),
     path('api/v1/forms/<uuid:form_id>/save/', forms_api.api_form_save, name='api_form_save'),
     path('api/v1/forms/<uuid:form_id>/publish/', forms_api.api_form_publish, name='api_form_publish'),
+    path('api/v1/forms/<uuid:form_id>/revert-to-draft/', forms_api.api_form_revert_to_draft, name='api_form_revert_to_draft'),
     path('api/v1/forms/<uuid:form_id>/duplicate/', forms_api.api_form_duplicate, name='api_form_duplicate'),
     path('api/v1/forms/<uuid:form_id>/delete/', forms_api.api_form_delete, name='api_form_delete'),
     path('api/v1/customers/create/', forms_api.api_customer_create, name='api_customer_create'),
