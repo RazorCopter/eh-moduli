@@ -549,13 +549,15 @@
                                 </div>
                             </div>
 
-                            <div class="step-content" :class="{collapsed: selectedStep !== stepIndex}">
+                            <div class="step-content" :class="{collapsed: selectedStep !== stepIndex}"
+                                 @dragover.prevent="$event.dataTransfer.dropEffect = 'copy'"
+                                 @drop="dropElementToStep($event, stepIndex)">
                                 <div class="element-list" :id="`step-${step.id}`">
                                     <template x-for="(element, elemIndex) in step.elements" :key="element.id">
                                         <div class="element-item" draggable="true"
                                              @dragstart="dragStartElement($event, stepIndex, elemIndex)"
                                              @dragend="dragEndElement($event)"
-                                             @dragover.prevent
+                                             @dragover.prevent="$event.dataTransfer.dropEffect = 'move'"
                                              @drop="dropElement($event, stepIndex, elemIndex)"
                                              @click="selectElement(stepIndex, elemIndex)">
                                             <div class="element-info">
@@ -807,11 +809,52 @@
                 },
 
                 dragEndElement(e) {
-                    // TODO
+                    e.preventDefault();
                 },
 
-                dropElement(e, stepIndex, elemIndex) {
-                    // TODO: Handle element reordering
+                dropElementToStep(e, stepIndex) {
+                    e.preventDefault();
+                    const elementType = e.dataTransfer.getData('elementType');
+                    const sourceInfo = e.dataTransfer.getData('elementInfo');
+
+                    // If dragging from palette (elementType set)
+                    if (elementType) {
+                        const newElement = {
+                            id: 'elem-' + Date.now(),
+                            type: 'element',
+                            element_type: elementType,
+                            order: this.form.steps[stepIndex].elements.length,
+                            config: {
+                                label: elementType.replace('_', ' ').toUpperCase(),
+                                placeholder: '',
+                                required: false
+                            }
+                        };
+                        this.form.steps[stepIndex].elements.push(newElement);
+                        this.selectElement(stepIndex, this.form.steps[stepIndex].elements.length - 1);
+                    }
+                },
+
+                dropElement(e, stepIndex, targetElemIndex) {
+                    e.preventDefault();
+                    const sourceInfo = e.dataTransfer.getData('elementInfo');
+
+                    if (sourceInfo) {
+                        const {stepIndex: sourceStp, elemIndex: sourceIdx} = JSON.parse(sourceInfo);
+
+                        // If within same step, reorder
+                        if (sourceStp === stepIndex && sourceIdx !== targetElemIndex) {
+                            const element = this.form.steps[stepIndex].elements.splice(sourceIdx, 1)[0];
+                            const insertPos = sourceIdx < targetElemIndex ? targetElemIndex - 1 : targetElemIndex;
+                            this.form.steps[stepIndex].elements.splice(insertPos, 0, element);
+                        }
+                        // If from different step, move element
+                        else if (sourceStp !== stepIndex) {
+                            const element = this.form.steps[sourceStp].elements.splice(sourceIdx, 1)[0];
+                            this.form.steps[stepIndex].elements.splice(targetElemIndex, 0, element);
+                            this.selectElement(stepIndex, targetElemIndex);
+                        }
+                    }
                 },
 
                 async save() {
