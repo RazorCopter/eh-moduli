@@ -202,6 +202,8 @@ class FormElement(models.Model):
         ('text_info', 'Info Text'),
         ('awareness_declaration', 'Awareness Declaration'),
         ('separator', 'Separator'),
+        ('client_dropdown', 'Client Selector (from NAS)'),
+        ('project_name_field', 'Project Name Field'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -242,6 +244,7 @@ class FormAssignment(models.Model):
     submission_date = models.DateTimeField(null=True, blank=True)
     operator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='assignments')
     internal_notes = models.TextField(blank=True)
+    form_data = models.JSONField(default=dict, blank=True, help_text="Step 0 data: client_name, project_name, etc.")
 
     class Meta:
         ordering = ['-assignment_date']

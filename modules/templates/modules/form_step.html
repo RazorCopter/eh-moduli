@@ -24,7 +24,37 @@
                     {% for element in step.formelement_set.all %}
                     <div class="card mb-3">
                         <div class="card-body">
-                            {% if element.element_type == 'text_field' %}
+                            {% if element.element_type == 'client_dropdown' %}
+                            <div class="mb-3">
+                                <label for="elem-{{ element.id }}" class="form-label">
+                                    {{ element.config.label|default:"Select Client" }}
+                                    {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                <select class="form-control" id="elem-{{ element.id }}" name="client_name"
+                                        {% if element.config.required %}required{% endif %}>
+                                    <option value="">{{ element.config.placeholder|default:"-- Choose Client --" }}</option>
+                                    {% for client in available_clients %}
+                                        <option value="{{ client }}">{{ client }}</option>
+                                    {% endfor %}
+                                    {% if element.config.allow_new %}
+                                        <option value="__new__">+ Create New Client</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+
+                            {% elif element.element_type == 'project_name_field' %}
+                            <div class="mb-3">
+                                <label for="elem-{{ element.id }}" class="form-label">
+                                    {{ element.config.label|default:"Project Name" }}
+                                    {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                <input type="text" class="form-control" id="elem-{{ element.id }}"
+                                       name="project_name"
+                                       placeholder="{{ element.config.placeholder|default:'Enter project name' }}"
+                                       {% if element.config.required %}required{% endif %}>
+                            </div>
+
+                            {% elif element.element_type == 'text_field' %}
                             <div class="mb-3">
                                 <label for="elem-{{ element.id }}" class="form-label">
                                     {{ element.config.label|default:"Text Input" }}

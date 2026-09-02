@@ -940,6 +940,14 @@
                         <i class="bi bi-file-earmark-arrow-up"></i>
                         <span>Document</span>
                     </button>
+                    <button class="element-type-btn" @click="addElement('client_dropdown')">
+                        <i class="bi bi-building"></i>
+                        <span>Client Selector</span>
+                    </button>
+                    <button class="element-type-btn" @click="addElement('project_name_field')">
+                        <i class="bi bi-folder"></i>
+                        <span>Project Name</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -1056,6 +1064,31 @@
                             order: step.elements.length,
                             awareness_text: '',
                             awareness_required_when_empty: false
+                        };
+                    } else if (elementType === 'client_dropdown') {
+                        newElement = {
+                            id: 'elem-' + Date.now(),
+                            type: 'element',
+                            element_type: elementType,
+                            order: step.elements.length,
+                            config: {
+                                label: 'Select Client',
+                                placeholder: '-- Choose Client --',
+                                required: true,
+                                allow_new: true
+                            }
+                        };
+                    } else if (elementType === 'project_name_field') {
+                        newElement = {
+                            id: 'elem-' + Date.now(),
+                            type: 'element',
+                            element_type: elementType,
+                            order: step.elements.length,
+                            config: {
+                                label: 'Project Name',
+                                placeholder: 'Enter project name',
+                                required: true
+                            }
                         };
                     } else {
                         newElement = {
