@@ -217,7 +217,12 @@
         </div>
     </div>
 
-    {% if forms %}
+    {% if error %}
+        <div style="max-width: 800px; margin: 2rem auto; background: #F5D4D4; border: 1px solid #E8B5C1; color: #8B3C3C; padding: 2rem; border-radius: 8px;">
+            <strong style="display: block; margin-bottom: 1rem;">⚠️ Errore nel caricamento della lista:</strong>
+            <p style="margin: 0; font-family: monospace; font-size: 0.9rem;">{{ error }}</p>
+        </div>
+    {% elif forms %}
         <div class="forms-grid">
             {% for form in forms %}
                 <div class="form-card">

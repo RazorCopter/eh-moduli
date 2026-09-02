@@ -234,12 +234,29 @@ def assign_form_to_customer(request):
 @user_passes_test(is_admin)
 def builder_list(request):
     """List all forms (drafts and published)."""
-    forms = FormTemplate.objects.annotate(
-        steps_count=Count('formstep')
-    ).order_by('-created_at')
+    try:
+        forms = FormTemplate.objects.annotate(
+            steps_count=Count('formstep')
+        ).order_by('-created_at')
 
-    context = {'forms': forms}
-    return render(request, 'modules/admin/builder_list.html', context)
+        context = {'forms': forms}
+        return render(request, 'modules/admin/builder_list.html', context)
+    except Exception as e:
+        import traceback
+        error_detail = traceback.format_exc()
+        log_action(
+            request.user,
+            'error',
+            'builder_list',
+            'dashboard',
+            {'error': str(e), 'traceback': error_detail},
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+        return render(request, 'modules/admin/builder_list.html', {
+            'forms': [],
+            'error': f'Errore caricamento form: {str(e)}'
+        })
 
 
 @login_required
