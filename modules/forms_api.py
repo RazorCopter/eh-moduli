@@ -6,7 +6,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 import json
-from .models import FormTemplate, FormStep, FormElement, DocumentRequirement, FormAssignment
+from .models import FormTemplate, FormStep, FormElement, DocumentRequirement, FormAssignment, Customer
 from .utils import log_action, get_client_ip, get_user_agent
 
 
@@ -359,5 +359,76 @@ def api_form_delete(request, form_id):
         )
 
         return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+@csrf_protect
+@require_http_methods(['POST'])
+def api_customer_create(request):
+    """Quick create customer from form builder."""
+    try:
+        code = request.POST.get('code', '').strip()
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        nas_folder_name = request.POST.get('nas_folder_name', '').strip()
+
+        # Validate required fields
+        if not code or not first_name or not email or not nas_folder_name:
+            return JsonResponse({
+                'success': False,
+                'error': 'Campi obbligatori: code, first_name, email, nas_folder_name'
+            }, status=400)
+
+        # Check if code already exists
+        if Customer.objects.filter(code=code).exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'Cliente con codice "{code}" esiste già'
+            }, status=400)
+
+        # Check if nas_folder_name already exists
+        if Customer.objects.filter(nas_folder_name=nas_folder_name).exists():
+            return JsonResponse({
+                'success': False,
+                'error': f'Cartella NAS "{nas_folder_name}" è già in uso'
+            }, status=400)
+
+        customer = Customer.objects.create(
+            code=code,
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            phone=phone,
+            nas_folder_name=nas_folder_name,
+            active=True
+        )
+
+        log_action(
+            request.user,
+            'create',
+            'Customer',
+            str(customer.id),
+            {'code': code, 'via': 'api'},
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'id': str(customer.id),
+                'code': customer.code,
+                'first_name': customer.first_name,
+                'last_name': customer.last_name,
+                'email': customer.email,
+                'nas_folder_name': customer.nas_folder_name
+            }
+        })
+
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)

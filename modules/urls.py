@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/v1/forms/<uuid:form_id>/publish/', forms_api.api_form_publish, name='api_form_publish'),
     path('api/v1/forms/<uuid:form_id>/duplicate/', forms_api.api_form_duplicate, name='api_form_duplicate'),
     path('api/v1/forms/<uuid:form_id>/delete/', forms_api.api_form_delete, name='api_form_delete'),
+    path('api/v1/customers/create/', forms_api.api_customer_create, name='api_customer_create'),
 
     # Public form views
     path('form/published/<uuid:form_id>/', views.published_form_access, name='published_form_access'),
