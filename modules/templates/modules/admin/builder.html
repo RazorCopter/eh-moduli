@@ -736,7 +736,7 @@
 
                             <div class="step-content" :class="{collapsed: selectedStep !== stepIndex}"
                                  @dragover.prevent="$event.dataTransfer.dropEffect = 'copy'"
-                                 @drop="dropElementToStep($event, stepIndex)">
+                                 @drop.stop="dropElementToStep($event, stepIndex)">
                                 <div class="element-list" :id="`step-${step.id}`">
                                     <template x-for="(element, elemIndex) in step.elements" :key="element.id">
                                         <div class="element-item" draggable="true"
