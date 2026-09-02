@@ -1,0 +1,171 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Etichub - Document Collector{% endblock %}</title>
+
+    <!-- Google Fonts: Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Etichub Theme -->
+    <style>
+        :root {
+            /* Colori Etichub */
+            --primary-beige: #E8E5E0;
+            --primary-dark: #2C2C2C;
+            --primary-gray: #9B9B9B;
+            --accent-pink: #E8B5C1;
+            --accent-rose: #E89BA7;
+            --secondary-light: #F5F3F0;
+            --secondary-white: #FFFFFF;
+
+            /* Shadows */
+            --shadow-light: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-medium: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-dark: 0 10px 40px rgba(0,0,0,0.15);
+        }
+
+        * {
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: var(--primary-beige);
+            color: var(--primary-dark);
+            line-height: 1.6;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: var(--accent-rose);
+            border-color: var(--accent-rose);
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-primary:hover {
+            background: #E0849B;
+            border-color: #E0849B;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-light);
+            border-color: var(--primary-gray);
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+
+        .btn-secondary:hover {
+            background: #EFEFEF;
+            border-color: var(--primary-dark);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--secondary-white);
+            border: none;
+            border-radius: 12px;
+            box-shadow: var(--shadow-light);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-medium);
+        }
+
+        /* Form Controls */
+        .form-control, .form-select, textarea {
+            border: 2px solid #DDD;
+            border-radius: 8px;
+            padding: 0.75rem;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus, .form-select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-rose);
+            box-shadow: 0 0 0 3px rgba(232, 155, 167, 0.1);
+        }
+
+        /* Headers */
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+
+        /* Links */
+        a {
+            color: var(--accent-rose);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        a:hover {
+            color: #E0849B;
+            text-decoration: underline;
+        }
+
+        /* Badges */
+        .badge {
+            background: var(--accent-pink);
+            color: var(--primary-dark);
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+        }
+
+        .badge.success {
+            background: #D4E8D4;
+            color: #2C5F2C;
+        }
+
+        .badge.warning {
+            background: #F5E6CC;
+            color: #8B6F47;
+        }
+
+        /* Alerts */
+        .alert {
+            border-radius: 8px;
+            border: none;
+        }
+
+        .alert-success {
+            background: #D4E8D4;
+            color: #2C5F2C;
+        }
+
+        .alert-warning {
+            background: #F5E6CC;
+            color: #8B6F47;
+        }
+
+        .alert-danger {
+            background: #F5D4D4;
+            color: #8B3C3C;
+        }
+
+        .alert-info {
+            background: #D4E8F5;
+            color: #2C5F8B;
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% block content %}{% endblock %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
