@@ -7,6 +7,7 @@
     <title>{{ form.name }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -108,6 +109,46 @@
         .awareness-checkbox {
             margin-top: 0.5rem;
         }
+        .required-badge {
+            background: #dc3545;
+            color: white;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            margin-left: 0.5rem;
+        }
+        /* Document availability section */
+        .document-availability {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .availability-buttons {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .btn-availability {
+            flex: 1;
+            padding: 0.75rem;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            background: white;
+            color: #212529;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-availability:hover {
+            border-color: #667eea;
+        }
+        .btn-availability.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
         .file-upload-section {
             border: 2px dashed #e9ecef;
             border-radius: 6px;
@@ -154,6 +195,21 @@
             cursor: pointer;
             padding: 0;
         }
+        .unavailable-section {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .unavailable-section textarea {
+            border: 2px solid #ffc107;
+            margin-top: 0.5rem;
+        }
+        .unavailable-section textarea:focus {
+            border-color: #ff6b6b;
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+        }
         .form-privacy {
             background: #f8f9fa;
             padding: 1rem;
@@ -185,13 +241,22 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         }
-        .required-badge {
-            background: #dc3545;
-            color: white;
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 3px;
-            margin-left: 0.5rem;
+        .btn-submit:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .validation-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .validation-error.show {
+            display: block;
         }
     </style>
 </head>
@@ -210,20 +275,21 @@
             {% endif %}
         </div>
 
-        <form id="publishedForm" method="POST">
+        <div class="validation-error" id="validationError"></div>
+
+        <form id="publishedForm" method="POST" x-data="formState()">
             {% csrf_token %}
 
             {% for step in steps %}
             <div class="step-section">
-                <h2 class="step-title">
-                    {{ step.title }}
-                </h2>
+                <h2 class="step-title">{{ step.title }}</h2>
                 {% if step.description %}
                 <p class="step-description">{{ step.description }}</p>
                 {% endif %}
 
                 {% with elements=step.formelement_set.all documents=step.documentrequirement_set.all %}
 
+                <!-- Regular elements (text, email, etc.) -->
                 {% for element in elements %}
                 <div class="element-item">
                     {% if element.element_type == 'text_info' %}
@@ -247,13 +313,9 @@
                         <span class="required-badge">Required</span>
                         {% endif %}
                     </label>
-                    <input
-                        type="text"
-                        class="form-control"
-                        name="element_{{ element.id }}"
+                    <input type="text" class="form-control" name="element_{{ element.id }}"
                         placeholder="{{ element.config.placeholder|default:'' }}"
-                        {% if element.config.required %}required{% endif %}
-                    >
+                        {% if element.config.required %}required{% endif %}>
 
                     {% elif element.element_type == 'email_field' %}
                     <label class="element-label">
@@ -262,13 +324,9 @@
                         <span class="required-badge">Required</span>
                         {% endif %}
                     </label>
-                    <input
-                        type="email"
-                        class="form-control"
-                        name="element_{{ element.id }}"
+                    <input type="email" class="form-control" name="element_{{ element.id }}"
                         placeholder="{{ element.config.placeholder|default:'' }}"
-                        {% if element.config.required %}required{% endif %}
-                    >
+                        {% if element.config.required %}required{% endif %}>
 
                     {% elif element.element_type == 'phone_field' %}
                     <label class="element-label">
@@ -277,13 +335,9 @@
                         <span class="required-badge">Required</span>
                         {% endif %}
                     </label>
-                    <input
-                        type="tel"
-                        class="form-control"
-                        name="element_{{ element.id }}"
+                    <input type="tel" class="form-control" name="element_{{ element.id }}"
                         placeholder="{{ element.config.placeholder|default:'' }}"
-                        {% if element.config.required %}required{% endif %}
-                    >
+                        {% if element.config.required %}required{% endif %}>
 
                     {% elif element.element_type == 'date_field' %}
                     <label class="element-label">
@@ -292,18 +346,15 @@
                         <span class="required-badge">Required</span>
                         {% endif %}
                     </label>
-                    <input
-                        type="date"
-                        class="form-control"
-                        name="element_{{ element.id }}"
-                        {% if element.config.required %}required{% endif %}
-                    >
+                    <input type="date" class="form-control" name="element_{{ element.id }}"
+                        {% if element.config.required %}required{% endif %}>
                     {% endif %}
                 </div>
                 {% endfor %}
 
+                <!-- Documents with availability status -->
                 {% for document in documents %}
-                <div class="element-item">
+                <div class="element-item" x-data="documentState('{{ document.id }}')" >
                     <label class="element-label">
                         {{ document.name }}
                         {% if document.required %}
@@ -314,40 +365,83 @@
                     <p class="element-description">{{ document.description }}</p>
                     {% endif %}
 
-                    <div class="file-upload-section" data-requirement-id="{{ document.id }}">
-                        <div class="file-upload-icon">
-                            <i class="bi bi-cloud-arrow-up"></i>
+                    <div class="document-availability">
+                        <!-- Availability choice buttons -->
+                        <div class="availability-buttons">
+                            <button type="button" class="btn-availability"
+                                :class="{ active: status === 'uploaded' }"
+                                @click="setStatus('uploaded')">
+                                <i class="bi bi-cloud-arrow-up"></i> Carica Documento
+                            </button>
+                            <button type="button" class="btn-availability"
+                                :class="{ active: status === 'not_available' }"
+                                @click="setStatus('not_available')">
+                                <i class="bi bi-exclamation-circle"></i> Non Disponibile
+                            </button>
                         </div>
-                        <p>Click to upload or drag and drop</p>
-                        <small style="color: #6c757d;">
-                            Allowed: {{ document.allowed_extensions }} • Max {{ document.max_file_size|filesizeformat }} per file • Max {{ document.max_files }} file(s)
-                        </small>
-                        <input
-                            type="file"
-                            class="d-none"
-                            name="file_{{ document.id }}"
-                            accept=".{{ document.allowed_extensions|cut:' '|cut:',' }}"
-                            {% if document.max_files > 1 %}multiple{% endif %}
-                        >
-                    </div>
 
-                    {% if document.allow_file_description %}
-                    <textarea
-                        class="form-control mt-2"
-                        name="description_{{ document.id }}"
-                        placeholder="Optional: Describe what this file contains..."
-                        rows="2"
-                    ></textarea>
-                    {% endif %}
+                        <!-- Hidden status field -->
+                        <input type="hidden" :name="'availability_{{ document.id }}'" :value="status">
+
+                        <!-- Upload section (shown when status === 'uploaded') -->
+                        <template x-if="status === 'uploaded'">
+                            <div>
+                                <div class="file-upload-section" @drop="dropFiles" @dragover="dragOver = true"
+                                    @dragleave="dragOver = false" :class="{ dragover: dragOver }"
+                                    @click="document.querySelector('input[name=file_{{ document.id }}]').click()">
+                                    <div class="file-upload-icon">
+                                        <i class="bi bi-cloud-arrow-up"></i>
+                                    </div>
+                                    <p>Click to upload or drag and drop</p>
+                                    <small style="color: #6c757d;">
+                                        Allowed: {{ document.allowed_extensions }} • Max {{ document.max_file_size|filesizeformat }}
+                                    </small>
+                                    <input type="file" class="d-none" name="file_{{ document.id }}"
+                                        accept=".{{ document.allowed_extensions|cut:' '|cut:',' }}"
+                                        @change="handleFileUpload">
+                                </div>
+
+                                <ul class="file-list" x-show="files.length > 0">
+                                    <template x-for="file in files" :key="file.name">
+                                        <li class="file-item">
+                                            <span>
+                                                <i class="bi bi-file"></i>
+                                                <span x-text="file.name"></span>
+                                                <span class="file-size" x-text="'(' + (file.size / 1024).toFixed(1) + ' KB)'"></span>
+                                            </span>
+                                            <button type="button" class="btn-remove" @click="removeFile(file.name)">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </li>
+                                    </template>
+                                </ul>
+
+                                {% if document.allow_file_description %}
+                                <textarea class="form-control mt-2" name="description_{{ document.id }}"
+                                    placeholder="Optional: Describe what this file contains..." rows="2"></textarea>
+                                {% endif %}
+                            </div>
+                        </template>
+
+                        <!-- Unavailable section (shown when status === 'not_available') -->
+                        <template x-if="status === 'not_available'">
+                            <div class="unavailable-section">
+                                <strong style="display: block; margin-bottom: 0.5rem;">⚠️ Motivo indisponibilità *</strong>
+                                <textarea class="form-control" name="motivazione_indisponibilita_{{ document.id }}"
+                                    placeholder="Es. Smarrimento, in corso di acquisizione, documento non applicabile..."
+                                    rows="3" x-model="reason" required></textarea>
+                                <small style="display: block; margin-top: 0.5rem; color: #666;">
+                                    Spiegare brevemente il motivo per cui questo documento non è disponibile
+                                </small>
+                            </div>
+                        </template>
+                    </div>
 
                     {% if document.awareness_text %}
                     <div class="awareness-checkbox mt-2">
-                        <input
-                            type="checkbox"
-                            id="awareness_{{ document.id }}"
+                        <input type="checkbox" id="awareness_{{ document.id }}"
                             name="awareness_{{ document.id }}"
-                            {% if document.awareness_required_when_empty %}required{% endif %}
-                        >
+                            {% if document.awareness_required_when_empty %}required{% endif %}>
                         <label for="awareness_{{ document.id }}" style="margin-left: 0.5rem;">
                             {{ document.awareness_text }}
                         </label>
@@ -376,118 +470,85 @@
     </div>
 
     <script>
-        const formId = '{{ form.id }}';
+        function documentState(docId) {
+            return {
+                status: 'uploaded',
+                reason: '',
+                files: [],
+                dragOver: false,
 
-        // File upload handling
-        document.querySelectorAll('.file-upload-section').forEach(section => {
-            const input = section.querySelector('input[type="file"]');
-            const requirementId = section.dataset.requirementId;
+                setStatus(newStatus) {
+                    this.status = newStatus;
+                    if (newStatus === 'uploaded') {
+                        this.reason = '';
+                    }
+                },
 
-            section.addEventListener('click', () => input.click());
+                handleFileUpload(e) {
+                    const input = e.target;
+                    this.files = Array.from(input.files);
+                },
 
-            input.addEventListener('change', () => handleFiles(input.files, requirementId, section));
+                dropFiles(e) {
+                    e.preventDefault();
+                    this.dragOver = false;
+                    const input = document.querySelector(`input[name=file_${docId}]`);
+                    input.files = e.dataTransfer.files;
+                    this.files = Array.from(e.dataTransfer.files);
+                },
 
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                section.addEventListener(eventName, preventDefaults, false);
-            });
-
-            ['dragenter', 'dragover'].forEach(eventName => {
-                section.addEventListener(eventName, highlight, false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                section.addEventListener(eventName, unhighlight, false);
-            });
-
-            section.addEventListener('drop', handleDrop, false);
-
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-
-            function highlight(e) {
-                section.classList.add('dragover');
-            }
-
-            function unhighlight(e) {
-                section.classList.remove('dragover');
-            }
-
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                handleFiles(files, requirementId, section);
-            }
-        });
-
-        async function handleFiles(files, requirementId, section) {
-            for (let file of files) {
-                await uploadFile(file, requirementId, section);
+                removeFile(filename) {
+                    this.files = this.files.filter(f => f.name !== filename);
+                },
             }
         }
 
-        async function uploadFile(file, requirementId, section) {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('requirement_id', requirementId);
+        function formState() {
+            return {
+                validateForm(e) {
+                    const form = e.target;
+                    const requiredDocs = document.querySelectorAll('input[name^="availability_"]');
+                    let isValid = true;
 
-            // Get description if available
-            const descTextarea = document.querySelector(`textarea[name="description_${requirementId}"]`);
-            if (descTextarea) {
-                formData.append('description', descTextarea.value);
-            }
+                    requiredDocs.forEach(statusField => {
+                        const status = statusField.value;
+                        const docId = statusField.name.replace('availability_', '');
+                        const motivazioneField = document.querySelector(`textarea[name=motivazione_indisponibilita_${docId}]`);
+                        const uploadField = document.querySelector(`input[name=file_${docId}]`);
 
-            try {
-                const response = await fetch(`/modules/form/published/${formId}/upload/`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    },
-                    body: formData
-                });
+                        if (status === 'not_available' && motivazioneField) {
+                            if (!motivazioneField.value.trim()) {
+                                motivazioneField.classList.add('is-invalid');
+                                isValid = false;
+                            } else {
+                                motivazioneField.classList.remove('is-invalid');
+                            }
+                        } else if (status === 'uploaded' && uploadField) {
+                            if (!uploadField.files.length) {
+                                uploadField.classList.add('is-invalid');
+                                isValid = false;
+                            } else {
+                                uploadField.classList.remove('is-invalid');
+                            }
+                        }
+                    });
 
-                const result = await response.json();
+                    if (!isValid) {
+                        e.preventDefault();
+                        document.getElementById('validationError').classList.add('show');
+                        document.getElementById('validationError').textContent = 'Per favore completa tutti i campi obbligatori';
+                        return false;
+                    }
 
-                if (response.ok) {
-                    // Show success
-                    const fileList = section.querySelector('.file-list') || createFileList(section);
-                    addFileItem(fileList, result.filename, result.size);
-                } else {
-                    alert(`Upload failed: ${result.error || result.errors?.[0]}`);
+                    return true;
                 }
-            } catch (error) {
-                console.error('Upload error:', error);
-                alert('Upload failed: ' + error.message);
             }
         }
 
-        function createFileList(section) {
-            const fileList = document.createElement('ul');
-            fileList.className = 'file-list';
-            section.appendChild(fileList);
-            return fileList;
-        }
-
-        function addFileItem(fileList, filename, size) {
-            const item = document.createElement('li');
-            item.className = 'file-item';
-            const sizeKB = (size / 1024).toFixed(2);
-            item.innerHTML = `
-                <span>
-                    <i class="bi bi-check-circle" style="color: #28a745; margin-right: 0.5rem;"></i>
-                    ${filename}
-                </span>
-                <span class="file-size">${sizeKB} KB</span>
-            `;
-            fileList.appendChild(item);
-        }
-
-        // Form submission - just redirect to success page
-        // Documents are uploaded via AJAX as they are selected, not on form submit
-        document.getElementById('publishedForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            window.location.href = '/modules/form/success/';
+        // Form submission
+        document.getElementById('publishedForm').addEventListener('submit', function(e) {
+            const validator = formState();
+            validator.validateForm(e);
         });
     </script>
 </body>

@@ -276,16 +276,21 @@ class DocumentUpload(models.Model):
         ('superseded', 'Superseded'),
     ]
 
+    AVAILABILITY_CHOICES = [
+        ('uploaded', 'File Caricato'),
+        ('not_available', 'Non Disponibile'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     form_assignment = models.ForeignKey(FormAssignment, on_delete=models.CASCADE)
     document_requirement = models.ForeignKey(DocumentRequirement, on_delete=models.CASCADE)
-    original_filename = models.CharField(max_length=255)
-    stored_filename = models.CharField(max_length=255)
-    relative_path = models.CharField(max_length=500)
-    file_extension = models.CharField(max_length=10)
-    mime_type_detected = models.CharField(max_length=100)
-    file_size = models.IntegerField()
-    sha256_checksum = models.CharField(max_length=64)
+    original_filename = models.CharField(max_length=255, blank=True, null=True)
+    stored_filename = models.CharField(max_length=255, blank=True, null=True)
+    relative_path = models.CharField(max_length=500, blank=True, null=True)
+    file_extension = models.CharField(max_length=10, blank=True, null=True)
+    mime_type_detected = models.CharField(max_length=100, blank=True, null=True)
+    file_size = models.IntegerField(blank=True, null=True)
+    sha256_checksum = models.CharField(max_length=64, blank=True, null=True)
     upload_datetime = models.DateTimeField(auto_now_add=True)
     uploaded_by_ip = models.GenericIPAddressField()
     uploaded_by_user_agent = models.TextField()
@@ -293,6 +298,10 @@ class DocumentUpload(models.Model):
     rejection_reason = models.TextField(blank=True, null=True)
     version = models.IntegerField(default=1)
     previous_version = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True)
+
+    # NEW: Availability status (uploaded or not_available with reason)
+    availability_status = models.CharField(max_length=20, choices=AVAILABILITY_CHOICES, default='uploaded')
+    motivazione_indisponibilita = models.TextField(blank=True, null=True, help_text="Reason why document is not available")
 
     class Meta:
         ordering = ['-upload_datetime']

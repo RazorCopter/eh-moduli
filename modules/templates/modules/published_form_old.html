@@ -1,0 +1,494 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ form.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .form-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 3rem;
+        }
+        .form-header {
+            margin-bottom: 2rem;
+        }
+        .form-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #212529;
+            margin-bottom: 0.5rem;
+        }
+        .form-intro {
+            color: #6c757d;
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+        }
+        .step-section {
+            margin-bottom: 2rem;
+        }
+        .step-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .step-description {
+            color: #6c757d;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+        .element-item {
+            margin-bottom: 1.5rem;
+        }
+        .element-label {
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .element-description {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            padding: 0.75rem;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .text-info {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            color: #004085;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        .separator {
+            border: none;
+            border-top: 2px solid #e9ecef;
+            margin: 2rem 0;
+        }
+        .awareness-declaration {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+        .awareness-checkbox {
+            margin-top: 0.5rem;
+        }
+        .file-upload-section {
+            border: 2px dashed #e9ecef;
+            border-radius: 6px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .file-upload-section:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+        .file-upload-section.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .file-upload-icon {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        .file-list {
+            margin-top: 1rem;
+            list-style: none;
+            padding: 0;
+        }
+        .file-item {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-size {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+        .btn-remove {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            padding: 0;
+        }
+        .form-privacy {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 2rem;
+            font-size: 0.9rem;
+            color: #6c757d;
+            line-height: 1.5;
+        }
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .btn-submit {
+            flex: 1;
+            padding: 0.75rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-submit:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .required-badge {
+            background: #dc3545;
+            color: white;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div style="padding: 2rem; text-align: center;">
+        <svg style="height: 40px; width: auto; margin-bottom: 1rem;" viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+            <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Poppins, sans-serif" font-size="20" font-weight="700" fill="#667eea">Etichub</text>
+        </svg>
+    </div>
+
+    <div class="form-container">
+        <div class="form-header">
+            <h1 class="form-title">{{ form.name }}</h1>
+            {% if form.intro_text %}
+            <div class="form-intro">{{ form.intro_text }}</div>
+            {% endif %}
+        </div>
+
+        <form id="publishedForm" method="POST">
+            {% csrf_token %}
+
+            {% for step in steps %}
+            <div class="step-section">
+                <h2 class="step-title">
+                    {{ step.title }}
+                </h2>
+                {% if step.description %}
+                <p class="step-description">{{ step.description }}</p>
+                {% endif %}
+
+                {% with elements=step.formelement_set.all documents=step.documentrequirement_set.all %}
+
+                {% for element in elements %}
+                <div class="element-item">
+                    {% if element.element_type == 'text_info' %}
+                    <div class="text-info">
+                        {{ element.config.text|default:"" }}
+                    </div>
+
+                    {% elif element.element_type == 'separator' %}
+                    <hr class="separator">
+
+                    {% elif element.element_type == 'awareness_declaration' %}
+                    <div class="awareness-declaration">
+                        <strong>⚠️ Important Notice:</strong><br>
+                        {{ element.config.text|default:"" }}
+                    </div>
+
+                    {% elif element.element_type == 'text_field' %}
+                    <label class="element-label">
+                        {{ element.config.label|default:"Text Field" }}
+                        {% if element.config.required %}
+                        <span class="required-badge">Required</span>
+                        {% endif %}
+                    </label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        name="element_{{ element.id }}"
+                        placeholder="{{ element.config.placeholder|default:'' }}"
+                        {% if element.config.required %}required{% endif %}
+                    >
+
+                    {% elif element.element_type == 'email_field' %}
+                    <label class="element-label">
+                        {{ element.config.label|default:"Email" }}
+                        {% if element.config.required %}
+                        <span class="required-badge">Required</span>
+                        {% endif %}
+                    </label>
+                    <input
+                        type="email"
+                        class="form-control"
+                        name="element_{{ element.id }}"
+                        placeholder="{{ element.config.placeholder|default:'' }}"
+                        {% if element.config.required %}required{% endif %}
+                    >
+
+                    {% elif element.element_type == 'phone_field' %}
+                    <label class="element-label">
+                        {{ element.config.label|default:"Phone" }}
+                        {% if element.config.required %}
+                        <span class="required-badge">Required</span>
+                        {% endif %}
+                    </label>
+                    <input
+                        type="tel"
+                        class="form-control"
+                        name="element_{{ element.id }}"
+                        placeholder="{{ element.config.placeholder|default:'' }}"
+                        {% if element.config.required %}required{% endif %}
+                    >
+
+                    {% elif element.element_type == 'date_field' %}
+                    <label class="element-label">
+                        {{ element.config.label|default:"Date" }}
+                        {% if element.config.required %}
+                        <span class="required-badge">Required</span>
+                        {% endif %}
+                    </label>
+                    <input
+                        type="date"
+                        class="form-control"
+                        name="element_{{ element.id }}"
+                        {% if element.config.required %}required{% endif %}
+                    >
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                {% for document in documents %}
+                <div class="element-item">
+                    <label class="element-label">
+                        {{ document.name }}
+                        {% if document.required %}
+                        <span class="required-badge">Required</span>
+                        {% endif %}
+                    </label>
+                    {% if document.description %}
+                    <p class="element-description">{{ document.description }}</p>
+                    {% endif %}
+
+                    <div class="file-upload-section" data-requirement-id="{{ document.id }}">
+                        <div class="file-upload-icon">
+                            <i class="bi bi-cloud-arrow-up"></i>
+                        </div>
+                        <p>Click to upload or drag and drop</p>
+                        <small style="color: #6c757d;">
+                            Allowed: {{ document.allowed_extensions }} • Max {{ document.max_file_size|filesizeformat }} per file • Max {{ document.max_files }} file(s)
+                        </small>
+                        <input
+                            type="file"
+                            class="d-none"
+                            name="file_{{ document.id }}"
+                            accept=".{{ document.allowed_extensions|cut:' '|cut:',' }}"
+                            {% if document.max_files > 1 %}multiple{% endif %}
+                        >
+                    </div>
+
+                    {% if document.allow_file_description %}
+                    <textarea
+                        class="form-control mt-2"
+                        name="description_{{ document.id }}"
+                        placeholder="Optional: Describe what this file contains..."
+                        rows="2"
+                    ></textarea>
+                    {% endif %}
+
+                    {% if document.awareness_text %}
+                    <div class="awareness-checkbox mt-2">
+                        <input
+                            type="checkbox"
+                            id="awareness_{{ document.id }}"
+                            name="awareness_{{ document.id }}"
+                            {% if document.awareness_required_when_empty %}required{% endif %}
+                        >
+                        <label for="awareness_{{ document.id }}" style="margin-left: 0.5rem;">
+                            {{ document.awareness_text }}
+                        </label>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                {% endwith %}
+            </div>
+            {% endfor %}
+
+            {% if form.privacy_text %}
+            <div class="form-privacy">
+                <strong>Privacy Notice:</strong><br>
+                {{ form.privacy_text }}
+            </div>
+            {% endif %}
+
+            <div class="form-actions">
+                <button type="submit" class="btn-submit">
+                    <i class="bi bi-check-circle"></i> Submit Form
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const formId = '{{ form.id }}';
+
+        // File upload handling
+        document.querySelectorAll('.file-upload-section').forEach(section => {
+            const input = section.querySelector('input[type="file"]');
+            const requirementId = section.dataset.requirementId;
+
+            section.addEventListener('click', () => input.click());
+
+            input.addEventListener('change', () => handleFiles(input.files, requirementId, section));
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                section.addEventListener(eventName, preventDefaults, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                section.addEventListener(eventName, highlight, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                section.addEventListener(eventName, unhighlight, false);
+            });
+
+            section.addEventListener('drop', handleDrop, false);
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            function highlight(e) {
+                section.classList.add('dragover');
+            }
+
+            function unhighlight(e) {
+                section.classList.remove('dragover');
+            }
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles(files, requirementId, section);
+            }
+        });
+
+        async function handleFiles(files, requirementId, section) {
+            for (let file of files) {
+                await uploadFile(file, requirementId, section);
+            }
+        }
+
+        async function uploadFile(file, requirementId, section) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('requirement_id', requirementId);
+
+            // Get description if available
+            const descTextarea = document.querySelector(`textarea[name="description_${requirementId}"]`);
+            if (descTextarea) {
+                formData.append('description', descTextarea.value);
+            }
+
+            try {
+                const response = await fetch(`/modules/form/published/${formId}/upload/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Show success
+                    const fileList = section.querySelector('.file-list') || createFileList(section);
+                    addFileItem(fileList, result.filename, result.size);
+                } else {
+                    alert(`Upload failed: ${result.error || result.errors?.[0]}`);
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Upload failed: ' + error.message);
+            }
+        }
+
+        function createFileList(section) {
+            const fileList = document.createElement('ul');
+            fileList.className = 'file-list';
+            section.appendChild(fileList);
+            return fileList;
+        }
+
+        function addFileItem(fileList, filename, size) {
+            const item = document.createElement('li');
+            item.className = 'file-item';
+            const sizeKB = (size / 1024).toFixed(2);
+            item.innerHTML = `
+                <span>
+                    <i class="bi bi-check-circle" style="color: #28a745; margin-right: 0.5rem;"></i>
+                    ${filename}
+                </span>
+                <span class="file-size">${sizeKB} KB</span>
+            `;
+            fileList.appendChild(item);
+        }
+
+        // Form submission - just redirect to success page
+        // Documents are uploaded via AJAX as they are selected, not on form submit
+        document.getElementById('publishedForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            window.location.href = '/modules/form/success/';
+        });
+    </script>
+</body>
+</html>
