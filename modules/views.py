@@ -153,9 +153,9 @@ def form_step_view(request, assignment_id, step_order):
             }
             assignment.save()
 
-            # Create NAS folder structure: /Clienti/{client}/{project}/
+            # Create NAS folder structure: /storage/clienti/{client}/{project}/
             try:
-                nas_base = os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti')
+                nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
                 nas_path = os.path.join(nas_base, client_name, project_name)
                 os.makedirs(nas_path, exist_ok=True)
                 log_action(
@@ -193,7 +193,7 @@ def form_step_view(request, assignment_id, step_order):
 
     # Fetch available clients from NAS folder
     try:
-        nas_base = os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti')
+        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
         if os.path.exists(nas_base):
             available_clients = [d for d in os.listdir(nas_base)
                                 if os.path.isdir(os.path.join(nas_base, d)) and not d.startswith('.')]
@@ -241,8 +241,9 @@ def published_form_upload(request, form_id):
         return JsonResponse({'errors': errors}, status=400)
 
     try:
-        # Build NAS path: /Clienti/{customer.nas_folder_name}/{project_name}/{destination_subfolder}/
-        nas_base = os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti')
+        # Build NAS path: /storage/clienti/{customer.nas_folder_name}/{project_name}/{destination_subfolder}/
+        # Use container path for Docker deployments, fall back to host path
+        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
         if form.customer:
             nas_path = os.path.join(
                 nas_base,
@@ -381,7 +382,7 @@ def upload_document_view(request, assignment_id):
         # Get NAS path from form_data (Step 0)
         client_name = assignment.form_data.get('client_name')
         project_name = assignment.form_data.get('project_name')
-        nas_base = os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti')
+        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
         nas_project_path = os.path.join(nas_base, client_name, project_name)
 
         # SECURE SAVE: atomic write, safe paths, restrictive permissions

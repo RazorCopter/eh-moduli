@@ -245,8 +245,8 @@ def api_form_publish(request, form_id):
 
     try:
         with transaction.atomic():
-            # Create NAS folder structure
-            nas_base = os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti')
+            # Create NAS folder structure (use container path for Docker deployments)
+            nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
             nas_path = os.path.join(nas_base, form.customer.nas_folder_name, form.project_name)
             os.makedirs(nas_path, exist_ok=True)
 
