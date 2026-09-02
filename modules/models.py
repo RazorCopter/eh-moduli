@@ -110,7 +110,10 @@ class FormTemplate(models.Model):
             version=self.version + 1,
             status='draft',
             author=self.author,
-            privacy_text=self.privacy_text
+            privacy_text=self.privacy_text,
+            customer=self.customer,
+            project_name=self.project_name,
+            access_password=self.access_password
         )
         for step in self.formstep_set.all():
             new_step = FormStep.objects.create(
