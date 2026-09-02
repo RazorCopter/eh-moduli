@@ -249,7 +249,21 @@ def api_form_publish(request, form_id):
                 user_agent=get_user_agent(request)
             )
 
-        return JsonResponse({'success': True, 'data': {'status': 'published'}})
+        # Generate public link for the published form
+        # URL format: /modules/form/<assignment_token>/
+        # This will be used to create FormAssignment and send to customers
+        public_link_template = f"/modules/form/{{token}}/"
+
+        return JsonResponse({
+            'success': True,
+            'data': {
+                'status': 'published',
+                'form_id': str(form.id),
+                'form_name': form.name,
+                'public_link_template': public_link_template,
+                'note': 'To create customer assignments, use the assignment endpoint'
+            }
+        })
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 

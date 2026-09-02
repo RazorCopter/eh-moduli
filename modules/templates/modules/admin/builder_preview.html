@@ -261,6 +261,40 @@
                                     </label>
                                 </div>
                             </div>
+                        {% elif element.element_type == 'doc_upload' %}
+                            <!-- This is a FormElement doc_upload, rendered as upload widget -->
+                            <div class="element">
+                                <label class="form-label">
+                                    📄 {{ element.config.label|default:"Document Upload" }}
+                                    {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
+                                </label>
+                                {% if element.config.description %}
+                                    <small class="text-muted">{{ element.config.description }}</small>
+                                {% endif %}
+                                <div class="document-section">
+                                    <div class="document-upload" style="cursor: not-allowed;">
+                                        <div>
+                                            <i class="bi bi-cloud-upload" style="font-size: 2rem; display: block; margin-bottom: 0.5rem;"></i>
+                                            <strong>Click to upload or drag</strong>
+                                            <br>
+                                            <small>Allowed: {{ element.config.allowed_extensions|default:"pdf,docx" }}</small>
+                                            <br>
+                                            <small>Max size: {{ element.config.max_file_size|default:"10" }} MB</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% if not element.config.required and element.config.awareness_text %}
+                                    <div class="awareness-declaration" style="margin-top: 1rem;">
+                                        <small><strong>Note:</strong> This document is optional.</small>
+                                        <div class="awareness-checkbox">
+                                            <input type="checkbox" disabled>
+                                            <label style="margin: 0;">
+                                                {{ element.config.awareness_text }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
                         {% endif %}
                     {% endfor %}
 

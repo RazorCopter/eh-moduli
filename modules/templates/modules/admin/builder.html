@@ -823,7 +823,7 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Description</label>
-                                        <textarea x-model="form.steps[selectedStep].elements[selectedElement].description" placeholder="Instructions or requirements for this document"></textarea>
+                                        <textarea x-model="form.steps[selectedStep].elements[selectedElement].description" placeholder="Instructions or requirements for this document" style="min-height: 80px;"></textarea>
                                     </div>
                                     <hr style="margin: 1rem 0;">
                                     <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
@@ -964,6 +964,7 @@
                 selectedElement: null,
                 showElementModal: false,
                 currentStepForElement: null,
+                publishLink: null,
                 csrfToken: '{{ csrf_token }}',
 
                 init() {
@@ -1200,7 +1201,10 @@
                         const result = await response.json();
                         if (result.success) {
                             this.form.status = 'published';
-                            alert('Form published!');
+                            this.publishLink = result.data.public_link_template;
+                            alert(`✅ Form published!\n\nTo create customer assignments and generate their links, go to:\n/modules/admin/assign-form/\n\nForm ID: ${result.data.form_id}`);
+                        } else {
+                            alert('Error: ' + result.error);
                         }
                     } catch (e) {
                         alert('Error: ' + e.message);
