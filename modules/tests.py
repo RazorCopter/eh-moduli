@@ -351,6 +351,52 @@ class PublicAssignmentFlowTests(TestCase):
         self.assertIn('Carta Identità', content)
         self.assertIn('Passaggio 1 di 2', content)
 
+    def test_form_step_interleaved_ordering(self):
+        """Verify that FormElements and DocumentRequirements are interleaved by order field."""
+        from .models import FormElement
+        # Step with:
+        # order 0: text_info "Avviso Materiali"
+        # order 1: doc_req "Scheda Materiali" (existing doc_req1, let's update order to 1)
+        # order 2: separator
+        # order 3: text_info "Avviso Idratazione"
+        self.elem1 = FormElement.objects.create(
+            form_step=self.step1,
+            element_type='text_info',
+            order=0,
+            config={'text': 'Avviso Materiali'}
+        )
+        self.doc_req1.order = 1
+        self.doc_req1.name = 'Scheda Materiali'
+        self.doc_req1.save()
+
+        self.elem2 = FormElement.objects.create(
+            form_step=self.step1,
+            element_type='separator',
+            order=2,
+            config={}
+        )
+        self.elem3 = FormElement.objects.create(
+            form_step=self.step1,
+            element_type='text_info',
+            order=3,
+            config={'text': 'Avviso Idratazione'}
+        )
+
+        url = reverse('form_step_view', kwargs={'assignment_id': self.assignment.id, 'step_order': 0})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+
+        idx_info1 = content.find('Avviso Materiali')
+        idx_doc1 = content.find('Scheda Materiali')
+        idx_sep = content.find('dashed #CBD5E1')
+        idx_info2 = content.find('Avviso Idratazione')
+
+        self.assertTrue(idx_info1 != -1 and idx_doc1 != -1 and idx_sep != -1 and idx_info2 != -1)
+        # Check sequence: info1 < doc1 < sep < info2
+        self.assertTrue(idx_info1 < idx_doc1 < idx_sep < idx_info2, "Gli elementi e i documenti devono apparire nell'ordine stabilito nel builder")
+
+
 
 
 

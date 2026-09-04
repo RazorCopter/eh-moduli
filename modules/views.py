@@ -224,7 +224,16 @@ def form_step_view(request, assignment_id, step_order):
         else:
             step = steps[0]
 
-    requirements = step.documentrequirement_set.all().order_by('order')
+    from itertools import chain
+    elements = list(step.formelement_set.all().order_by('order'))
+    for elem in elements:
+        elem.is_form_element = True
+
+    documents = list(step.documentrequirement_set.all().order_by('order'))
+    for doc in documents:
+        doc.is_document_requirement = True
+
+    combined_items = sorted(chain(elements, documents), key=lambda x: x.order)
 
     if request.method == 'POST':
         assignment.last_completed_step = step
@@ -248,7 +257,8 @@ def form_step_view(request, assignment_id, step_order):
     context = {
         'assignment': assignment,
         'step': step,
-        'requirements': requirements,
+        'combined_items': combined_items,
+        'requirements': documents,
         'step_count': step_count,
         'current_index': current_index,
         'progress_pct': progress_pct,
