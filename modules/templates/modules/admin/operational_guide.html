@@ -1,0 +1,451 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Guida Operativa Workflow - Etichub Moduli{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Guide Page Layout */
+    .guide-hero {
+        background: linear-gradient(135deg, #FFFFFF 0%, #FAF8F6 100%);
+        border: 1px solid #EAE6E1;
+        border-radius: 18px;
+        padding: 2.5rem 3rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        position: relative;
+        overflow: hidden;
+    }
+    .guide-hero::after {
+        content: '';
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(circle, rgba(232, 155, 167, 0.18) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .guide-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #B2536B;
+        background: #FDF2F4;
+        border: 1px solid #FAD1D8;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        margin-bottom: 1rem;
+    }
+    .guide-hero h1 {
+        font-size: 2.15rem;
+        font-weight: 800;
+        color: #2C2C2C;
+        margin: 0 0 0.75rem 0;
+        line-height: 1.2;
+    }
+    .guide-hero p {
+        color: #666;
+        font-size: 1.05rem;
+        max-width: 820px;
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    /* Workflow Stepper Diagram (Interactive Visual) */
+    .workflow-section {
+        margin-bottom: 3rem;
+    }
+    .section-title {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+
+    .workflow-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem;
+        position: relative;
+    }
+    @media (max-width: 1100px) {
+        .workflow-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    @media (max-width: 640px) {
+        .workflow-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .step-card {
+        background: #FFFFFF;
+        border: 1px solid #EAE6E1;
+        border-radius: 16px;
+        padding: 1.75rem 1.5rem;
+        position: relative;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        flex-direction: column;
+    }
+    .step-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.07);
+        border-color: #DFD7CF;
+    }
+
+    .step-number {
+        position: absolute;
+        top: 1.25rem;
+        right: 1.25rem;
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #EAE6E1;
+        line-height: 1;
+    }
+
+    .step-icon-box {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1.25rem;
+        transition: transform 0.3s ease;
+    }
+    .step-card:hover .step-icon-box {
+        transform: scale(1.1) rotate(-4deg);
+    }
+
+    .step-icon-1 { background: #FDF2F4; color: #D66E84; }
+    .step-icon-2 { background: #EEF6FC; color: #2A79BA; }
+    .step-icon-3 { background: #F4EFFF; color: #7B44CC; }
+    .step-icon-4 { background: #EDF8EE; color: #2D8A4E; }
+
+    .step-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        margin-bottom: 0.5rem;
+    }
+    .step-desc {
+        color: #666;
+        font-size: 0.88rem;
+        line-height: 1.55;
+        margin-bottom: 1rem;
+        flex: 1;
+    }
+
+    .step-tag {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 6px;
+        display: inline-block;
+        width: fit-content;
+    }
+    .step-tag-1 { background: #FDF2F4; color: #B3394D; }
+    .step-tag-2 { background: #EEF6FC; color: #1F5A8B; }
+    .step-tag-3 { background: #F4EFFF; color: #622FA3; }
+    .step-tag-4 { background: #EDF8EE; color: #246B3E; }
+
+    /* Visual Architecture NAS Tree */
+    .arch-card {
+        background: #FFFFFF;
+        border: 1px solid #EAE6E1;
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 3rem;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+    }
+    .arch-card h3 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .arch-card p {
+        color: #777;
+        font-size: 0.92rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .folder-tree {
+        background: #FAF8F6;
+        border: 1px solid #EAE6E1;
+        border-radius: 12px;
+        padding: 1.5rem 1.75rem;
+        font-family: 'Consolas', 'Courier New', monospace;
+        font-size: 0.9rem;
+        line-height: 1.8;
+        color: #333;
+        overflow-x: auto;
+    }
+    .folder-root { font-weight: 700; color: #2C2C2C; }
+    .folder-client { color: #2A79BA; font-weight: 600; }
+    .folder-project { color: #B2536B; font-weight: 600; }
+    .folder-sub { color: #7B44CC; }
+    .folder-file { color: #2D8A4E; }
+    .folder-comment { color: #8C847C; font-style: italic; font-family: sans-serif; font-size: 0.82rem; }
+
+    /* Deep Dive Cards */
+    .deep-dive-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+    @media (max-width: 860px) {
+        .deep-dive-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    .deep-card {
+        background: white;
+        border: 1px solid #EAE6E1;
+        border-radius: 14px;
+        padding: 1.75rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    }
+    .deep-card h4 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .deep-card p {
+        color: #555;
+        font-size: 0.92rem;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+    .deep-card ul {
+        margin: 0;
+        padding-left: 1.25rem;
+        color: #555;
+        font-size: 0.9rem;
+        line-height: 1.6;
+    }
+
+    /* Action CTA Bar */
+    .cta-bar {
+        background: linear-gradient(135deg, #FAF8F6 0%, #FFF5F7 100%);
+        border: 1px solid #F5D3D9;
+        border-radius: 14px;
+        padding: 1.75rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .cta-text h4 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #2C2C2C;
+    }
+    .cta-text p {
+        margin: 0;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    .cta-buttons {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="guide-hero">
+    <div class="guide-badge">
+        <i class="bi bi-book"></i> Manuale Operativo
+    </div>
+    <h1>Guida al Flusso di Lavoro Etichub Moduli</h1>
+    <p>
+        Questa guida illustra il funzionamento della piattaforma, evidenziando la separazione tra la 
+        <strong>creazione dei moduli di raccolta (template riutilizzabili)</strong> e la <strong>fase operativa di assegnazione a ciascun cliente</strong> con cartella dedicata sul NAS.
+    </p>
+</div>
+
+<!-- Sezione 1: Visual Interactive Stepper -->
+<div class="workflow-section">
+    <h2 class="section-title">
+        <i class="bi bi-diagram-3-fill" style="color: #E89BA7;"></i> Il Workflow in 4 Fasi
+    </h2>
+
+    <div class="workflow-grid">
+        <!-- Step 1 -->
+        <div class="step-card">
+            <span class="step-number">01</span>
+            <div class="step-icon-box step-icon-1">
+                <i class="bi bi-file-earmark-diff"></i>
+            </div>
+            <h3 class="step-title">1. Configura il Modulo</h3>
+            <p class="step-desc">
+                Nel <strong>Form Builder</strong> crei il modello di raccolta (template). Definisci gli step, le domande e i documenti obbligatori o facoltativi, impostando estensioni e dimensioni massime.
+            </p>
+            <span class="step-tag step-tag-1">Template Astratto</span>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-card">
+            <span class="step-number">02</span>
+            <div class="step-icon-box step-icon-2">
+                <i class="bi bi-send-check"></i>
+            </div>
+            <h3 class="step-title">2. Assegna al Cliente</h3>
+            <p class="step-desc">
+                In <strong>Assegna Modulo</strong> colleghi il modulo pubblicato a un cliente specifico (es: <em>Valentino</em>) e definisci il nome del <strong>Progetto/Pratica</strong> (es: <em>Anti-Celluloide</em>).
+            </p>
+            <span class="step-tag step-tag-2">Associazione Dinamica</span>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-card">
+            <span class="step-number">03</span>
+            <div class="step-icon-box step-icon-3">
+                <i class="bi bi-hdd-network"></i>
+            </div>
+            <h3 class="step-title">3. Automazione NAS & Link</h3>
+            <p class="step-desc">
+                Il sistema crea istantaneamente la cartella dedicata sul NAS (<code>/[cliente]/[progetto]/</code>), inizializza il <code>manifest.json</code> e genera il <strong>link riservato con token sicuro</strong>.
+            </p>
+            <span class="step-tag step-tag-3">Fisicizzazione & Token</span>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step-card">
+            <span class="step-number">04</span>
+            <div class="step-icon-box step-icon-4">
+                <i class="bi bi-patch-check"></i>
+            </div>
+            <h3 class="step-title">4. Upload & Ricevuta PDF</h3>
+            <p class="step-desc">
+                Il cliente apre il link, carica i documenti richiesti e li invia. I file vengono validati, archiviati sul NAS con impronta SHA-256 e viene generata la <strong>Ricevuta Ufficiale PDF</strong>.
+            </p>
+            <span class="step-tag step-tag-4">Completamento Pratica</span>
+        </div>
+    </div>
+</div>
+
+<!-- Sezione 2: Visual NAS Tree Architecture -->
+<div class="arch-card">
+    <h3><i class="bi bi-folder-symlink" style="color: #2A79BA;"></i> Struttura delle Cartelle sul NAS</h3>
+    <p>
+        Ogni file caricato dal cliente viene organizzato in una gerarchia deterministica e sicura. Nessun file viene disperso o sovrascritto.
+    </p>
+
+    <div class="folder-tree">
+        <div><span class="folder-root">/volume1/Clienti/</span> <span class="folder-comment">&larr; Directory radice configurata su NAS Synology</span></div>
+        <div>&nbsp;&nbsp;&boxur;&boxh;&boxh; <span class="folder-client">VALENTINO/</span> <span class="folder-comment">&larr; Cartella principale del Cliente Y (nas_folder_name)</span></div>
+        <div>&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; <span class="folder-project">Anti-Celluloide/</span> <span class="folder-comment">&larr; Sottocartella Progetto Z (definita all'assegnazione)</span></div>
+        <div>&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; <span class="folder-sub">documenti_identita/</span> <span class="folder-comment">&larr; Sottocartella specifica del requisito</span></div>
+        <div>&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; <span class="folder-file">a7b8c9d0_20260904_140000.pdf</span> <span class="folder-comment">&larr; File con checksum SHA-256</span></div>
+        <div>&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; <span class="folder-sub">visure_camerali/</span></div>
+        <div>&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; <span class="folder-file">e1f2a3b4_20260904_140230.pdf</span></div>
+        <div>&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; <span class="folder-file">manifest.json</span> <span class="folder-comment">&larr; Registro metadati e storico di tutti i caricamenti</span></div>
+        <div>&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; <span class="folder-file">Ricevuta_UploadDocPrj.pdf</span> <span class="folder-comment">&larr; Report PDF firmato per attestazione legale</span></div>
+        <div>&nbsp;&nbsp;&boxv;&nbsp;&nbsp;&nbsp;&boxur;&boxh;&boxh; <span class="folder-project">Pluto/</span> <span class="folder-comment">&larr; Altra pratica distinta per lo stesso cliente</span></div>
+        <div>&nbsp;&nbsp;&boxur;&boxh;&boxh; <span class="folder-client">MARIO_ROSSI/</span> <span class="folder-comment">&larr; Altro cliente censito</span></div>
+    </div>
+</div>
+
+<!-- Sezione 3: Schede di Dettaglio -->
+<div class="deep-dive-grid">
+    <!-- Scheda 1: Concetto di Template vs Assegnazione -->
+    <div class="deep-card">
+        <h4><i class="bi bi-layers-half" style="color: #D66E84;"></i> Modulo (Template) vs Assegnazione</h4>
+        <p>
+            Il <strong>Modulo</strong> è il modello riutilizzabile e <u>non ha un URL pubblico di condivisione</u>.
+        </p>
+        <ul>
+            <li>Crea un solo modulo per un'esigenza (es. <em>"Richiesta Fido"</em> o <em>"Apertura Posizione"</em>).</li>
+            <li>Assegnalo a decine di clienti diversi senza dover rifare il modulo da capo.</li>
+            <li>Ogni volta che clicchi <strong>"Assegna"</strong>, viene generato un <strong>link univoco indipendente</strong> per quel cliente.</li>
+        </ul>
+    </div>
+
+    <!-- Scheda 2: Protezione dei File sul NAS -->
+    <div class="deep-card">
+        <h4><i class="bi bi-shield-check" style="color: #2D8A4E;"></i> Politica di Persistenza File sul NAS</h4>
+        <p>
+            I documenti aziendali archiviati sul NAS sono considerati permanenti e protetti da cancellazioni accidentali:
+        </p>
+        <ul>
+            <li>Se cancelli un cliente demo o obsoleto dal DB, la sua cartella sul NAS <strong>rimane intatta</strong>.</li>
+            <li>Nessuna operazione web distrugge i file fisici archiviati.</li>
+            <li>Ogni documento ha verifica di integrità tramite hash crittografico SHA-256.</li>
+        </ul>
+    </div>
+
+    <!-- Scheda 3: Sicurezza e Accesso Clienti -->
+    <div class="deep-card">
+        <h4><i class="bi bi-lock-fill" style="color: #7B44CC;"></i> Accesso Sicuro per i Clienti</h4>
+        <p>
+            Il cliente non ha bisogno di credenziali complesse né di registrazione preventiva:
+        </p>
+        <ul>
+            <li>Riceve un link protetto da un token crittografico a 40 caratteri alfanumerici.</li>
+            <li>Se desiderato, l'operatore può impostare una <strong>password di accesso</strong> aggiuntiva per la pratica.</li>
+            <li>La pratica ha una data di scadenza (default 30 giorni), oltre la quale l'accesso viene bloccato.</li>
+        </ul>
+    </div>
+
+    <!-- Scheda 4: Ricevuta e Monitoraggio Pratiche -->
+    <div class="deep-card">
+        <h4><i class="bi bi-speedometer2" style="color: #2A79BA;"></i> Monitoraggio in Tempo Reale</h4>
+        <p>
+            Dalla <strong>Dashboard</strong> puoi controllare in ogni momento lo stato delle pratiche:
+        </p>
+        <ul>
+            <li><strong>Bozza</strong>: modulo assegnato ma ancora non compilato dal cliente.</li>
+            <li><strong>In Corso</strong>: cliente ha iniziato a compilare o ha caricato documenti parziali.</li>
+            <li><strong>Completato</strong>: tutti i requisiti sono stati soddisfatti e inviati con successo.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Call To Action Bar -->
+<div class="cta-bar">
+    <div class="cta-text">
+        <h4>Pronto per iniziare?</h4>
+        <p>Scegli una delle azioni rapide sottostanti o torna alla dashboard operativa.</p>
+    </div>
+    <div class="cta-buttons">
+        <a href="{% url 'builder_create' %}" class="btn btn-sm btn-primary" style="background: linear-gradient(135deg, #E89BA7, #E0849B); border: none; border-radius: 8px; font-weight: 600; padding: 7px 16px;">
+            <i class="bi bi-plus-lg"></i> Crea Nuovo Modulo
+        </a>
+        <a href="{% url 'assign_form_to_customer' %}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px; font-weight: 600; padding: 7px 16px;">
+            <i class="bi bi-send"></i> Assegna a Cliente
+        </a>
+        <a href="{% url 'customer_list' %}" class="btn btn-sm btn-outline-secondary" style="border-radius: 8px; font-weight: 600; padding: 7px 16px;">
+            <i class="bi bi-people"></i> Gestisci Clienti
+        </a>
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-sm btn-outline-primary" style="border-radius: 8px; font-weight: 600; padding: 7px 16px;">
+            <i class="bi bi-speedometer2"></i> Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}

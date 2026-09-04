@@ -248,4 +248,15 @@ class DashboardAndNavigationTests(TestCase):
         self.assertEqual(template.status, 'draft')
         self.assertRedirects(response, reverse('builder_edit', kwargs={'pk': template.id}))
 
+    def test_operational_guide_view(self):
+        """Test operational guide page renders with visual workflow elements."""
+        response = self.client.get(reverse('operational_guide'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        self.assertIn('Guida al Flusso di Lavoro', content)
+        self.assertIn('Il Workflow in 4 Fasi', content)
+        self.assertIn('Struttura delle Cartelle sul NAS', content)
+        self.assertIn('/volume1/Clienti/', content)
+
+
 

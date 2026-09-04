@@ -499,3 +499,11 @@ def builder_preview(request, pk):
         'is_preview': True
     }
     return render(request, 'modules/published_form.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def operational_guide(request):
+    """Render comprehensive interactive operational workflow guide."""
+    return render(request, 'modules/admin/operational_guide.html')
+

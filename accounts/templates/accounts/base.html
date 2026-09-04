@@ -495,7 +495,7 @@
             <ul class="footer-links">
                 <li><a href="#" class="footer-link">Privacy Policy</a></li>
                 <li><a href="#" class="footer-link">Termini di Servizio</a></li>
-                <li><a href="javascript:void(0)" onclick="openHelpModal()" class="footer-link">Guida</a></li>
+                <li><a href="{% url 'operational_guide' %}" class="footer-link">Guida Operativa</a></li>
             </ul>
             <div>&copy; 2026 Etichub - Moduli Documentali. Tutti i diritti riservati.</div>
         </div>
@@ -510,23 +510,26 @@
             </div>
             <div class="help-modal-body">
                 <div class="help-item">
-                    <strong>📊 Dashboard & Indicatori</strong>
-                    Panoramica in tempo reale delle attività: moduli pubblicati, clienti registrati sul NAS, pratiche complessive e pratiche completate con successo.
+                    <strong>1. 📁 Moduli di Raccolta (Template Riutilizzabile)</strong>
+                    Crea nel Builder la struttura del modulo: step, domande e documenti richiesti (formati, pesi massimi e sottocartelle). Il modulo è un modello astratto non associato a un singolo cliente.
                 </div>
                 <div class="help-item">
-                    <strong>📁 Moduli di Raccolta (Form Builder)</strong>
-                    Crea e personalizza step, campi informativi e requisiti di upload documentale. Ogni modulo può essere associato a un cliente specifico e protetto da password di accesso.
+                    <strong>2. 📋 Assegnazione a Cliente & Progetto</strong>
+                    Dalla sezione <em>Assegna Modulo</em>, colleghi il modulo pubblicato a un cliente specifico e definisci il nome del <strong>Progetto/Pratica</strong> (es: <code>Anti-Celluloide</code>).
                 </div>
                 <div class="help-item">
-                    <strong>👥 Gestione Clienti & Percorsi NAS</strong>
-                    Censisci i clienti e specifica la cartella NAS dedicata (es. <code>/storage/clienti/[cliente]/[progetto]/</code>). I file caricati dai clienti rimangono sempre fisicamente sul NAS anche in caso di rimozione dell'anagrafica dal DB.
+                    <strong>3. 🔗 Generazione Link e Cartella NAS Dedicata</strong>
+                    Il sistema crea in automatico la cartella sul NAS (<code>/storage/clienti/[cliente]/[progetto]/</code>), inizializza il <code>manifest.json</code> e genera il link riservato per il cliente.
                 </div>
                 <div class="help-item">
-                    <strong>📋 Assegnazione e Invio Pratiche</strong>
-                    Genera link dedicati o condividi il link permanente con password per consentire al cliente di caricare in sicurezza i propri documenti.
+                    <strong>4. 👥 Anagrafica Clienti & Persistenza NAS</strong>
+                    Censisci i clienti con la loro cartella principale. I file archiviati sul NAS rimangono sempre fisicamente al sicuro anche in caso di rimozione dell'anagrafica dal DB.
                 </div>
             </div>
-            <div class="help-modal-footer">
+            <div class="help-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+                <a href="{% url 'operational_guide' %}" class="btn btn-sm btn-primary btn-shimmer" style="background: linear-gradient(135deg, #E89BA7, #E0849B); border: none; border-radius: 8px; font-weight: 600; padding: 6px 14px; text-decoration: none; color: white; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="bi bi-book-half"></i> Apri Guida Completa con Diagramma
+                </a>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="closeHelpModal()" style="border-radius: 8px;">Chiudi</button>
             </div>
         </div>
