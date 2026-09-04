@@ -16,7 +16,7 @@ from .views_admin import (
     form_template_edit, form_template_duplicate, customer_list,
     customer_create, customer_delete, assignment_detail, assign_form_to_customer,
     builder_list, builder_create, builder_edit, builder_preview, operational_guide,
-    reopen_assignment_for_upload
+    reopen_assignment_for_upload, assignment_delete
 )
 import os
 import hashlib

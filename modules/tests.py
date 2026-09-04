@@ -696,6 +696,27 @@ class PublicAssignmentFlowTests(TestCase):
         self.assertEqual(resp_admin.status_code, 200)
         self.assertEqual(resp_admin['Content-Type'], 'application/pdf')
 
+    def test_assignment_delete_by_admin(self):
+        """Admin can disassociate and delete an assignment, keeping customer and template intact."""
+        delete_url = reverse('assignment_delete', kwargs={'pk': self.assignment.id})
+
+        # Anonymous cannot delete
+        self.client.logout()
+        resp_anon = self.client.post(delete_url)
+        self.assertNotEqual(resp_anon.status_code, 200)
+        self.assertTrue(FormAssignment.objects.filter(id=self.assignment.id).exists())
+
+        # Admin deletes assignment
+        self.client.force_login(self.admin_user)
+        resp_del = self.client.post(delete_url)
+        self.assertRedirects(resp_del, reverse('admin_dashboard'))
+
+        # Assignment is gone from DB
+        self.assertFalse(FormAssignment.objects.filter(id=self.assignment.id).exists())
+        # Customer and template remain intact
+        self.assertTrue(Customer.objects.filter(id=self.customer.id).exists())
+        self.assertTrue(FormTemplate.objects.filter(id=self.template.id).exists())
+
 
 
 

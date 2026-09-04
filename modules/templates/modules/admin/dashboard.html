@@ -677,6 +677,12 @@
                                 </button>
                             </form>
                             {% endif %}
+                            <form method="post" action="{% url 'assignment_delete' assignment.id %}" onsubmit="return confirm('Disassociare ed eliminare l\'assegnazione del modulo per questo cliente?');" style="display: inline-block; margin-left: 4px;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 6px; font-size: 0.82rem; padding: 4px 8px;" title="Disassocia / Elimina assegnazione">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     {% endfor %}

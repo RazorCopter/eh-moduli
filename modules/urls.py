@@ -19,6 +19,7 @@ urlpatterns = [
     path('admin/assign-form/', views.assign_form_to_customer, name='assign_form_to_customer'),
     path('admin/assignments/<uuid:pk>/', views.assignment_detail, name='assignment_detail'),
     path('admin/assignments/<uuid:pk>/reopen/', views.reopen_assignment_for_upload, name='reopen_assignment'),
+    path('admin/assignments/<uuid:pk>/delete/', views.assignment_delete, name='assignment_delete'),
     path('admin/guide/', views.operational_guide, name='operational_guide'),
 
     # API v1 endpoints

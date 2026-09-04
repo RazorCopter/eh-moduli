@@ -592,3 +592,60 @@ def reopen_assignment_for_upload(request, pk):
 
     return redirect('assignment_detail', pk=assignment.id)
 
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def assignment_delete(request, pk):
+    """
+    Deletes / disassociates a FormAssignment from a customer.
+    - Removes the assignment record and cascades related uploads/declarations metadata.
+    - Customer and FormTemplate remain intact.
+    - Physical files on NAS are kept intact.
+    - Logs the action in audit log.
+    """
+    assignment = get_object_or_404(FormAssignment, id=pk)
+    customer_name = f"{assignment.customer.first_name} {assignment.customer.last_name}" if assignment.customer else "Cliente"
+    customer_code = assignment.customer.code if assignment.customer else ""
+    template_name = assignment.form_template.name if assignment.form_template else "Modulo"
+    assignment_id_str = str(assignment.id)
+
+    # Invalidate any session credentials
+    request.session.pop(f'assignment_access_{assignment.id}', None)
+    request.session.pop(f'assignment_access_{assignment.id}_{assignment.secure_token}', None)
+    request.session.modified = True
+
+    try:
+        assignment.delete()
+
+        log_action(
+            request.user,
+            'delete',
+            'FormAssignment',
+            assignment_id_str,
+            {
+                'customer': customer_code,
+                'customer_name': customer_name,
+                'template': template_name,
+                'physical_files_kept': True,
+            },
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        msg = f"Pratica '{template_name}' disassociata ed eliminata con successo dal cliente {customer_name}."
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({'status': 'success', 'message': msg})
+
+        messages.success(request, msg)
+        return redirect('admin_dashboard')
+
+    except Exception as e:
+        logger.error(f"Errore durante l'eliminazione dell'assegnazione {pk}: {e}")
+        err_msg = f"Errore durante l'eliminazione dell'assegnazione: {str(e)}"
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({'status': 'error', 'error': err_msg}, status=500)
+        messages.error(request, err_msg)
+        return redirect('admin_dashboard')
+
