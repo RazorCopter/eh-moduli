@@ -668,11 +668,11 @@
                     <i class="bi bi-save"></i> Save
                 </button>
                 <button class="btn-publish" @click="publish()" x-show="form.status === 'draft'">
-                    <i class="bi bi-cloud-check"></i> Publish
+                    <i class="bi bi-cloud-check"></i> Pubblica Modulo
                 </button>
-                <button class="btn-share" @click="showShareModal()" x-show="form.status === 'published'" style="background: #17a2b8;">
-                    <i class="bi bi-share"></i> Condividi
-                </button>
+                <a href="/modules/admin/assign-form/?template_id={{ template.id }}" class="btn-assign-header" x-show="form.status === 'published'" style="background: #2D8A4E; color: white; text-decoration: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.9rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="bi bi-send-plus"></i> Assegna a Cliente
+                </a>
                 <button class="btn-draft" @click="revertToDraft()" x-show="form.status === 'published'" style="background: #fd7e14;">
                     <i class="bi bi-arrow-counterclockwise"></i> Ripristina in Bozza
                 </button>
@@ -1006,97 +1006,26 @@
                     <i class="bi bi-x-lg"></i>
                 </button>
                 <div class="modal-header" style="text-align: center; color: #28a745;">
-                    <i class="bi bi-check-circle" style="font-size: 3rem; display: block; margin-bottom: 1rem;"></i>
-                    <h2 class="modal-title">Modulo Pubblicato!</h2>
+                    <i class="bi bi-check-circle" style="font-size: 3.25rem; display: block; margin-bottom: 0.75rem;"></i>
+                    <h2 class="modal-title">Modulo Pubblicato con Successo!</h2>
                 </div>
                 <div style="padding: 1.5rem; text-align: center;">
-                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
-                        <p style="margin: 0 0 1rem 0; color: #6c757d; font-size: 0.9rem;">
-                            <strong>Cliente:</strong> <span x-text="publishData.customer"></span>
-                        </p>
-                        <p style="margin: 0 0 1rem 0; color: #6c757d; font-size: 0.9rem;">
-                            <strong>Progetto:</strong> <span x-text="publishData.project"></span>
-                        </p>
+                    <div style="background: #f0f7ff; border: 1px solid #cce5ff; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.5rem; text-align: left; font-size: 0.92rem; line-height: 1.5; color: #1e4e79;">
+                        <strong style="display: block; margin-bottom: 0.35rem; color: #0c4b33;"><i class="bi bi-info-circle-fill"></i> Modello Riutilizzabile Pronto:</strong>
+                        Il modulo è ora pubblicato a catalogo. Ricorda che il template non ha un URL di condivisione pubblico diretto: 
+                        per raccogliere i documenti, devi <strong>assegnarlo a uno o più clienti</strong>.
+                        <br><br>
+                        Ogni assegnazione creerà la <strong>cartella dedicata sul NAS</strong> per quel cliente/progetto e genererà il relativo <strong>link riservato</strong>.
                     </div>
 
-                    <div style="background: #f0f7ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #0d6efd;">
-                        <p style="margin: 0 0 0.5rem 0; color: #6c757d; font-size: 0.85rem; font-weight: 600;">URL di Condivisione:</p>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <input type="text" :value="publishData.url" readonly style="flex: 1; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.85rem; font-family: monospace;">
-                            <button type="button" class="btn btn-sm btn-primary" @click="copyToClipboard(publishData.url)" style="padding: 0.75rem 1rem;">
-                                <i class="bi bi-files"></i> Copia
-                            </button>
-                        </div>
+                    <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                        <a href="/modules/admin/assign-form/?template_id={{ template.id }}" class="btn btn-success" style="padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem;">
+                            <i class="bi bi-send-plus"></i> Assegna a un Cliente
+                        </a>
+                        <button type="button" class="btn btn-outline-secondary" @click="closePublishModal()" style="padding: 0.75rem 1.5rem; border-radius: 8px;">
+                            Chiudi
+                        </button>
                     </div>
-
-                    <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #ffc107;">
-                        <p style="margin: 0 0 0.5rem 0; color: #856404; font-size: 0.85rem; font-weight: 600;">Password di Accesso:</p>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <input type="text" :value="publishData.password" readonly style="flex: 1; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.85rem; font-family: monospace; font-weight: 600;">
-                            <button type="button" class="btn btn-sm btn-warning" @click="copyToClipboard(publishData.password)" style="padding: 0.75rem 1rem;">
-                                <i class="bi bi-files"></i> Copia
-                            </button>
-                        </div>
-                    </div>
-
-                    <p style="color: #6c757d; font-size: 0.9rem; margin-bottom: 1.5rem;">
-                        ✓ Condividi l'URL e la password con il tuo cliente per permettergli di compilare il modulo e caricare i documenti.
-                    </p>
-
-                    <button type="button" class="btn btn-primary" @click="closePublishModal()" style="padding: 0.75rem 2rem;">
-                        <i class="bi bi-check"></i> Chiudi
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal: Share Form -->
-        <div class="modal-overlay" x-show="showShareModal_" @click.self="showShareModal_ = false" style="display: none; z-index: 2000;">
-            <div class="modal-content" style="max-width: 500px;">
-                <button class="modal-close" @click="showShareModal_ = false">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-                <div class="modal-header" style="text-align: center; color: #17a2b8;">
-                    <i class="bi bi-share" style="font-size: 3rem; display: block; margin-bottom: 1rem;"></i>
-                    <h2 class="modal-title">Condividi Modulo</h2>
-                </div>
-                <div style="padding: 1.5rem; text-align: center;">
-                    <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;">
-                        <p style="margin: 0 0 1rem 0; color: #6c757d; font-size: 0.9rem;">
-                            <strong>Cliente:</strong> <span x-text="shareData.customer"></span>
-                        </p>
-                        <p style="margin: 0; color: #6c757d; font-size: 0.9rem;">
-                            <strong>Progetto:</strong> <span x-text="shareData.project"></span>
-                        </p>
-                    </div>
-
-                    <div style="background: #f0f7ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #0d6efd;">
-                        <p style="margin: 0 0 0.5rem 0; color: #6c757d; font-size: 0.85rem; font-weight: 600;">URL di Condivisione:</p>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <input type="text" :value="shareData.url" readonly style="flex: 1; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.85rem; font-family: monospace;">
-                            <button type="button" class="btn btn-sm btn-primary" @click="copyToClipboard(shareData.url)" style="padding: 0.75rem 1rem;">
-                                <i class="bi bi-files"></i> Copia
-                            </button>
-                        </div>
-                    </div>
-
-                    <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid #ffc107;">
-                        <p style="margin: 0 0 0.5rem 0; color: #856404; font-size: 0.85rem; font-weight: 600;">Password di Accesso:</p>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <input type="text" :value="shareData.password" readonly style="flex: 1; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 0.85rem; font-family: monospace; font-weight: 600;">
-                            <button type="button" class="btn btn-sm btn-warning" @click="copyToClipboard(shareData.password)" style="padding: 0.75rem 1rem;">
-                                <i class="bi bi-files"></i> Copia
-                            </button>
-                        </div>
-                    </div>
-
-                    <p style="color: #6c757d; font-size: 0.9rem; margin-bottom: 1.5rem;">
-                        ✓ Condividi l'URL e la password con il tuo cliente per permettergli di compilare il modulo e caricare i documenti.
-                    </p>
-
-                    <button type="button" class="btn btn-primary" @click="showShareModal_ = false" style="padding: 0.75rem 2rem;">
-                        <i class="bi bi-check"></i> Chiudi
-                    </button>
                 </div>
             </div>
         </div>
