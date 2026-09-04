@@ -303,9 +303,22 @@
             </span>
         </div>
         <div class="info-row">
+            <span class="info-label">Progetto / Pratica</span>
+            <span class="info-val" style="color: #2C2C2C; font-weight: 700;">
+                <i class="bi bi-folder" style="color: #E89BA7;"></i>
+                {% if assignment.form_data.project_name %}
+                    {{ assignment.form_data.project_name }}
+                {% elif assignment.form_template.project_name %}
+                    {{ assignment.form_template.project_name }}
+                {% else %}
+                    Pratica Standard
+                {% endif %}
+            </span>
+        </div>
+        <div class="info-row">
             <span class="info-label">Cartella NAS Dedicata</span>
-            <span class="info-val font-monospace" style="color: #1A5276; background: #EEF6FC; padding: 2px 6px; border-radius: 4px;">
-                /{{ assignment.customer.nas_folder_name }}/
+            <span class="info-val font-monospace" style="color: #1A5276; background: #EEF6FC; padding: 2px 6px; border-radius: 4px; font-size: 0.85rem;">
+                /{{ assignment.customer.nas_folder_name }}/{% if assignment.form_data.project_name %}{{ assignment.form_data.project_name }}/{% elif assignment.form_template.project_name %}{{ assignment.form_template.project_name }}/{% endif %}
             </span>
         </div>
     </div>

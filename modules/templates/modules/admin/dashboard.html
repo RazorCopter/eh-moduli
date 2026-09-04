@@ -627,7 +627,9 @@
                             <div style="font-weight: 500; color: #3C3C3C;">
                                 {{ assignment.form_template.name }}
                             </div>
-                            {% if assignment.form_template.project_name %}
+                            {% if assignment.form_data.project_name %}
+                            <small class="text-muted"><i class="bi bi-folder"></i> {{ assignment.form_data.project_name }}</small>
+                            {% elif assignment.form_template.project_name %}
                             <small class="text-muted"><i class="bi bi-folder"></i> {{ assignment.form_template.project_name }}</small>
                             {% endif %}
                         </td>

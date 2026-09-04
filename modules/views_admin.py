@@ -245,26 +245,106 @@ def assignment_detail(request, pk):
 @login_required
 @user_passes_test(is_admin)
 def assign_form_to_customer(request):
-    if request.method == 'POST':
-        customer_id = request.POST.get('customer_id')
-        template_id = request.POST.get('template_id')
+    import os
+    import json
+    import secrets
+    import string
 
-        customer = get_object_or_404(Customer, id=customer_id)
-        template = get_object_or_404(FormTemplate, id=template_id)
+    if request.method == 'POST':
+        customer_id = request.POST.get('customer_id', '').strip()
+        template_id = request.POST.get('template_id', '').strip()
+        project_name = request.POST.get('project_name', '').strip()
+        access_password = request.POST.get('access_password', '').strip()
+        expiry_days = request.POST.get('expiry_days', '30').strip()
+        internal_notes = request.POST.get('internal_notes', '').strip()
+
+        errors = []
+        if not customer_id:
+            errors.append('Devi selezionare un cliente destinatario.')
+        if not template_id:
+            errors.append('Devi selezionare un modulo di raccolta.')
+        if not project_name:
+            errors.append('Nome Progetto è obbligatorio (definisce la cartella dedicata sul NAS).')
+
+        customer = None
+        template = None
+        if customer_id:
+            customer = get_object_or_404(Customer, id=customer_id)
+        if template_id:
+            template = get_object_or_404(FormTemplate, id=template_id)
+
+        if errors:
+            customers = Customer.objects.filter(active=True).order_by('first_name')
+            templates = FormTemplate.objects.filter(status='published').order_by('name')
+            return render(request, 'modules/admin/assign_form.html', {
+                'customers': customers,
+                'templates': templates,
+                'errors': errors,
+                'selected_customer_id': customer_id,
+                'selected_template_id': template_id,
+                'project_name': project_name,
+                'access_password': access_password,
+                'expiry_days': expiry_days,
+                'internal_notes': internal_notes,
+            })
+
+        try:
+            days = int(expiry_days)
+            if days <= 0:
+                days = 30
+        except ValueError:
+            days = 30
+
+        expiry_date = timezone.now() + timezone.timedelta(days=days)
+
+        # Pre-create dedicated NAS folder structure: /storage/clienti/{customer.nas_folder_name}/{project_name}/
+        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+        nas_project_path = os.path.join(nas_base, customer.nas_folder_name, project_name)
+        try:
+            os.makedirs(nas_project_path, exist_ok=True)
+        except Exception as e:
+            logger.warning(f"Could not pre-create NAS project folder {nas_project_path}: {e}")
 
         assignment = FormAssignment.objects.create(
             customer=customer,
             form_template=template,
-            expiry_date=timezone.now() + timezone.timedelta(days=30),
+            expiry_date=expiry_date,
             operator=request.user,
-            status='draft'
+            status='draft',
+            internal_notes=internal_notes,
+            form_data={
+                'client_name': customer.nas_folder_name,
+                'project_name': project_name,
+                'access_password': access_password,
+                'created_at': timezone.now().isoformat()
+            }
         )
+
+        # Create initial manifest.json in the NAS folder
+        try:
+            manifest_path = os.path.join(nas_project_path, 'manifest.json')
+            if not os.path.exists(manifest_path):
+                manifest = {
+                    'assignment_id': str(assignment.id),
+                    'form_name': template.name,
+                    'customer': f"{customer.first_name} {customer.last_name}",
+                    'customer_code': customer.code,
+                    'nas_client_folder': customer.nas_folder_name,
+                    'project': project_name,
+                    'created_at': timezone.now().isoformat(),
+                    'uploads': []
+                }
+                with open(manifest_path, 'w', encoding='utf-8') as f:
+                    json.dump(manifest, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            logger.warning(f"Could not create initial manifest.json in {nas_project_path}: {e}")
 
         log_action(
             request.user,
             'create',
             'FormAssignment',
             str(assignment.id),
+            {'customer': customer.code, 'template': template.name, 'project': project_name},
             ip=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
@@ -274,21 +354,28 @@ def assign_form_to_customer(request):
                 'status': 'success',
                 'token': assignment.secure_token,
                 'form_url': f"/modules/form/{assignment.secure_token}/",
-                'assignment_id': str(assignment.id)
+                'assignment_id': str(assignment.id),
+                'project_name': project_name,
+                'nas_path': nas_project_path
             })
 
         messages.success(
             request, 
-            f"Modulo '{template.name}' assegnato con successo a {customer.first_name} {customer.last_name}! Di seguito trovi il link riservato generato per il cliente."
+            f"Modulo '{template.name}' assegnato con successo a {customer.first_name} {customer.last_name} per il progetto '{project_name}'! Cartella NAS dedicata: /{customer.nas_folder_name}/{project_name}/"
         )
         return redirect('assignment_detail', pk=assignment.id)
 
-    customers = Customer.objects.filter(active=True)
-    templates = FormTemplate.objects.filter(status='published')
+    selected_template_id = request.GET.get('template_id', '')
+    selected_customer_id = request.GET.get('customer_id', '')
+
+    customers = Customer.objects.filter(active=True).order_by('first_name')
+    templates = FormTemplate.objects.filter(status='published').order_by('name')
 
     context = {
         'customers': customers,
         'templates': templates,
+        'selected_template_id': selected_template_id,
+        'selected_customer_id': selected_customer_id,
     }
 
     return render(request, 'modules/admin/assign_form.html', context)
@@ -323,40 +410,26 @@ def builder_list(request):
             ip=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
-        return render(request, 'modules/admin/builder_list.html', {
-            'forms': [],
-            'error': f'Errore caricamento form: {str(e)}'
-        })
+        return render(request, 'modules/admin/builder_list.html', {'forms': [], 'error': str(e)})
 
 
 @login_required
 @user_passes_test(is_admin)
 def builder_create(request):
-    """Create new form (opens builder)."""
+    """Create new form template (opens builder). Customer and Project are assigned in Phase 2."""
     if request.method == 'POST':
-        import secrets
-        import string
-
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '').strip()
         intro_text = request.POST.get('intro_text', '').strip()
         privacy_text = request.POST.get('privacy_text', '').strip()
-        customer_id = request.POST.get('customer_id', '').strip()
-        project_name = request.POST.get('project_name', '').strip()
-        access_password = request.POST.get('access_password', '').strip()
 
         # Validate required fields
         errors = []
         if not name:
             errors.append('Nome modulo è obbligatorio')
-        if not customer_id:
-            errors.append('Devi selezionare un cliente')
-        if not project_name:
-            errors.append('Nome progetto è obbligatorio')
 
         if errors:
             return render(request, 'modules/admin/builder_create.html', {
-                'customers': Customer.objects.filter(active=True).order_by('first_name'),
                 'errors': errors,
                 'form_data': {
                     'name': name,
@@ -366,28 +439,16 @@ def builder_create(request):
                 }
             })
 
-        # Auto-generate password if empty
-        if not access_password:
-            alphabet = string.ascii_letters + string.digits + '!@#$%^&*'
-            access_password = ''.join(secrets.choice(alphabet) for _ in range(16))
-
-        # Fetch customer
-        try:
-            customer = Customer.objects.get(id=customer_id)
-        except Customer.DoesNotExist:
-            return render(request, 'modules/admin/builder_create.html', {
-                'customers': Customer.objects.filter(active=True).order_by('first_name'),
-                'errors': ['Cliente selezionato non trovato']
-            })
+        default_intro = (
+            intro_text or 
+            'Benvenuto. Ti chiediamo di verificare e caricare i documenti richiesti seguendo i passaggi indicati.'
+        )
 
         template = FormTemplate.objects.create(
             name=name,
             description=description,
-            intro_text=intro_text,
+            intro_text=default_intro,
             privacy_text=privacy_text,
-            customer=customer,
-            project_name=project_name,
-            access_password=access_password,
             author=request.user,
             status='draft'
         )
@@ -397,15 +458,14 @@ def builder_create(request):
             'create',
             'FormTemplate',
             str(template.id),
-            {'customer': str(customer.id) if customer else None, 'project': project_name},
+            {'name': name},
             ip=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
 
         return redirect('builder_edit', pk=template.id)
 
-    customers = Customer.objects.filter(active=True).order_by('first_name')
-    return render(request, 'modules/admin/builder_create.html', {'customers': customers})
+    return render(request, 'modules/admin/builder_create.html')
 
 
 @login_required

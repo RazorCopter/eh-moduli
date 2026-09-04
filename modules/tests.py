@@ -214,13 +214,15 @@ class DashboardAndNavigationTests(TestCase):
 
         response = self.client.post(reverse('assign_form_to_customer'), {
             'customer_id': str(cust.id),
-            'template_id': str(template.id)
+            'template_id': str(template.id),
+            'project_name': 'ProgettoTest'
         })
 
         # Must NOT return raw JsonResponse on standard POST, must redirect to assignment_detail!
         self.assertEqual(response.status_code, 302)
         assignment = FormAssignment.objects.filter(customer=cust, form_template=template).first()
         self.assertIsNotNone(assignment)
+        self.assertEqual(assignment.form_data.get('project_name'), 'ProgettoTest')
         self.assertRedirects(response, reverse('assignment_detail', kwargs={'pk': assignment.id}))
 
         # Following the redirect renders assignment_detail with copyable link
@@ -229,6 +231,21 @@ class DashboardAndNavigationTests(TestCase):
         detail_content = detail_response.content.decode('utf-8')
         self.assertIn('Link Riservato di Accesso Cliente', detail_content)
         self.assertIn(assignment.secure_token, detail_content)
+        self.assertIn('ProgettoTest', detail_content)
         self.assertIn('btn-copy-link', detail_content)
+
+    def test_builder_create_as_reusable_template(self):
+        """Test creating a form template without requiring customer or project."""
+        response = self.client.post(reverse('builder_create'), {
+            'name': 'Modulo Onboarding Fornitori',
+            'description': 'Raccolta dati e documenti fornitori',
+            'intro_text': 'Benvenuto nel portale fornitori'
+        })
+        self.assertEqual(response.status_code, 302)
+        template = FormTemplate.objects.filter(name='Modulo Onboarding Fornitori').first()
+        self.assertIsNotNone(template)
+        self.assertIsNone(template.customer)
+        self.assertEqual(template.status, 'draft')
+        self.assertRedirects(response, reverse('builder_edit', kwargs={'pk': template.id}))
 
 

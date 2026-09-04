@@ -8,14 +8,14 @@
     .create-wrapper {
         display: flex;
         justify-content: center;
-        padding: 1rem 0 3rem 0;
+        padding: 1.5rem 0 3.5rem 0;
     }
     .create-container {
         background: white;
         border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        box-shadow: 0 4px 24px rgba(0,0,0,0.06);
         border: 1px solid #EAE6E1;
-        max-width: 560px;
+        max-width: 620px;
         width: 100%;
         padding: 2.5rem 3rem;
     }
@@ -40,20 +40,19 @@
         margin: 0.35rem 0 0 0;
     }
     .form-group {
-        margin-bottom: 1.35rem;
+        margin-bottom: 1.4rem;
     }
     .form-group label {
         font-weight: 600;
         color: #2C2C2C;
-        margin-bottom: 0.4rem;
+        margin-bottom: 0.45rem;
         display: block;
         font-size: 0.92rem;
     }
     .form-group input,
-    .form-group textarea,
-    .form-group select {
+    .form-group textarea {
         width: 100%;
-        padding: 0.7rem 0.9rem;
+        padding: 0.75rem 1rem;
         border: 1px solid #D8D3CC;
         border-radius: 8px;
         font-size: 0.95rem;
@@ -61,38 +60,14 @@
         transition: all 0.2s;
     }
     .form-group input:focus,
-    .form-group textarea:focus,
-    .form-group select:focus {
+    .form-group textarea:focus {
         outline: none;
         border-color: #E89BA7;
         box-shadow: 0 0 0 3px rgba(232, 155, 167, 0.15);
     }
     .form-group textarea {
         resize: vertical;
-        min-height: 90px;
-    }
-    .customer-row {
-        display: flex;
-        gap: 0.5rem;
-    }
-    .customer-row select {
-        flex: 1;
-    }
-    .btn-add-customer {
-        padding: 0.7rem 1.1rem;
-        background: #E89BA7;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3rem;
-    }
-    .btn-add-customer:hover {
-        background: #E0849B;
+        min-height: 95px;
     }
     .form-actions {
         display: flex;
@@ -119,6 +94,7 @@
     .btn-submit:hover {
         transform: translateY(-1px);
         box-shadow: 0 6px 14px rgba(232, 155, 167, 0.35);
+        color: white;
     }
     .btn-cancel {
         flex: 1;
@@ -141,69 +117,6 @@
         background: #F8F9FA;
         color: #2C2C2C;
     }
-
-    /* Customer Creation Modal */
-    .cust-modal {
-        display: none;
-        position: fixed;
-        z-index: 1100;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0,0,0,0.5);
-        backdrop-filter: blur(3px);
-    }
-    .cust-modal.show {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    .cust-modal-content {
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        padding: 2rem;
-        max-width: 440px;
-        width: 90%;
-    }
-    .cust-modal-header {
-        font-size: 1.35rem;
-        font-weight: 700;
-        color: #2C2C2C;
-        margin-bottom: 1.25rem;
-    }
-    .cust-modal-footer {
-        display: flex;
-        gap: 0.75rem;
-        margin-top: 1.5rem;
-    }
-    .btn-modal-save {
-        flex: 1;
-        padding: 0.65rem;
-        background: #E89BA7;
-        color: white;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    .btn-modal-save:hover {
-        background: #E0849B;
-    }
-    .btn-modal-cancel {
-        flex: 1;
-        padding: 0.65rem;
-        background: #F0ECE8;
-        color: #4A4A4A;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    .btn-modal-cancel:hover {
-        background: #E5E0DA;
-    }
     .helper-text {
         color: #8C8C8C;
         font-size: 0.82rem;
@@ -220,7 +133,14 @@
                 <i class="bi bi-file-earmark-plus"></i>
             </div>
             <h2 class="create-title">Crea Nuovo Modulo</h2>
-            <p class="create-subtitle">Configura i dettagli di base per il nuovo modulo di raccolta</p>
+            <p class="create-subtitle">Definisci il modello di raccolta documentale riutilizzabile</p>
+        </div>
+
+        <div style="background: #F0F7FF; border: 1px solid #D0E3F7; color: #1E4E79; padding: 1rem 1.25rem; border-radius: 10px; margin-bottom: 1.75rem; font-size: 0.9rem; line-height: 1.5;">
+            <div style="font-weight: 600; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; color: #1A5276;">
+                <i class="bi bi-info-circle-fill" style="color: #2A79BA;"></i> Fase 1: Creazione Modello
+            </div>
+            In questa fase configuri il <strong>template</strong> (step, domande e requisiti dei documenti). Una volta salvato, potrai assegnare questo modulo a <strong>uno o più clienti</strong> nella sezione <strong>Assegna Modulo</strong>, specificando per ciascuno il relativo progetto e cartella NAS dedicata.
         </div>
 
         {% if errors %}
@@ -239,54 +159,29 @@
 
             <div class="form-group">
                 <label for="name">Nome Modulo *</label>
-                <input type="text" id="name" name="name" placeholder="es. Kit Onboarding Cliente" required autofocus>
+                <input type="text" id="name" name="name" placeholder="es. Kit Onboarding Cliente, Raccolta Documenti KYC, Upload Progetto" value="{{ form_data.name|default:'' }}" required autofocus>
+                <small class="helper-text">Nome identificativo del modulo che apparirà anche al cliente</small>
             </div>
 
             <div class="form-group">
-                <label>Cliente Specifico *</label>
-                <div class="customer-row">
-                    <select id="customer_id" name="customer_id" required>
-                        <option value="">-- Seleziona Cliente --</option>
-                        {% for customer in customers %}
-                            <option value="{{ customer.id }}">{{ customer.first_name }} {{ customer.last_name }} ({{ customer.code }})</option>
-                        {% endfor %}
-                    </select>
-                    <button type="button" class="btn-add-customer" onclick="openCustomerModal()">
-                        <i class="bi bi-plus"></i> Nuovo
-                    </button>
-                </div>
+                <label for="description">Descrizione (opzionale)</label>
+                <textarea id="description" name="description" placeholder="Breve descrizione interna di cosa raccoglie questo modulo...">{{ form_data.description|default:'' }}</textarea>
             </div>
 
             <div class="form-group">
-                <label for="project_name">Nome Progetto *</label>
-                <input type="text" id="project_name" name="project_name" placeholder="es. project1, documentazione-q4" required>
-                <p class="helper-text">Nome cartella NAS per questo progetto</p>
+                <label for="intro_text">Testo Introduttivo di Benvenuto</label>
+                <textarea id="intro_text" name="intro_text" placeholder="Messaggio mostrato al cliente all'inizio della compilazione...">{{ form_data.intro_text|default:'Benvenuto. Ti chiediamo di verificare e caricare i documenti richiesti seguendo i passaggi indicati.' }}</textarea>
+                <small class="helper-text">Mostrato nella schermata iniziale del modulo</small>
             </div>
 
             <div class="form-group">
-                <label for="access_password">Password di Accesso (auto-generata se vuota)</label>
-                <input type="text" id="access_password" name="access_password" placeholder="Lascia vuoto per generare automaticamente">
-                <small class="helper-text">Le password auto-generate sono 16 caratteri alfanumerici + caratteri speciali</small>
-            </div>
-
-            <div class="form-group">
-                <label for="description">Descrizione</label>
-                <textarea id="description" name="description" placeholder="Breve descrizione di cosa raccoglie questo modulo..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="intro_text">Testo Introduttivo</label>
-                <textarea id="intro_text" name="intro_text" placeholder="Messaggio di benvenuto mostrato all'inizio del modulo..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="privacy_text">Informativa Privacy</label>
-                <textarea id="privacy_text" name="privacy_text" placeholder="Informativa privacy e protezione dati..."></textarea>
+                <label for="privacy_text">Informativa Privacy e Trattamento Dati (opzionale)</label>
+                <textarea id="privacy_text" name="privacy_text" placeholder="Note legali o testo informativo sul trattamento dei documenti caricati...">{{ form_data.privacy_text|default:'' }}</textarea>
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn-submit">
-                    <i class="bi bi-plus-circle"></i> Crea Modulo
+                <button type="submit" class="btn-submit btn-shimmer">
+                    <i class="bi bi-arrow-right-circle"></i> Crea e Configura Step
                 </button>
                 <a href="{% url 'builder_list' %}" class="btn-cancel">
                     <i class="bi bi-x-circle"></i> Annulla
@@ -295,116 +190,4 @@
         </form>
     </div>
 </div>
-
-<!-- Modal Creazione Rapida Cliente -->
-<div class="cust-modal" id="customerModal">
-    <div class="cust-modal-content">
-        <div class="cust-modal-header">Nuovo Cliente</div>
-
-        <div class="form-group">
-            <label for="modalCode">Codice Cliente *</label>
-            <input type="text" id="modalCode" placeholder="es. CUST001" required>
-        </div>
-
-        <div class="form-group">
-            <label for="modalFirstName">Nome *</label>
-            <input type="text" id="modalFirstName" placeholder="es. Mario" required>
-        </div>
-
-        <div class="form-group">
-            <label for="modalLastName">Cognome</label>
-            <input type="text" id="modalLastName" placeholder="es. Rossi">
-        </div>
-
-        <div class="form-group">
-            <label for="modalEmail">Email *</label>
-            <input type="email" id="modalEmail" placeholder="es. mario.rossi@example.com" required>
-        </div>
-
-        <div class="form-group">
-            <label for="modalNasFolder">Cartella NAS *</label>
-            <input type="text" id="modalNasFolder" placeholder="es. PIPPO" required>
-            <p class="helper-text">Cartella dove verranno salvati i documenti</p>
-        </div>
-
-        <div class="cust-modal-footer">
-            <button type="button" class="btn-modal-cancel" onclick="closeCustomerModal()">
-                Annulla
-            </button>
-            <button type="button" class="btn-modal-save" onclick="saveNewCustomer()">
-                <i class="bi bi-check"></i> Salva
-            </button>
-        </div>
-    </div>
-</div>
-
-<script>
-    function openCustomerModal() {
-        document.getElementById('customerModal').classList.add('show');
-    }
-
-    function closeCustomerModal() {
-        document.getElementById('customerModal').classList.remove('show');
-        document.getElementById('modalCode').value = '';
-        document.getElementById('modalFirstName').value = '';
-        document.getElementById('modalLastName').value = '';
-        document.getElementById('modalEmail').value = '';
-        document.getElementById('modalNasFolder').value = '';
-    }
-
-    async function saveNewCustomer() {
-        const code = document.getElementById('modalCode').value.trim();
-        const firstName = document.getElementById('modalFirstName').value.trim();
-        const email = document.getElementById('modalEmail').value.trim();
-        const nasFolder = document.getElementById('modalNasFolder').value.trim();
-
-        if (!code || !firstName || !email || !nasFolder) {
-            alert('Per favore compila tutti i campi obbligatori');
-            return;
-        }
-
-        try {
-            const response = await fetch('/modules/api/v1/customers/create/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                },
-                body: new URLSearchParams({
-                    'code': code,
-                    'first_name': firstName,
-                    'last_name': document.getElementById('modalLastName').value.trim(),
-                    'email': email,
-                    'nas_folder_name': nasFolder
-                })
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                // Add to select dropdown
-                const select = document.getElementById('customer_id');
-                const option = document.createElement('option');
-                option.value = result.data.id;
-                option.textContent = `${result.data.first_name} ${result.data.last_name} (${result.data.code})`;
-                option.selected = true;
-                select.appendChild(option);
-
-                closeCustomerModal();
-                alert('✓ Cliente creato con successo!');
-            } else {
-                alert('Errore: ' + (result.error || 'Impossibile creare il cliente'));
-            }
-        } catch (error) {
-            alert('Errore: ' + error.message);
-        }
-    }
-
-    // Chiudi modal al click fuori
-    document.getElementById('customerModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeCustomerModal();
-        }
-    });
-</script>
 {% endblock %}

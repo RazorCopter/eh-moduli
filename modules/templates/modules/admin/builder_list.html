@@ -154,6 +154,15 @@
         gap: 0.35rem;
         text-decoration: none;
     }
+    .btn-assign {
+        background: #EDF8EE;
+        color: #246B3E;
+        font-weight: 600;
+    }
+    .btn-assign:hover {
+        background: #D8F2DB;
+        color: #1A5430;
+    }
     .btn-edit {
         background: #F0ECE8;
         color: #3C3C3C;
@@ -259,6 +268,11 @@
                     {% endif %}
                 </div>
                 <div class="form-card-actions">
+                    {% if form.status == 'published' %}
+                    <a href="{% url 'assign_form_to_customer' %}?template_id={{ form.id }}" class="btn-assign" title="Assegna a un cliente">
+                        <i class="bi bi-send-plus"></i> Assegna
+                    </a>
+                    {% endif %}
                     <a href="/modules/admin/builder/{{ form.id }}/edit/" class="btn-edit">
                         <i class="bi bi-pencil"></i> Modifica
                     </a>

@@ -7,14 +7,14 @@
     .assign-wrapper {
         display: flex;
         justify-content: center;
-        padding: 1.5rem 0 3rem 0;
+        padding: 1.5rem 0 3.5rem 0;
     }
     .assign-card {
         background: white;
         border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        box-shadow: 0 4px 24px rgba(0,0,0,0.06);
         border: 1px solid #EAE6E1;
-        max-width: 580px;
+        max-width: 640px;
         width: 100%;
         padding: 2.5rem 3rem;
     }
@@ -39,7 +39,7 @@
         margin: 0.35rem 0 0 0;
     }
     .form-group {
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.4rem;
     }
     .form-group label {
         font-weight: 600;
@@ -48,7 +48,9 @@
         display: block;
         font-size: 0.92rem;
     }
-    .form-group select {
+    .form-group select,
+    .form-group input,
+    .form-group textarea {
         width: 100%;
         padding: 0.75rem 1rem;
         border: 1px solid #D8D3CC;
@@ -56,8 +58,11 @@
         font-size: 0.95rem;
         background-color: white;
         transition: all 0.2s;
+        font-family: inherit;
     }
-    .form-group select:focus {
+    .form-group select:focus,
+    .form-group input:focus,
+    .form-group textarea:focus {
         outline: none;
         border-color: #E89BA7;
         box-shadow: 0 0 0 3px rgba(232, 155, 167, 0.15);
@@ -110,6 +115,12 @@
         background: #F8F9FA;
         color: #2C2C2C;
     }
+    .helper-text {
+        color: #8C8C8C;
+        font-size: 0.82rem;
+        margin-top: 0.35rem;
+        display: block;
+    }
 </style>
 {% endblock %}
 
@@ -121,41 +132,93 @@
                 <i class="bi bi-send-plus"></i>
             </div>
             <h2 class="assign-title">Assegna Modulo a Cliente</h2>
-            <p class="assign-subtitle">Genera una pratica riservata con token univoco per la raccolta documenti</p>
+            <p class="assign-subtitle">Fase 2: Genera la pratica con cartella NAS dedicata e link riservato</p>
         </div>
+
+        <div style="background: #F0F7FF; border: 1px solid #D0E3F7; color: #1E4E79; padding: 1rem 1.25rem; border-radius: 10px; margin-bottom: 1.75rem; font-size: 0.9rem; line-height: 1.5;">
+            <div style="font-weight: 600; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; color: #1A5276;">
+                <i class="bi bi-folder-symlink-fill" style="color: #2A79BA;"></i> Archiviazione Dedicata sul NAS
+            </div>
+            I file che il cliente caricherà saranno salvati in:
+            <code style="background: white; padding: 2px 6px; border-radius: 4px; color: #0C4B33; font-weight: 600; border: 1px solid #D0E3F7; display: inline-block; margin-top: 4px;">
+                /storage/clienti/[CartellaCliente]/[NomeProgetto]/
+            </code>
+        </div>
+
+        {% if errors %}
+        <div style="background: #FDF2F4; border: 1px solid #FFCDD2; color: #B71C1C; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+            <strong style="display: block; margin-bottom: 0.5rem;"><i class="bi bi-exclamation-circle"></i> Errori nell'assegnazione:</strong>
+            <ul style="margin: 0; padding-left: 1.5rem;">
+                {% for error in errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
 
         <form method="post" id="assignForm">
             {% csrf_token %}
-            <div class="form-group">
-                <label for="customer_id">Cliente Destinatario *</label>
-                <select name="customer_id" id="customer_id" required>
-                    <option value="">-- Seleziona un cliente --</option>
-                    {% for customer in customers %}
-                    <option value="{{ customer.id }}">
-                        {{ customer.first_name }} {{ customer.last_name }} ({{ customer.code }}) - NAS: /{{ customer.nas_folder_name }}/
-                    </option>
-                    {% endfor %}
-                </select>
-                <small class="text-muted" style="display: block; margin-top: 0.35rem;">
-                    Non trovi il cliente? <a href="{% url 'customer_create' %}" style="color: #E89BA7;">Crea un nuovo cliente</a>
-                </small>
-            </div>
 
+            <!-- 1. Modulo di Raccolta -->
             <div class="form-group">
                 <label for="template_id">Modulo di Raccolta Documentale *</label>
                 <select name="template_id" id="template_id" required>
                     <option value="">-- Seleziona il modulo --</option>
                     {% for template in templates %}
-                    <option value="{{ template.id }}">
+                    <option value="{{ template.id }}" {% if selected_template_id == template.id|stringformat:"s" %}selected{% endif %}>
                         {{ template.name }} (v{{ template.version }})
                     </option>
                     {% endfor %}
                 </select>
+                <small class="helper-text">Solo i moduli pubblicati possono essere assegnati ai clienti.</small>
+            </div>
+
+            <!-- 2. Cliente Destinatario -->
+            <div class="form-group">
+                <label for="customer_id">Cliente Destinatario *</label>
+                <select name="customer_id" id="customer_id" required>
+                    <option value="">-- Seleziona un cliente --</option>
+                    {% for customer in customers %}
+                    <option value="{{ customer.id }}" {% if selected_customer_id == customer.id|stringformat:"s" %}selected{% endif %}>
+                        {{ customer.first_name }} {{ customer.last_name }} ({{ customer.code }}) - NAS: /{{ customer.nas_folder_name }}/
+                    </option>
+                    {% endfor %}
+                </select>
+                <small class="helper-text">
+                    Non trovi il cliente? <a href="{% url 'customer_create' %}" style="color: #E89BA7; font-weight: 500;">+ Registra nuovo cliente</a>
+                </small>
+            </div>
+
+            <!-- 3. Nome Progetto / Pratica -->
+            <div class="form-group">
+                <label for="project_name">Nome Progetto / Pratica *</label>
+                <input type="text" id="project_name" name="project_name" placeholder="es. Anti-Celluloide, Pluto, Bilancio-2026, Onboarding-Q4" value="{{ project_name|default:'' }}" required>
+                <small class="helper-text">Nome della sottocartella che verrà creata all'interno della cartella NAS del cliente.</small>
+            </div>
+
+            <!-- 4. Password di Accesso (Opzionale) -->
+            <div class="form-group">
+                <label for="access_password">Password di Accesso (opzionale)</label>
+                <input type="text" id="access_password" name="access_password" placeholder="Lascia vuoto se non richiesta password aggiuntiva" value="{{ access_password|default:'' }}">
+                <small class="helper-text">Se impostata, il cliente dovrà inserirla per accedere al caricamento.</small>
+            </div>
+
+            <!-- 5. Giorni di Validità -->
+            <div class="form-group">
+                <label for="expiry_days">Validità Pratica (giorni)</label>
+                <input type="number" id="expiry_days" name="expiry_days" value="{{ expiry_days|default:'30' }}" min="1" max="365" required>
+                <small class="helper-text">Dopo tale periodo il link scadrà automaticamente.</small>
+            </div>
+
+            <!-- 6. Note Interne -->
+            <div class="form-group">
+                <label for="internal_notes">Note Interne Operatore (opzionale)</label>
+                <textarea id="internal_notes" name="internal_notes" rows="2" placeholder="Annotazioni visibili solo all'amministratore/operatore...">{{ internal_notes|default:'' }}</textarea>
             </div>
 
             <div class="form-actions">
-                <button type="submit" class="btn-submit-assign">
-                    <i class="bi bi-check2-circle"></i> Assegna e Genera Link
+                <button type="submit" class="btn-submit-assign btn-shimmer">
+                    <i class="bi bi-send-check"></i> Conferma Assegnazione e Crea Cartella NAS
                 </button>
                 <a href="{% url 'admin_dashboard' %}" class="btn-cancel-assign">
                     <i class="bi bi-x-circle"></i> Annulla
