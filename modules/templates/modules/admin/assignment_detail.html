@@ -79,13 +79,38 @@
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        transition: all 0.2s;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         box-shadow: 0 2px 8px rgba(232, 155, 167, 0.3);
     }
+    .btn-copy-link::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+            60deg,
+            rgba(255, 255, 255, 0) 20%,
+            rgba(255, 255, 255, 0.3) 50%,
+            rgba(255, 255, 255, 0) 80%
+        );
+        transform: translateX(-100%) rotate(25deg);
+        transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+        pointer-events: none;
+    }
+    .btn-copy-link:hover::after {
+        transform: translateX(100%) rotate(25deg);
+    }
     .btn-copy-link:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(232, 155, 167, 0.35);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(232, 155, 167, 0.38);
         color: white;
+    }
+    .btn-copy-link:active {
+        transform: scale(0.97);
     }
     .btn-open-link {
         background: white;

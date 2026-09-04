@@ -12,6 +12,7 @@
         margin-bottom: 1.75rem;
         flex-wrap: wrap;
         gap: 1rem;
+        animation: premiumFadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     .dashboard-title-group h1 {
         font-size: 1.85rem;
@@ -45,13 +46,38 @@
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 8px rgba(232, 155, 167, 0.25);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 2px 8px rgba(232, 155, 167, 0.28);
+    }
+    .btn-action-primary::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+            60deg,
+            rgba(255, 255, 255, 0) 20%,
+            rgba(255, 255, 255, 0.3) 50%,
+            rgba(255, 255, 255, 0) 80%
+        );
+        transform: translateX(-100%) rotate(25deg);
+        transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+        pointer-events: none;
     }
     .btn-action-primary:hover {
         color: white;
         transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(232, 155, 167, 0.35);
+        box-shadow: 0 6px 18px rgba(232, 155, 167, 0.38);
+    }
+    .btn-action-primary:hover::after {
+        transform: translateX(100%) rotate(25deg);
+    }
+    .btn-action-primary:active {
+        transform: scale(0.97);
     }
 
     .btn-action-secondary {
@@ -66,12 +92,34 @@
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        transition: all 0.2s ease;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .btn-action-secondary:hover {
         background: #F8F9FA;
         color: #2C2C2C;
         border-color: #AFA89F;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.04);
+    }
+    .btn-action-secondary:active {
+        transform: scale(0.97);
+    }
+
+    /* Keyframe Animations */
+    @keyframes premiumFadeUp {
+        0% {
+            opacity: 0;
+            transform: translateY(18px) scale(0.99);
+        }
+        100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @keyframes progressShimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(150%); }
     }
 
     /* Side-by-side KPI Indicator Cards */
@@ -100,17 +148,50 @@
         border-radius: 14px;
         padding: 1.4rem 1.5rem;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                    border-color 0.25s ease;
         position: relative;
+        overflow: hidden;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        animation: premiumFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
+    /* Staggered entrance */
+    .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+    .kpi-card:nth-child(2) { animation-delay: 0.12s; }
+    .kpi-card:nth-child(3) { animation-delay: 0.19s; }
+    .kpi-card:nth-child(4) { animation-delay: 0.26s; }
+
+    /* Top Accent Line Expanding on Hover */
+    .kpi-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        transform: scaleX(0);
+        transform-origin: center;
+        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        z-index: 2;
+    }
+
+    .kpi-card-pink::before { background: linear-gradient(90deg, #E89BA7, #F5BAC5); }
+    .kpi-card-blue::before { background: linear-gradient(90deg, #2A79BA, #67AEE6); }
+    .kpi-card-purple::before { background: linear-gradient(90deg, #7B44CC, #AB7CF4); }
+    .kpi-card-green::before { background: linear-gradient(90deg, #2D8A4E, #57C77E); }
+
     .kpi-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-        border-color: #E2DBD3;
+        transform: translateY(-5px);
+        box-shadow: 0 12px 24px -4px rgba(0, 0, 0, 0.08), 0 4px 8px -2px rgba(0, 0, 0, 0.03);
+        border-color: #DFD7CF;
+    }
+
+    .kpi-card:hover::before {
+        transform: scaleX(1);
     }
 
     .kpi-card-header {
@@ -121,13 +202,19 @@
     }
 
     .kpi-icon-box {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 1.35rem;
+        transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+    }
+
+    .kpi-card:hover .kpi-icon-box {
+        transform: scale(1.12) rotate(-5deg);
+        box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
     }
 
     /* Icon theme variants */
@@ -154,27 +241,29 @@
         border: none;
         color: #A09890;
         cursor: pointer;
-        padding: 4px;
-        font-size: 1rem;
+        padding: 5px;
+        font-size: 1.05rem;
         line-height: 1;
         border-radius: 50%;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        transition: all 0.2s ease;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .kpi-info-btn:hover {
         color: #5C544D;
         background: #F3EFEA;
-        transform: scale(1.1);
+        transform: scale(1.15) rotate(12deg);
     }
 
     .kpi-metric {
-        font-size: 2.15rem;
+        font-size: 2.2rem;
         font-weight: 700;
         color: #2C2C2C;
         line-height: 1.1;
         margin-bottom: 0.35rem;
+        letter-spacing: -0.5px;
+        font-variant-numeric: tabular-nums;
     }
 
     .kpi-title {
@@ -193,12 +282,18 @@
         text-decoration: none;
         display: inline-flex;
         align-items: center;
-        gap: 0.3rem;
-        margin-top: 0.75rem;
-        transition: color 0.15s;
+        gap: 0.35rem;
+        margin-top: 0.85rem;
+        transition: color 0.2s ease, transform 0.2s ease;
     }
-    .kpi-footer-link:hover {
+    .kpi-footer-link i {
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .kpi-card:hover .kpi-footer-link {
         color: #E0849B;
+    }
+    .kpi-card:hover .kpi-footer-link i {
+        transform: translateX(4px);
     }
 
     /* Content Layout (Main Grid) */
@@ -215,6 +310,12 @@
         border-radius: 14px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
         overflow: hidden;
+        animation: premiumFadeUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.32s both;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .section-card:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
     }
 
     .section-card-header {
@@ -243,6 +344,7 @@
         padding: 3px 8px;
         border-radius: 6px;
         font-weight: 600;
+        transition: all 0.2s ease;
     }
 
     .table-modern {
@@ -258,7 +360,7 @@
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        padding: 0.9rem 1.25rem;
+        padding: 0.95rem 1.25rem;
         border-bottom: 1px solid #EAE6E1;
     }
 
@@ -268,13 +370,19 @@
         font-size: 0.92rem;
         color: #333333;
         vertical-align: middle;
+        transition: background-color 0.2s ease;
     }
 
-    .table-modern tr:hover {
-        background: #FDFCFB;
+    .table-modern tbody tr {
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
     }
 
-    /* Progress Bar */
+    .table-modern tbody tr:hover {
+        background-color: #FCFBF9;
+        transform: translateX(4px);
+    }
+
+    /* Progress Bar with Shimmer Beam */
     .progress-track {
         background: #EAE6E1;
         height: 7px;
@@ -284,12 +392,34 @@
         display: inline-block;
         vertical-align: middle;
         margin-right: 8px;
+        position: relative;
     }
 
     .progress-fill {
-        background: linear-gradient(90deg, #E89BA7, #2D8A4E);
+        background: linear-gradient(90deg, #E89BA7 0%, #2D8A4E 100%);
         height: 100%;
         border-radius: 10px;
+        position: relative;
+        overflow: hidden;
+        width: 0%;
+        transition: width 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .progress-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background: linear-gradient(
+            90deg, 
+            transparent 0%, 
+            rgba(255, 255, 255, 0.5) 50%, 
+            transparent 100%
+        );
+        animation: progressShimmer 2.2s infinite ease-in-out;
+        width: 60%;
     }
 
     /* Status Badges */
@@ -301,6 +431,10 @@
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .badge-status:hover {
+        transform: scale(1.05);
     }
     .badge-status-submitted {
         background: #EDF8EE;
@@ -329,6 +463,11 @@
         color: #D8D2C9;
         margin-bottom: 0.75rem;
         display: block;
+        transition: transform 0.3s ease;
+    }
+    .empty-placeholder:hover i {
+        transform: scale(1.1);
+        color: #E89BA7;
     }
 </style>
 {% endblock %}
@@ -356,7 +495,7 @@
 <!-- 4 Side-by-Side KPI Indicators with Informative Tooltips -->
 <div class="kpi-row">
     <!-- 1. Moduli Pubblicati -->
-    <div class="kpi-card">
+    <div class="kpi-card kpi-card-pink">
         <div>
             <div class="kpi-card-header">
                 <div class="kpi-icon-box icon-box-pink">
@@ -370,7 +509,7 @@
                     <i class="bi bi-info-circle-fill"></i>
                 </button>
             </div>
-            <div class="kpi-metric">{{ templates_count }}</div>
+            <div class="kpi-metric counter-val" data-target="{{ templates_count }}">{{ templates_count }}</div>
             <h6 class="kpi-title">Moduli Pubblicati</h6>
         </div>
         <a href="{% url 'builder_list' %}" class="kpi-footer-link">
@@ -379,7 +518,7 @@
     </div>
 
     <!-- 2. Clienti Attivi -->
-    <div class="kpi-card">
+    <div class="kpi-card kpi-card-blue">
         <div>
             <div class="kpi-card-header">
                 <div class="kpi-icon-box icon-box-blue">
@@ -393,7 +532,7 @@
                     <i class="bi bi-info-circle-fill"></i>
                 </button>
             </div>
-            <div class="kpi-metric">{{ customers_count }}</div>
+            <div class="kpi-metric counter-val" data-target="{{ customers_count }}">{{ customers_count }}</div>
             <h6 class="kpi-title">Clienti Attivi</h6>
         </div>
         <a href="{% url 'customer_list' %}" class="kpi-footer-link">
@@ -402,7 +541,7 @@
     </div>
 
     <!-- 3. Assegnazioni Totali -->
-    <div class="kpi-card">
+    <div class="kpi-card kpi-card-purple">
         <div>
             <div class="kpi-card-header">
                 <div class="kpi-icon-box icon-box-purple">
@@ -416,7 +555,7 @@
                     <i class="bi bi-info-circle-fill"></i>
                 </button>
             </div>
-            <div class="kpi-metric">{{ assignments_count }}</div>
+            <div class="kpi-metric counter-val" data-target="{{ assignments_count }}">{{ assignments_count }}</div>
             <h6 class="kpi-title">Assegnazioni Totali</h6>
         </div>
         <a href="{% url 'assign_form_to_customer' %}" class="kpi-footer-link">
@@ -425,7 +564,7 @@
     </div>
 
     <!-- 4. Pratiche Completate -->
-    <div class="kpi-card">
+    <div class="kpi-card kpi-card-green">
         <div>
             <div class="kpi-card-header">
                 <div class="kpi-icon-box icon-box-green">
@@ -439,7 +578,7 @@
                     <i class="bi bi-info-circle-fill"></i>
                 </button>
             </div>
-            <div class="kpi-metric" style="color: #2D8A4E;">{{ submitted_count }}</div>
+            <div class="kpi-metric counter-val" data-target="{{ submitted_count }}" style="color: #2D8A4E;">{{ submitted_count }}</div>
             <h6 class="kpi-title">Pratiche Completate</h6>
         </div>
         <span class="kpi-footer-link" style="color: #6C757D; cursor: default;">
@@ -494,7 +633,7 @@
                         </td>
                         <td>
                             <div class="progress-track">
-                                <div class="progress-fill" style="width: {{ assignment.completion_percentage }}%;"></div>
+                                <div class="progress-fill" data-progress="{{ assignment.completion_percentage }}"></div>
                             </div>
                             <span style="font-weight: 600; font-size: 0.88rem; color: #4A4A4A;">
                                 {{ assignment.completion_percentage }}%
@@ -546,4 +685,53 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // 1. Smooth Count-Up Animation for KPI Indicators
+        function animateCounter(el, target, duration = 850) {
+            const start = 0;
+            const targetNum = parseInt(target, 10);
+            if (isNaN(targetNum)) return;
+            
+            let startTimestamp = null;
+            function step(timestamp) {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                // Ease out exponential curve
+                const easeOut = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+                const current = Math.floor(start + (targetNum - start) * easeOut);
+                el.textContent = current;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    el.textContent = targetNum;
+                }
+            }
+            window.requestAnimationFrame(step);
+        }
+
+        // Trigger counter animation
+        const counters = document.querySelectorAll('.counter-val');
+        counters.forEach(counter => {
+            const target = counter.getAttribute('data-target');
+            if (target) {
+                animateCounter(counter, target);
+            }
+        });
+
+        // 2. Animated Progress Bar Loading
+        setTimeout(() => {
+            const progressBars = document.querySelectorAll('.progress-fill');
+            progressBars.forEach(bar => {
+                const targetPct = bar.getAttribute('data-progress');
+                if (targetPct !== null) {
+                    bar.style.width = targetPct + '%';
+                }
+            });
+        }, 150);
+    });
+</script>
 {% endblock %}
