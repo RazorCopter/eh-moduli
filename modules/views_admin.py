@@ -231,11 +231,13 @@ def assignment_detail(request, pk):
     assignment = get_object_or_404(FormAssignment, id=pk)
     uploads = assignment.documentupload_set.all()
     declarations = assignment.awarenessdeclaration_set.all()
+    form_url = request.build_absolute_uri(f"/modules/form/{assignment.secure_token}/")
 
     context = {
         'assignment': assignment,
         'uploads': uploads,
         'declarations': declarations,
+        'form_url': form_url,
     }
 
     return render(request, 'modules/admin/assignment_detail.html', context)
@@ -267,11 +269,19 @@ def assign_form_to_customer(request):
             user_agent=get_user_agent(request)
         )
 
-        return JsonResponse({
-            'status': 'success',
-            'token': assignment.secure_token,
-            'form_url': f"/modules/form/{assignment.secure_token}/"
-        })
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({
+                'status': 'success',
+                'token': assignment.secure_token,
+                'form_url': f"/modules/form/{assignment.secure_token}/",
+                'assignment_id': str(assignment.id)
+            })
+
+        messages.success(
+            request, 
+            f"Modulo '{template.name}' assegnato con successo a {customer.first_name} {customer.last_name}! Di seguito trovi il link riservato generato per il cliente."
+        )
+        return redirect('assignment_detail', pk=assignment.id)
 
     customers = Customer.objects.filter(active=True)
     templates = FormTemplate.objects.filter(status='published')

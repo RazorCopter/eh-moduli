@@ -196,3 +196,39 @@ class DashboardAndNavigationTests(TestCase):
         self.assertIn('navbar-brand', content)
         self.assertIn('btn-logout-pill', content)
 
+    def test_assign_form_to_customer_redirects_to_detail(self):
+        cust = Customer.objects.create(
+            code="CUST_ASSIGN",
+            first_name="Giuseppe",
+            last_name="Rossi",
+            email="giuseppe@test.com",
+            nas_folder_name="GIUSEPPE_ROSSI"
+        )
+        template = FormTemplate.objects.create(
+            name="Documenti",
+            intro_text="Carica i tuoi documenti",
+            status="published",
+            version=1,
+            author=self.admin_user
+        )
+
+        response = self.client.post(reverse('assign_form_to_customer'), {
+            'customer_id': str(cust.id),
+            'template_id': str(template.id)
+        })
+
+        # Must NOT return raw JsonResponse on standard POST, must redirect to assignment_detail!
+        self.assertEqual(response.status_code, 302)
+        assignment = FormAssignment.objects.filter(customer=cust, form_template=template).first()
+        self.assertIsNotNone(assignment)
+        self.assertRedirects(response, reverse('assignment_detail', kwargs={'pk': assignment.id}))
+
+        # Following the redirect renders assignment_detail with copyable link
+        detail_response = self.client.get(reverse('assignment_detail', kwargs={'pk': assignment.id}))
+        self.assertEqual(detail_response.status_code, 200)
+        detail_content = detail_response.content.decode('utf-8')
+        self.assertIn('Link Riservato di Accesso Cliente', detail_content)
+        self.assertIn(assignment.secure_token, detail_content)
+        self.assertIn('btn-copy-link', detail_content)
+
+

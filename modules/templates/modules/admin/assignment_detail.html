@@ -1,28 +1,398 @@
 {% extends "accounts/base.html" %}
 
-{% block title %}Dettaglio Assegnazione{% endblock %}
+{% block title %}Dettaglio Pratica - {{ assignment.customer.code }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .detail-header {
+        margin-bottom: 2rem;
+    }
+    .detail-title-group h1 {
+        font-size: 1.85rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        margin: 0 0 0.4rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+    .detail-subtitle {
+        color: #7A7A7A;
+        font-size: 0.95rem;
+        margin: 0;
+    }
+
+    /* Link Share Hero Card */
+    .link-share-card {
+        background: linear-gradient(135deg, #FFF8F9 0%, #F5F9FF 100%);
+        border: 1px solid #E8D3D8;
+        border-radius: 14px;
+        padding: 1.75rem 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+    }
+    .link-share-card h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        margin: 0 0 0.35rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .link-share-card p {
+        color: #666;
+        font-size: 0.92rem;
+        margin: 0 0 1.25rem 0;
+    }
+    .link-copy-group {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .link-input-wrapper {
+        flex: 1;
+        min-width: 280px;
+        position: relative;
+    }
+    .link-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: white;
+        border: 1px solid #D0CBC4;
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 0.95rem;
+        color: #333;
+        font-weight: 500;
+    }
+    .btn-copy-link {
+        background: linear-gradient(135deg, #E89BA7, #E0849B);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.4rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.92rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(232, 155, 167, 0.3);
+    }
+    .btn-copy-link:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(232, 155, 167, 0.35);
+        color: white;
+    }
+    .btn-open-link {
+        background: white;
+        color: #333;
+        border: 1px solid #D0CBC4;
+        padding: 0.75rem 1.2rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.92rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s;
+    }
+    .btn-open-link:hover {
+        background: #F8F9FA;
+        color: #111;
+        border-color: #B0B0B0;
+    }
+
+    /* Info Grid */
+    .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    @media (max-width: 860px) {
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .info-card {
+        background: white;
+        border: 1px solid #EAE6E1;
+        border-radius: 14px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+    .info-card h4 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        margin: 0 0 1rem 0;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #F0ECE8;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        font-size: 0.92rem;
+        border-bottom: 1px dashed #F5F2EE;
+    }
+    .info-row:last-child {
+        border-bottom: none;
+    }
+    .info-label {
+        color: #7A7A7A;
+        font-weight: 500;
+    }
+    .info-val {
+        font-weight: 600;
+        color: #2C2C2C;
+        text-align: right;
+    }
+
+    /* Documents Table Card */
+    .docs-card {
+        background: white;
+        border: 1px solid #EAE6E1;
+        border-radius: 14px;
+        overflow: hidden;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+    .docs-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #F0ECE8;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .docs-header h4 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .docs-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .docs-table th {
+        background: #FAF8F6;
+        color: #6C6C6C;
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.85rem 1.25rem;
+        border-bottom: 1px solid #EAE6E1;
+    }
+    .docs-table td {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #F3EFEA;
+        font-size: 0.92rem;
+        vertical-align: middle;
+    }
+
+    /* Progress bar */
+    .progress-bar-container {
+        background: #EAE6E1;
+        height: 10px;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 0.5rem;
+    }
+    .progress-bar-fill {
+        background: linear-gradient(90deg, #E89BA7, #2D8A4E);
+        height: 100%;
+        border-radius: 10px;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <h1>Assegnazione: {{ assignment.customer.code }}</h1>
-        <p class="text-muted">Modulo: {{ assignment.form_template.name }}</p>
-
-        <h3>Stato</h3>
-        <p><strong>{{ assignment.get_status_display }}</strong> - {{ assignment.completion_percentage }}% completo</p>
-
-        <h3>Documenti Caricati</h3>
-        <ul>
-            {% for upload in uploads %}
-            <li>{{ upload.original_filename }} - {{ upload.file_size|filesizeformat }}</li>
-            {% endfor %}
-        </ul>
-
-        {% if not uploads %}
-        <p class="text-muted">Nessun documento ancora</p>
-        {% endif %}
-
-        <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary mt-4">← Indietro</a>
+<div class="detail-header">
+    <div style="margin-bottom: 0.75rem;">
+        <a href="{% url 'admin_dashboard' %}" class="btn btn-sm btn-outline-secondary" style="border-radius: 6px; font-size: 0.85rem;">
+            <i class="bi bi-arrow-left"></i> Torna alla Dashboard
+        </a>
+    </div>
+    <div class="detail-title-group">
+        <h1>
+            <span>📋 Pratica:</span> 
+            <strong>{{ assignment.customer.first_name }} {{ assignment.customer.last_name }}</strong>
+            <span style="font-size: 1rem; color: #888; font-weight: normal;">({{ assignment.customer.code }})</span>
+        </h1>
+        <p class="detail-subtitle">
+            Modulo: <strong>{{ assignment.form_template.name }}</strong> &bull; Assegnata il {{ assignment.assignment_date|date:"d/m/Y H:i" }}
+        </p>
     </div>
 </div>
+
+<!-- Link Riservato per il Cliente -->
+<div class="link-share-card">
+    <h3><i class="bi bi-link-45deg" style="color: #E89BA7; font-size: 1.4rem;"></i> Link Riservato di Accesso Cliente</h3>
+    <p>Condividi o invia questo link univoco al cliente per permettergli di accedere al modulo e caricare i documenti richiesti:</p>
+    <div class="link-copy-group">
+        <div class="link-input-wrapper">
+            <input type="text" id="formUrlInput" class="link-input" value="{{ form_url }}" readonly>
+        </div>
+        <button type="button" class="btn-copy-link" id="btnCopy" onclick="copyFormLink()">
+            <i class="bi bi-clipboard"></i> Copia Link
+        </button>
+        <a href="{{ form_url }}" target="_blank" class="btn-open-link">
+            <i class="bi bi-box-arrow-up-right"></i> Apri Modulo
+        </a>
+    </div>
+</div>
+
+<!-- Info Grid -->
+<div class="info-grid">
+    <!-- Card Cliente -->
+    <div class="info-card">
+        <h4><i class="bi bi-person-badge" style="color: #2A79BA;"></i> Anagrafica Cliente</h4>
+        <div class="info-row">
+            <span class="info-label">Nominativo / Ragione Sociale</span>
+            <span class="info-val">{{ assignment.customer.first_name }} {{ assignment.customer.last_name }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Codice Cliente</span>
+            <span class="info-val font-monospace">{{ assignment.customer.code }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Email</span>
+            <span class="info-val">
+                <a href="mailto:{{ assignment.customer.email }}" style="color: #333; text-decoration: none;">
+                    {{ assignment.customer.email }}
+                </a>
+            </span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Cartella NAS Dedicata</span>
+            <span class="info-val font-monospace" style="color: #1A5276; background: #EEF6FC; padding: 2px 6px; border-radius: 4px;">
+                /{{ assignment.customer.nas_folder_name }}/
+            </span>
+        </div>
+    </div>
+
+    <!-- Card Stato & Avanzamento -->
+    <div class="info-card">
+        <h4><i class="bi bi-bar-chart-steps" style="color: #7B44CC;"></i> Stato & Avanzamento</h4>
+        <div class="info-row">
+            <span class="info-label">Stato Pratica</span>
+            <span class="info-val">
+                {% if assignment.status == 'submitted' %}
+                <span class="badge bg-success">Completata</span>
+                {% elif assignment.status == 'in_progress' %}
+                <span class="badge bg-info text-dark">In Corso</span>
+                {% elif assignment.status == 'expired' %}
+                <span class="badge bg-danger">Scaduta</span>
+                {% else %}
+                <span class="badge bg-secondary">Bozza</span>
+                {% endif %}
+            </span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Completamento</span>
+            <span class="info-val">{{ assignment.completion_percentage }}%</span>
+        </div>
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" style="width: {{ assignment.completion_percentage }}%;"></div>
+        </div>
+        <div class="info-row" style="margin-top: 0.75rem;">
+            <span class="info-label">Scadenza Assegnazione</span>
+            <span class="info-val">{{ assignment.expiry_date|date:"d/m/Y H:i" }}</span>
+        </div>
+        {% if assignment.submission_date %}
+        <div class="info-row">
+            <span class="info-label">Data Sottomissione</span>
+            <span class="info-val text-success">{{ assignment.submission_date|date:"d/m/Y H:i" }}</span>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Documenti Caricati -->
+<div class="docs-card">
+    <div class="docs-header">
+        <h4><i class="bi bi-folder-check" style="color: #2D8A4E;"></i> Documenti Ricevuti sul NAS</h4>
+        <span class="badge bg-light text-dark border">{{ uploads|length }} file</span>
+    </div>
+    {% if uploads %}
+    <div style="overflow-x: auto;">
+        <table class="docs-table">
+            <thead>
+                <tr>
+                    <th>Nome File Originale</th>
+                    <th>Dimensione</th>
+                    <th>Data Caricamento</th>
+                    <th>Stato Verifica</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for upload in uploads %}
+                <tr>
+                    <td>
+                        <div style="font-weight: 600; color: #2C2C2C;">
+                            <i class="bi bi-file-earmark-pdf text-danger me-1"></i> {{ upload.original_filename }}
+                        </div>
+                        <small class="text-muted font-monospace">{{ upload.stored_filename }}</small>
+                    </td>
+                    <td>{{ upload.file_size|filesizeformat }}</td>
+                    <td>{{ upload.upload_datetime|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        <span class="badge bg-success">Valido</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div style="padding: 3rem 2rem; text-align: center; color: #888;">
+        <i class="bi bi-inbox" style="font-size: 2.5rem; color: #CCC; display: block; margin-bottom: 0.5rem;"></i>
+        <p style="margin: 0;">Nessun documento è stato ancora caricato dal cliente per questa pratica.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Bottom Navigation Actions -->
+<div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary" style="border-radius: 8px;">
+        <i class="bi bi-arrow-left"></i> Dashboard
+    </a>
+    <a href="{% url 'assign_form_to_customer' %}" class="btn btn-primary" style="background: linear-gradient(135deg, #E89BA7, #E0849B); border: none; border-radius: 8px;">
+        <i class="bi bi-plus-lg"></i> Nuova Assegnazione
+    </a>
+</div>
+
+<script>
+function copyFormLink() {
+    const copyText = document.getElementById("formUrlInput");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(copyText.value).then(function() {
+        const btn = document.getElementById("btnCopy");
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Copiato!';
+        btn.style.background = '#28a745';
+        setTimeout(function() {
+            btn.innerHTML = originalHtml;
+            btn.style.background = '';
+        }, 2000);
+    }).catch(function(err) {
+        alert("Impossibile copiare il link: " + err);
+    });
+}
+</script>
 {% endblock %}
