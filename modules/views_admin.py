@@ -11,7 +11,7 @@ from .models import (
     FormTemplate, FormStep, DocumentRequirement, Customer,
     FormAssignment, DocumentUpload, FormElement
 )
-from .utils import log_action, get_client_ip, get_user_agent
+from .utils import log_action, get_client_ip, get_user_agent, generate_secure_token
 
 logger = logging.getLogger('modules')
 
@@ -511,4 +511,79 @@ def builder_preview(request, pk):
 def operational_guide(request):
     """Render comprehensive interactive operational workflow guide."""
     return render(request, 'modules/admin/operational_guide.html')
+
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def reopen_assignment_for_upload(request, pk):
+    """
+    Reopens a FormAssignment to allow the customer to upload additional/integrative files.
+    - Generates a new secure token for customer access.
+    - Resets status to 'in_progress' and clears submission_date.
+    - Extends validity date (+30 days).
+    - Preserves all customer metadata and dedicated NAS folder structure (/storage/clienti/{customer.nas_folder_name}/{project_name}/).
+    - Preserves existing uploaded files.
+    """
+    assignment = get_object_or_404(FormAssignment, id=pk)
+    old_status = assignment.status
+    old_token = assignment.secure_token
+
+    # Generate brand new unique secure token
+    assignment.secure_token = generate_secure_token()
+
+    # Reopen status and clear submission timestamp
+    assignment.status = 'in_progress'
+    assignment.submission_date = None
+
+    # Extend validity (30 days from now)
+    assignment.expiry_date = timezone.now() + timezone.timedelta(days=30)
+
+    # Recalculate completion percentage based on valid uploaded files vs total requirements
+    total_reqs = DocumentRequirement.objects.filter(form_step__form_template=assignment.form_template).count()
+    if total_reqs > 0:
+        valid_uploaded_count = assignment.documentupload_set.filter(
+            status='valid',
+            availability_status='uploaded'
+        ).count()
+        assignment.completion_percentage = int((valid_uploaded_count / total_reqs) * 100)
+    else:
+        assignment.completion_percentage = 0
+
+    assignment.save()
+
+    # Audit log
+    log_action(
+        request.user,
+        'update',
+        'FormAssignment',
+        str(assignment.id),
+        {
+            'action': 'reopened_for_integrations',
+            'previous_status': old_status,
+            'old_token_prefix': old_token[:8] + '...',
+            'new_token_prefix': assignment.secure_token[:8] + '...',
+            'customer': assignment.customer.code if assignment.customer else '',
+            'nas_folder': assignment.customer.nas_folder_name if assignment.customer else ''
+        },
+        ip=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+
+    customer_name = f"{assignment.customer.first_name} {assignment.customer.last_name}" if assignment.customer else "Cliente"
+    messages.success(
+        request,
+        f"Pratica riaperta con successo per {customer_name}! È stato generato un nuovo link di accesso per il caricamento di documenti integrativi. La cartella NAS del cliente e i file già caricati rimangono invariati."
+    )
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+        new_url = request.build_absolute_uri(f"/modules/form/{assignment.secure_token}/")
+        return JsonResponse({
+            'status': 'success',
+            'token': assignment.secure_token,
+            'form_url': new_url,
+            'message': 'Link rigenerato con successo'
+        })
+
+    return redirect('assignment_detail', pk=assignment.id)
 

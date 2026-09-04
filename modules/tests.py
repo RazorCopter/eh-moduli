@@ -3,6 +3,7 @@ import shutil
 import tempfile
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.utils import timezone
 from .models import User, Customer, FormTemplate, FormAssignment, AuditLog
 
 
@@ -523,6 +524,115 @@ class PublicAssignmentFlowTests(TestCase):
         self.assertEqual(self.assignment.status, 'submitted')
         self.assertEqual(self.assignment.completion_percentage, 100)
         self.assertIsNotNone(self.assignment.submission_date)
+
+    def test_reopen_assignment_for_upload_flow(self):
+        """Admin can reopen a submitted practice, generating a new secure URL while preserving the customer NAS folder."""
+        # 1. Mark assignment as submitted
+        self.assignment.status = 'submitted'
+        self.assignment.submission_date = timezone.now()
+        self.assignment.completion_percentage = 100
+        self.assignment.save()
+
+        old_token = self.assignment.secure_token
+        reopen_url = reverse('reopen_assignment', kwargs={'pk': self.assignment.id})
+
+        # 2. Anonymous / non-admin cannot reopen
+        self.client.logout()
+        resp_unauth = self.client.post(reopen_url)
+        self.assertNotEqual(resp_unauth.status_code, 200)
+
+        # 3. Admin user reopens assignment
+        self.client.force_login(self.admin_user)
+        resp_reopen = self.client.post(reopen_url)
+        self.assertRedirects(resp_reopen, reverse('assignment_detail', kwargs={'pk': self.assignment.id}))
+
+        # 4. Check DB updates
+        self.assignment.refresh_from_db()
+        self.assertNotEqual(self.assignment.secure_token, old_token)
+        self.assertEqual(len(self.assignment.secure_token), 40)
+        self.assertEqual(self.assignment.status, 'in_progress')
+        self.assertIsNone(self.assignment.submission_date)
+        self.assertGreater(self.assignment.expiry_date, timezone.now())
+
+        # Customer and project NAS folder structure strictly preserved
+        self.assertEqual(self.assignment.customer.nas_folder_name, "MARIO_ROSSI")
+        self.assertEqual(self.assignment.form_data.get('project_name'), "Pratica2026")
+
+        # 5. Customer can access the form again with the new token
+        self.client.logout()
+        new_form_url = reverse('get_form_by_token', kwargs={'token': self.assignment.secure_token})
+        resp_new = self.client.get(new_form_url)
+        self.assertEqual(resp_new.status_code, 200)
+        self.assertNotContains(resp_new, "Modulo già inviato")
+
+        # 6. Old token is invalid (returns 404)
+        old_form_url = reverse('get_form_by_token', kwargs={'token': old_token})
+        resp_old = self.client.get(old_form_url)
+        self.assertEqual(resp_old.status_code, 404)
+
+    def test_reopen_assignment_ajax(self):
+        """Admin can trigger reopen via AJAX and receive JSON with new URL and token."""
+        self.client.force_login(self.admin_user)
+        reopen_url = reverse('reopen_assignment', kwargs={'pk': self.assignment.id})
+        resp = self.client.post(reopen_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data.get('status'), 'success')
+        self.assertIn('form_url', data)
+        self.assertIn('token', data)
+        self.assignment.refresh_from_db()
+        self.assertEqual(data.get('token'), self.assignment.secure_token)
+
+    def test_upload_integrative_document_after_reopening_supersedes_unavailable(self):
+        """After reopening, uploading an integrative document supersedes previous unavailable status."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.doc_req1.allowed_extensions = "pdf"
+        self.doc_req1.mime_types = "application/pdf"
+        self.doc_req1.save()
+
+        # 1. Mark document as unavailable with justification
+        skip_url = reverse('skip_optional_document', kwargs={
+            'assignment_id': self.assignment.id,
+            'requirement_id': self.doc_req1.id
+        })
+        self.client.post(skip_url, {'justification': 'In attesa di emissione'})
+
+        # 2. Submit assignment
+        submit_url = reverse('form_submission_view', kwargs={'assignment_id': self.assignment.id})
+        self.client.post(submit_url)
+        self.assignment.refresh_from_db()
+        self.assertEqual(self.assignment.status, 'submitted')
+
+        # 3. Admin reopens assignment for integrations
+        self.client.force_login(self.admin_user)
+        reopen_url = reverse('reopen_assignment', kwargs={'pk': self.assignment.id})
+        self.client.post(reopen_url)
+        self.assignment.refresh_from_db()
+        self.assertEqual(self.assignment.status, 'in_progress')
+
+        # 4. Client uploads the integrative document
+        self.client.logout()
+        upload_url = reverse('upload_document_view', kwargs={'assignment_id': self.assignment.id})
+        pdf_file = SimpleUploadedFile("documento_integrativo.pdf", b"%PDF-1.4 sample content", content_type="application/pdf")
+        upload_resp = self.client.post(upload_url, {
+            'file': pdf_file,
+            'requirement_id': str(self.doc_req1.id)
+        })
+        self.assertEqual(upload_resp.status_code, 200)
+
+        # 5. Check DB: previous unavailable upload is superseded, new upload is valid and uploaded
+        old_unavail = self.assignment.documentupload_set.filter(availability_status='not_available').first()
+        self.assertEqual(old_unavail.status, 'superseded')
+
+        new_upload = self.assignment.documentupload_set.filter(status='valid').first()
+        self.assertEqual(new_upload.original_filename, 'documento_integrativo.pdf')
+        self.assertEqual(new_upload.availability_status, 'uploaded')
+
+        # 6. Final submit succeeds
+        self.client.post(submit_url)
+        self.assignment.refresh_from_db()
+        self.assertEqual(self.assignment.status, 'submitted')
+        self.assertEqual(self.assignment.completion_percentage, 100)
 
 
 

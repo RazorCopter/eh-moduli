@@ -665,10 +665,18 @@
                                 {{ assignment.assignment_date|date:"d/m/Y H:i" }}
                             </span>
                         </td>
-                        <td style="text-align: right;">
+                        <td style="text-align: right; white-space: nowrap;">
                             <a href="{% url 'assignment_detail' assignment.id %}" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-size: 0.82rem; padding: 4px 10px;">
                                 <i class="bi bi-eye"></i> Visualizza
                             </a>
+                            {% if assignment.status == 'submitted' %}
+                            <form method="post" action="{% url 'reopen_assignment' assignment.id %}" onsubmit="return confirm('Riaprire la pratica per consentire l\'upload di ulteriori documenti integrativi mantenendo la stessa cartella NAS?');" style="display: inline-block; margin-left: 4px;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-warning" style="border-radius: 6px; font-size: 0.82rem; padding: 4px 8px;" title="Riapri per integrazioni documentali">
+                                    <i class="bi bi-arrow-repeat"></i> Riapri
+                                </button>
+                            </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
