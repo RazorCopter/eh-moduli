@@ -4,36 +4,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Document Collector - etichub style{% endblock %}</title>
+    <title>{% block title %}Etichub - Moduli{% endblock %}</title>
 
     <!-- Google Fonts: Poppins + Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Design System CSS (etichub style) -->
-    <link rel="stylesheet" href="{% static 'css/design-system.css' %}">
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 
+    <!-- Design System CSS (etichub style) -->
+    <link rel="stylesheet" href="{% static 'css/design-system.css' %}">
+
     <style>
-        /* Custom app-specific styles */
+        * {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: #F8F7F5;
+            color: #2C2C2C;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar Styling to match screenshot perfectly */
         .navbar {
-            background: white;
-            border-bottom: 1px solid var(--color-border-light);
-            padding: 16px 0;
+            background: #FFFFFF;
+            border-bottom: 1px solid #EAE6E1;
+            padding: 14px 0;
             position: sticky;
             top: 0;
-            z-index: 100;
-            box-shadow: var(--shadow-xs);
+            z-index: 1000;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
         }
 
         .navbar-container {
-            max-width: 1200px;
+            max-width: 1360px;
+            width: 100%;
             margin: 0 auto;
-            padding: 0 24px;
+            padding: 0 28px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 48px;
         }
 
         .navbar-brand {
@@ -41,26 +63,28 @@
             align-items: center;
             gap: 12px;
             text-decoration: none;
+            cursor: pointer;
         }
 
         .navbar-brand img {
-            height: 34px;
+            height: 38px;
             width: auto;
-            max-width: 140px;
+            max-width: 150px;
             object-fit: contain;
             display: block;
         }
 
         .navbar-brand-badge {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--color-text-light);
-            background: #F8FAFC;
-            border: 1px solid var(--color-border);
-            padding: 3px 8px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #6C757D;
+            background: #F8F9FA;
+            border: 1px solid #E5E7EB;
+            padding: 3px 9px;
             border-radius: 6px;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.6px;
             text-transform: uppercase;
+            line-height: 1.2;
         }
 
         .navbar-nav {
@@ -69,106 +93,224 @@
             gap: 32px;
             margin: 0;
             padding: 0;
+            align-items: center;
         }
 
         .navbar-link {
-            font-family: var(--font-primary);
-            font-size: 1rem;
-            font-weight: 400;
-            color: var(--color-text);
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #4B5563;
             text-decoration: none;
-            transition: color var(--transition-base);
+            transition: all 0.2s ease;
             position: relative;
+            padding: 6px 0;
         }
 
-        .navbar-link:hover,
+        .navbar-link:hover {
+            color: #111827;
+        }
+
         .navbar-link.active {
-            color: var(--color-primary);
+            color: #111827;
+            font-weight: 600;
         }
 
-        .navbar-link::after {
+        .navbar-link.active::after {
             content: '';
             position: absolute;
-            bottom: -4px;
+            bottom: -2px;
             left: 0;
             right: 0;
             height: 2px;
-            background: var(--color-primary);
-            transform: scaleX(0);
-            transition: transform var(--transition-base);
-        }
-
-        .navbar-link:hover::after,
-        .navbar-link.active::after {
-            transform: scaleX(1);
+            background: #E89BA7;
+            border-radius: 2px;
         }
 
         .navbar-user {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 20px;
         }
 
         .navbar-username {
-            font-size: var(--text-base);
-            color: var(--color-text);
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #374151;
         }
 
+        .btn-logout-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #D1D5DB;
+            border-radius: 9999px;
+            padding: 6px 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #374151;
+            background: #FFFFFF;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            line-height: 1.3;
+        }
+
+        .btn-logout-pill:hover {
+            border-color: #9CA3AF;
+            background: #F9FAFB;
+            color: #111827;
+        }
+
+        /* Main Container */
         .main-container {
-            min-height: calc(100vh - 200px);
-            padding: 48px 0;
+            flex: 1;
+            padding: 32px 0 64px 0;
+        }
+
+        .content-container {
+            max-width: 1360px;
+            margin: 0 auto;
+            padding: 0 28px;
         }
 
         .alerts-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-            margin-bottom: 32px;
+            max-width: 1360px;
+            margin: 0 auto 24px auto;
+            padding: 0 28px;
         }
 
+        /* Footer */
         .footer {
-            background: white;
-            border-top: 1px solid var(--color-border-light);
-            padding: 32px 0;
-            margin-top: 64px;
+            background: #FFFFFF;
+            border-top: 1px solid #EAE6E1;
+            padding: 24px 0;
+            margin-top: auto;
         }
 
         .footer-content {
-            max-width: 1200px;
+            max-width: 1360px;
             margin: 0 auto;
-            padding: 0 24px;
-            text-align: center;
-            color: var(--color-text-light);
-            font-size: var(--text-sm);
+            padding: 0 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            color: #8C8C8C;
+            font-size: 0.85rem;
         }
 
         .footer-links {
             display: flex;
-            justify-content: center;
-            gap: 24px;
-            margin-bottom: 16px;
+            gap: 20px;
             list-style: none;
+            margin: 0;
             padding: 0;
         }
 
         .footer-link {
-            color: var(--color-text-light);
+            color: #7A7A7A;
             text-decoration: none;
-            transition: color var(--transition-base);
+            transition: color 0.2s;
         }
 
         .footer-link:hover {
-            color: var(--color-primary);
+            color: #E89BA7;
+        }
+
+        /* Help Modal */
+        .help-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(3px);
+            z-index: 1050;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .help-modal-overlay.active {
+            display: flex;
+        }
+        .help-modal-card {
+            background: white;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            overflow: hidden;
+            animation: modalFadeIn 0.2s ease-out;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .help-modal-header {
+            padding: 1.5rem;
+            background: #FAF8F6;
+            border-bottom: 1px solid #EAE6E1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .help-modal-header h4 {
+            margin: 0;
+            font-weight: 700;
+            color: #2C2C2C;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .help-modal-body {
+            padding: 1.5rem;
+            max-height: 70vh;
+            overflow-y: auto;
+            font-size: 0.92rem;
+            line-height: 1.6;
+            color: #4A4A4A;
+        }
+        .help-item {
+            margin-bottom: 1.25rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #F0ECE8;
+        }
+        .help-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .help-item strong {
+            display: block;
+            color: #2C2C2C;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+        .help-modal-footer {
+            padding: 1rem 1.5rem;
+            background: #FAF8F6;
+            border-top: 1px solid #EAE6E1;
+            text-align: right;
         }
 
         /* Responsive Navigation */
         @media (max-width: 768px) {
-            .navbar-nav {
+            .navbar-container {
+                padding: 0 16px;
+            }
+            .navbar-left {
                 gap: 16px;
             }
-
-            .navbar-nav .navbar-link:nth-child(n+2) {
-                display: none;
+            .navbar-nav {
+                gap: 14px;
+            }
+            .navbar-nav .navbar-link {
+                font-size: 0.85rem;
+            }
+            .content-container, .alerts-container {
+                padding: 0 16px;
             }
         }
     </style>
@@ -176,31 +318,50 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation -->
+    <!-- Standard Universal Navigation Header -->
     <nav class="navbar">
         <div class="navbar-container">
-            <a href="/" class="navbar-brand">
-                <img src="{% static 'images/Etichub_Logo_V2_Verticale_Color.svg' %}" alt="EticHUB" class="navbar-logo">
-                <span class="navbar-brand-badge">Moduli</span>
-            </a>
+            <div class="navbar-left">
+                <!-- Click on logo directs to Dashboard -->
+                <a href="{% url 'admin_dashboard' %}" class="navbar-brand" title="Vai alla Dashboard">
+                    <img src="{% static 'images/Etichub_Logo_V2_Verticale_Color.svg' %}" alt="EticHUB" class="navbar-logo">
+                    <span class="navbar-brand-badge">Moduli</span>
+                </a>
 
-            <ul class="navbar-nav">
-                {% if user.is_authenticated %}
-                    {% if user.is_staff or user.role == 'admin' %}
-                        <li><a href="{% url 'admin_dashboard' %}" class="navbar-link">Dashboard</a></li>
-                        <li><a href="{% url 'builder_list' %}" class="navbar-link">Moduli</a></li>
-                        <li><a href="{% url 'customer_list' %}" class="navbar-link">Clienti</a></li>
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        {% if user.is_staff or user.role == 'admin' %}
+                            <li>
+                                <a href="{% url 'admin_dashboard' %}" class="navbar-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                                    Dashboard
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'builder_list' %}" class="navbar-link {% if 'builder' in request.resolver_match.url_name or 'template' in request.resolver_match.url_name %}active{% endif %}">
+                                    Moduli
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{% url 'customer_list' %}" class="navbar-link {% if 'customer' in request.resolver_match.url_name %}active{% endif %}">
+                                    Clienti
+                                </a>
+                            </li>
+                        {% endif %}
+                        <li>
+                            <a href="javascript:void(0)" class="navbar-link" onclick="openHelpModal()">
+                                Help
+                            </a>
+                        </li>
                     {% endif %}
-                    <li><a href="#" class="navbar-link">Help</a></li>
-                {% endif %}
-            </ul>
+                </ul>
+            </div>
 
             <div class="navbar-user">
                 {% if user.is_authenticated %}
                     <span class="navbar-username">{{ user.username }}</span>
-                    <a href="{% url 'logout' %}" class="btn btn-sm btn-ghost">Logout</a>
+                    <a href="{% url 'logout' %}" class="btn-logout-pill">Logout</a>
                 {% else %}
-                    <a href="{% url 'login' %}" class="btn btn-sm btn-primary">Login</a>
+                    <a href="{% url 'login' %}" class="btn btn-sm btn-primary" style="border-radius: 20px; padding: 5px 18px;">Login</a>
                 {% endif %}
             </div>
         </div>
@@ -211,15 +372,15 @@
         <div class="alerts-container">
             {% if messages %}
                 {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
                         {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">×</button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             {% endif %}
         </div>
 
-        <div class="container">
+        <div class="content-container">
             {% block content %}{% endblock %}
         </div>
     </div>
@@ -229,23 +390,75 @@
         <div class="footer-content">
             <ul class="footer-links">
                 <li><a href="#" class="footer-link">Privacy Policy</a></li>
-                <li><a href="#" class="footer-link">Terms of Service</a></li>
-                <li><a href="#" class="footer-link">Contact</a></li>
+                <li><a href="#" class="footer-link">Termini di Servizio</a></li>
+                <li><a href="javascript:void(0)" onclick="openHelpModal()" class="footer-link">Guida</a></li>
             </ul>
-            <p>&copy; 2026 Document Collector. All rights reserved.</p>
+            <div>&copy; 2026 Etichub - Moduli Documentali. Tutti i diritti riservati.</div>
         </div>
     </footer>
 
-    <!-- Scripts -->
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <!-- Help Modal Dialog -->
+    <div class="help-modal-overlay" id="helpModal" onclick="handleHelpOverlay(event)">
+        <div class="help-modal-card">
+            <div class="help-modal-header">
+                <h4><i class="bi bi-question-circle-fill" style="color: #E89BA7;"></i> Guida Rapida Etichub Moduli</h4>
+                <button type="button" class="btn-close" onclick="closeHelpModal()"></button>
+            </div>
+            <div class="help-modal-body">
+                <div class="help-item">
+                    <strong>📊 Dashboard & Indicatori</strong>
+                    Panoramica in tempo reale delle attività: moduli pubblicati, clienti registrati sul NAS, pratiche complessive e pratiche completate con successo.
+                </div>
+                <div class="help-item">
+                    <strong>📁 Moduli di Raccolta (Form Builder)</strong>
+                    Crea e personalizza step, campi informativi e requisiti di upload documentale. Ogni modulo può essere associato a un cliente specifico e protetto da password di accesso.
+                </div>
+                <div class="help-item">
+                    <strong>👥 Gestione Clienti & Percorsi NAS</strong>
+                    Censisci i clienti e specifica la cartella NAS dedicata (es. <code>/storage/clienti/[cliente]/[progetto]/</code>). I file caricati dai clienti rimangono sempre fisicamente sul NAS anche in caso di rimozione dell'anagrafica dal DB.
+                </div>
+                <div class="help-item">
+                    <strong>📋 Assegnazione e Invio Pratiche</strong>
+                    Genera link dedicati o condividi il link permanente con password per consentire al cliente di caricare in sicurezza i propri documenti.
+                </div>
+            </div>
+            <div class="help-modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeHelpModal()" style="border-radius: 8px;">Chiudi</button>
+            </div>
+        </div>
+    </div>
 
+    <!-- Bootstrap 5.3 Bundle JS (with Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Interactive Bootstrap Tooltip Initializer -->
     <script>
-        // Close alert button handler
-        document.querySelectorAll('.btn-close').forEach(btn => {
-            btn.addEventListener('click', function() {
-                this.closest('.alert').style.display = 'none';
+        document.addEventListener("DOMContentLoaded", function () {
+            // Initialize all Bootstrap tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
             });
+        });
+
+        function openHelpModal() {
+            document.getElementById('helpModal').classList.add('active');
+        }
+
+        function closeHelpModal() {
+            document.getElementById('helpModal').classList.remove('active');
+        }
+
+        function handleHelpOverlay(event) {
+            if (event.target === document.getElementById('helpModal')) {
+                closeHelpModal();
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeHelpModal();
+            }
         });
     </script>
 

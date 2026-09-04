@@ -142,3 +142,57 @@ class CustomerDeleteTests(TestCase):
         self.assertEqual(response.status_code, 302)
         # Customer still exists in DB
         self.assertTrue(Customer.objects.filter(id=customer.id).exists())
+
+
+class DashboardAndNavigationTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin_user = User.objects.create_user(
+            username='admin_dash',
+            email='admin_dash@test.com',
+            password='password123',
+            role='admin',
+            is_staff=True
+        )
+        self.client.force_login(self.admin_user)
+
+    def test_root_redirects_to_dashboard(self):
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/modules/admin/')
+
+    def test_dashboard_rendered_with_kpis_and_tooltips(self):
+        # Create some sample data
+        cust = Customer.objects.create(
+            code="CUST_DASH",
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario@test.com",
+            nas_folder_name="MARIO_ROSSI"
+        )
+        form = FormTemplate.objects.create(
+            name="Modulo Test",
+            intro_text="Intro",
+            status="published",
+            customer=cust,
+            author=self.admin_user
+        )
+
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+
+        # Check context
+        self.assertEqual(response.context['templates_count'], 1)
+        self.assertEqual(response.context['customers_count'], 1)
+
+        # Check HTML content: KPI titles and tooltips present
+        content = response.content.decode('utf-8')
+        self.assertIn('Moduli Pubblicati', content)
+        self.assertIn('Clienti Attivi', content)
+        self.assertIn('Assegnazioni Totali', content)
+        self.assertIn('Pratiche Completate', content)
+        self.assertIn('data-bs-toggle="tooltip"', content)
+        self.assertIn('bi-info-circle-fill', content)
+        self.assertIn('navbar-brand', content)
+        self.assertIn('btn-logout-pill', content)
+

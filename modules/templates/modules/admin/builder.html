@@ -648,8 +648,11 @@
         <!-- Header -->
         <div class="builder-header">
             <div class="builder-header-left">
-                <a href="/admin/modules/forms/" title="Torna alla lista moduli" style="display: flex; align-items: center; text-decoration: none; margin-right: 0.75rem;">
+                <a href="{% url 'admin_dashboard' %}" title="Dashboard" style="display: flex; align-items: center; text-decoration: none; margin-right: 0.75rem;">
                     <img src="{% static 'images/Etichub_Logo_V2_Verticale_Color.svg' %}" alt="EticHUB" style="height: 32px; width: auto; max-width: 125px; object-fit: contain;">
+                </a>
+                <a href="{% url 'builder_list' %}" class="btn btn-sm btn-outline-secondary me-2" title="Torna alla lista moduli" style="border-radius: 6px; font-size: 0.8rem; padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="bi bi-arrow-left"></i> Moduli
                 </a>
                 <input type="text" class="form-title-inline" x-model="form.name" placeholder="Form Title" @blur="autoSave()">
                 <span class="form-status" :class="form.status">

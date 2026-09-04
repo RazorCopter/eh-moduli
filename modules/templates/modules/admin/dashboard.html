@@ -1,86 +1,549 @@
 {% extends "accounts/base.html" %}
 
-{% block title %}Admin Dashboard{% endblock %}
+{% block title %}Dashboard - Etichub Moduli{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Dashboard Layout & Spacing */
+    .dashboard-topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.75rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .dashboard-title-group h1 {
+        font-size: 1.85rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+    .dashboard-title-group p {
+        color: #7A7A7A;
+        font-size: 0.95rem;
+        margin: 0.25rem 0 0 0;
+    }
+    .dashboard-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-action-primary {
+        background: linear-gradient(135deg, #E89BA7, #E0849B);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(232, 155, 167, 0.25);
+    }
+    .btn-action-primary:hover {
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(232, 155, 167, 0.35);
+    }
+
+    .btn-action-secondary {
+        background: white;
+        color: #4A4A4A;
+        border: 1px solid #D5D0C9;
+        padding: 0.6rem 1.15rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.9rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s ease;
+    }
+    .btn-action-secondary:hover {
+        background: #F8F9FA;
+        color: #2C2C2C;
+        border-color: #AFA89F;
+    }
+
+    /* Side-by-side KPI Indicator Cards */
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+
+    @media (max-width: 1100px) {
+        .kpi-row {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .kpi-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .kpi-card {
+        background: #FFFFFF;
+        border: 1px solid #EAE6E1;
+        border-radius: 14px;
+        padding: 1.4rem 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .kpi-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+        border-color: #E2DBD3;
+    }
+
+    .kpi-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+
+    .kpi-icon-box {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+    }
+
+    /* Icon theme variants */
+    .icon-box-pink {
+        background: #FDF2F4;
+        color: #D66E84;
+    }
+    .icon-box-blue {
+        background: #EEF6FC;
+        color: #2A79BA;
+    }
+    .icon-box-purple {
+        background: #F4EFFF;
+        color: #7B44CC;
+    }
+    .icon-box-green {
+        background: #EDF8EE;
+        color: #2D8A4E;
+    }
+
+    /* Informational Tooltip 'i' button */
+    .kpi-info-btn {
+        background: transparent;
+        border: none;
+        color: #A09890;
+        cursor: pointer;
+        padding: 4px;
+        font-size: 1rem;
+        line-height: 1;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    .kpi-info-btn:hover {
+        color: #5C544D;
+        background: #F3EFEA;
+        transform: scale(1.1);
+    }
+
+    .kpi-metric {
+        font-size: 2.15rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        line-height: 1.1;
+        margin-bottom: 0.35rem;
+    }
+
+    .kpi-title {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #736B63;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 0;
+    }
+
+    .kpi-footer-link {
+        font-size: 0.82rem;
+        font-weight: 500;
+        color: #8C847C;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin-top: 0.75rem;
+        transition: color 0.15s;
+    }
+    .kpi-footer-link:hover {
+        color: #E0849B;
+    }
+
+    /* Content Layout (Main Grid) */
+    .dashboard-content-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.75rem;
+    }
+
+    /* Recent Table Card */
+    .section-card {
+        background: #FFFFFF;
+        border: 1px solid #EAE6E1;
+        border-radius: 14px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+        overflow: hidden;
+    }
+
+    .section-card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #F0ECE8;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #FFFFFF;
+    }
+
+    .section-card-header h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-header-badge {
+        font-size: 0.75rem;
+        background: #F3EFEA;
+        color: #5C544D;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    .table-modern {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+
+    .table-modern th {
+        background: #FAF8F6;
+        color: #6E665E;
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.9rem 1.25rem;
+        border-bottom: 1px solid #EAE6E1;
+    }
+
+    .table-modern td {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #F3EFEA;
+        font-size: 0.92rem;
+        color: #333333;
+        vertical-align: middle;
+    }
+
+    .table-modern tr:hover {
+        background: #FDFCFB;
+    }
+
+    /* Progress Bar */
+    .progress-track {
+        background: #EAE6E1;
+        height: 7px;
+        border-radius: 10px;
+        width: 90px;
+        overflow: hidden;
+        display: inline-block;
+        vertical-align: middle;
+        margin-right: 8px;
+    }
+
+    .progress-fill {
+        background: linear-gradient(90deg, #E89BA7, #2D8A4E);
+        height: 100%;
+        border-radius: 10px;
+    }
+
+    /* Status Badges */
+    .badge-status {
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .badge-status-submitted {
+        background: #EDF8EE;
+        color: #246B3E;
+    }
+    .badge-status-in-progress {
+        background: #EEF6FC;
+        color: #1F5A8B;
+    }
+    .badge-status-draft {
+        background: #F3EFEA;
+        color: #6B6258;
+    }
+    .badge-status-expired {
+        background: #FDF2F4;
+        color: #B3394D;
+    }
+
+    .empty-placeholder {
+        padding: 3.5rem 2rem;
+        text-align: center;
+        color: #8C847C;
+    }
+    .empty-placeholder i {
+        font-size: 2.75rem;
+        color: #D8D2C9;
+        margin-bottom: 0.75rem;
+        display: block;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h1>📊 Admin Dashboard</h1>
+<!-- Top Header & Actions -->
+<div class="dashboard-topbar">
+    <div class="dashboard-title-group">
+        <h1>📊 Dashboard Operativa</h1>
+        <p>Monitoraggio in tempo reale dei moduli di raccolta, clienti e avanzamento pratiche</p>
     </div>
-</div>
-
-<div class="row">
-    <div class="col-md-3 mb-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <h6 class="card-title">Moduli Pubblicati</h6>
-                <h2>{{ templates_count }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-4">
-        <a href="{% url 'customer_list' %}" style="text-decoration: none; color: inherit;">
-            <div class="card text-center h-100" style="transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;">
-                <div class="card-body">
-                    <h6 class="card-title text-muted">Clienti Attivi</h6>
-                    <h2 class="text-primary">{{ customers_count }}</h2>
-                    <small class="text-muted"><i class="bi bi-arrow-right"></i> Gestisci</small>
-                </div>
-            </div>
+    <div class="dashboard-actions">
+        <a href="{% url 'builder_create' %}" class="btn-action-primary">
+            <i class="bi bi-plus-lg"></i> Nuovo Modulo
+        </a>
+        <a href="{% url 'customer_list' %}" class="btn-action-secondary">
+            <i class="bi bi-people"></i> Clienti
+        </a>
+        <a href="{% url 'assign_form_to_customer' %}" class="btn-action-secondary">
+            <i class="bi bi-send"></i> Assegna Modulo
         </a>
     </div>
-    <div class="col-md-3 mb-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <h6 class="card-title">Assegnazioni Totali</h6>
-                <h2>{{ assignments_count }}</h2>
+</div>
+
+<!-- 4 Side-by-Side KPI Indicators with Informative Tooltips -->
+<div class="kpi-row">
+    <!-- 1. Moduli Pubblicati -->
+    <div class="kpi-card">
+        <div>
+            <div class="kpi-card-header">
+                <div class="kpi-icon-box icon-box-pink">
+                    <i class="bi bi-folder-check"></i>
+                </div>
+                <button type="button" 
+                        class="kpi-info-btn"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        data-bs-title="Numero totale di moduli di raccolta documenti attualmente attivi e pubblicati, pronti per essere compilati dai clienti.">
+                    <i class="bi bi-info-circle-fill"></i>
+                </button>
             </div>
+            <div class="kpi-metric">{{ templates_count }}</div>
+            <h6 class="kpi-title">Moduli Pubblicati</h6>
         </div>
+        <a href="{% url 'builder_list' %}" class="kpi-footer-link">
+            Vai ai moduli <i class="bi bi-arrow-right"></i>
+        </a>
     </div>
-    <div class="col-md-3 mb-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <h6 class="card-title">Completate</h6>
-                <h2 class="text-success">{{ submitted_count }}</h2>
+
+    <!-- 2. Clienti Attivi -->
+    <div class="kpi-card">
+        <div>
+            <div class="kpi-card-header">
+                <div class="kpi-icon-box icon-box-blue">
+                    <i class="bi bi-people"></i>
+                </div>
+                <button type="button" 
+                        class="kpi-info-btn"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        data-bs-title="Clienti censiti a sistema abilitati alla ricezione dei moduli e dotati di cartella NAS dedicata (/storage/clienti/[cliente]/).">
+                    <i class="bi bi-info-circle-fill"></i>
+                </button>
             </div>
+            <div class="kpi-metric">{{ customers_count }}</div>
+            <h6 class="kpi-title">Clienti Attivi</h6>
         </div>
+        <a href="{% url 'customer_list' %}" class="kpi-footer-link">
+            Gestisci clienti <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+
+    <!-- 3. Assegnazioni Totali -->
+    <div class="kpi-card">
+        <div>
+            <div class="kpi-card-header">
+                <div class="kpi-icon-box icon-box-purple">
+                    <i class="bi bi-send-check"></i>
+                </div>
+                <button type="button" 
+                        class="kpi-info-btn"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        data-bs-title="Volume complessivo di pratiche e inviti alla compilazione creati ed erogati verso i clienti nel tempo.">
+                    <i class="bi bi-info-circle-fill"></i>
+                </button>
+            </div>
+            <div class="kpi-metric">{{ assignments_count }}</div>
+            <h6 class="kpi-title">Assegnazioni Totali</h6>
+        </div>
+        <a href="{% url 'assign_form_to_customer' %}" class="kpi-footer-link">
+            Nuova assegnazione <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+
+    <!-- 4. Pratiche Completate -->
+    <div class="kpi-card">
+        <div>
+            <div class="kpi-card-header">
+                <div class="kpi-icon-box icon-box-green">
+                    <i class="bi bi-check2-circle"></i>
+                </div>
+                <button type="button" 
+                        class="kpi-info-btn"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        data-bs-title="Pratiche trasmesse con successo dal cliente con tutti i documenti caricati, verificate e archiviate sul NAS.">
+                    <i class="bi bi-info-circle-fill"></i>
+                </button>
+            </div>
+            <div class="kpi-metric" style="color: #2D8A4E;">{{ submitted_count }}</div>
+            <h6 class="kpi-title">Pratiche Completate</h6>
+        </div>
+        <span class="kpi-footer-link" style="color: #6C757D; cursor: default;">
+            <i class="bi bi-patch-check"></i> Archiviate su NAS
+        </span>
     </div>
 </div>
 
-<div class="row mt-5">
-    <div class="col-12">
-        <h3>Assegnazioni Recenti</h3>
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Cliente</th>
-                    <th>Modulo</th>
-                    <th>Completamento</th>
-                    <th>Stato</th>
-                    <th>Data</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for assignment in recent_assignments %}
-                <tr>
-                    <td>{{ assignment.customer.code }}</td>
-                    <td>{{ assignment.form_template.name }}</td>
-                    <td>{{ assignment.completion_percentage }}%</td>
-                    <td><span class="badge bg-info">{{ assignment.get_status_display }}</span></td>
-                    <td>{{ assignment.assignment_date|date:"d/m/Y H:i" }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
+<!-- Main Content Grid -->
+<div class="dashboard-content-grid">
+    <!-- Recent Assignments Table -->
+    <div class="section-card">
+        <div class="section-card-header">
+            <h3>
+                <i class="bi bi-clock-history" style="color: #E89BA7;"></i> Pratiche Recenti
+                <span class="section-header-badge">{{ recent_assignments|length }}</span>
+            </h3>
+            <a href="{% url 'assign_form_to_customer' %}" class="btn btn-sm btn-outline-secondary" style="border-radius: 6px; font-size: 0.85rem;">
+                <i class="bi bi-plus"></i> Assegna
+            </a>
+        </div>
 
-<div class="row mt-4">
-    <div class="col-12 d-flex gap-2 flex-wrap">
-        <a href="{% url 'builder_create' %}" class="btn btn-primary">+ Nuovo Modulo</a>
-        <a href="{% url 'customer_list' %}" class="btn btn-outline-primary">👥 Gestione Clienti</a>
-        <a href="{% url 'customer_create' %}" class="btn btn-secondary">+ Nuovo Cliente</a>
-        <a href="{% url 'assign_form_to_customer' %}" class="btn btn-success">📋 Assegna Modulo</a>
+        {% if recent_assignments %}
+        <div style="overflow-x: auto;">
+            <table class="table-modern">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Modulo</th>
+                        <th>Avanzamento</th>
+                        <th>Stato</th>
+                        <th>Data Assegnazione</th>
+                        <th style="text-align: right;">Dettagli</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assignment in recent_assignments %}
+                    <tr>
+                        <td>
+                            <div style="font-weight: 600; color: #2C2C2C;">
+                                {{ assignment.customer.first_name }} {{ assignment.customer.last_name }}
+                            </div>
+                            <small class="text-muted font-monospace">{{ assignment.customer.code }}</small>
+                        </td>
+                        <td>
+                            <div style="font-weight: 500; color: #3C3C3C;">
+                                {{ assignment.form_template.name }}
+                            </div>
+                            {% if assignment.form_template.project_name %}
+                            <small class="text-muted"><i class="bi bi-folder"></i> {{ assignment.form_template.project_name }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="progress-track">
+                                <div class="progress-fill" style="width: {{ assignment.completion_percentage }}%;"></div>
+                            </div>
+                            <span style="font-weight: 600; font-size: 0.88rem; color: #4A4A4A;">
+                                {{ assignment.completion_percentage }}%
+                            </span>
+                        </td>
+                        <td>
+                            {% if assignment.status == 'submitted' %}
+                            <span class="badge-status badge-status-submitted">
+                                <i class="bi bi-check-circle-fill"></i> Completato
+                            </span>
+                            {% elif assignment.status == 'in_progress' %}
+                            <span class="badge-status badge-status-in-progress">
+                                <i class="bi bi-hourglass-split"></i> In Corso
+                            </span>
+                            {% elif assignment.status == 'expired' %}
+                            <span class="badge-status badge-status-expired">
+                                <i class="bi bi-exclamation-octagon"></i> Scaduto
+                            </span>
+                            {% else %}
+                            <span class="badge-status badge-status-draft">
+                                <i class="bi bi-pencil"></i> Bozza
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span style="color: #666; font-size: 0.88rem;">
+                                {{ assignment.assignment_date|date:"d/m/Y H:i" }}
+                            </span>
+                        </td>
+                        <td style="text-align: right;">
+                            <a href="{% url 'assignment_detail' assignment.id %}" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-size: 0.82rem; padding: 4px 10px;">
+                                <i class="bi bi-eye"></i> Visualizza
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-placeholder">
+            <i class="bi bi-inbox"></i>
+            <h5>Nessuna pratica assegnata recentemente</h5>
+            <p>Inizia assegnando un modulo di raccolta ad uno dei tuoi clienti configurati.</p>
+            <a href="{% url 'assign_form_to_customer' %}" class="btn-action-primary mt-2">
+                <i class="bi bi-send-plus"></i> Assegna la Prima Pratica
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
