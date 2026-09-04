@@ -616,6 +616,9 @@ def assignment_delete(request, pk):
     request.session.modified = True
 
     try:
+        uploads_count = assignment.documentupload_set.count()
+        declarations_count = assignment.awarenessdeclaration_set.count()
+
         assignment.delete()
 
         log_action(
@@ -627,13 +630,16 @@ def assignment_delete(request, pk):
                 'customer': customer_code,
                 'customer_name': customer_name,
                 'template': template_name,
+                'deleted_uploads_count': uploads_count,
+                'deleted_declarations_count': declarations_count,
+                'database_records_purged': True,
                 'physical_files_kept': True,
             },
             ip=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
 
-        msg = f"Pratica '{template_name}' disassociata ed eliminata con successo dal cliente {customer_name}."
+        msg = f"Pratica '{template_name}' disassociata ed eliminata con successo dal cliente {customer_name}. Tutti i record di caricamento ({uploads_count}) e dichiarazioni ({declarations_count}) sul database sono stati eliminati."
 
         if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
             return JsonResponse({'status': 'success', 'message': msg})

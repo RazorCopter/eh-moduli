@@ -697,23 +697,55 @@ class PublicAssignmentFlowTests(TestCase):
         self.assertEqual(resp_admin['Content-Type'], 'application/pdf')
 
     def test_assignment_delete_by_admin(self):
-        """Admin can disassociate and delete an assignment, keeping customer and template intact."""
+        """Admin can disassociate and delete an assignment, cascading all uploaded files and declarations from DB."""
+        from .models import DocumentUpload, AwarenessDeclaration
+
+        # 1. Simulate uploaded document and declaration for this assignment
+        upload = DocumentUpload.objects.create(
+            form_assignment=self.assignment,
+            document_requirement=self.doc_req1,
+            original_filename="carta_identita_errata.pdf",
+            stored_filename="stored_123.pdf",
+            file_size=1024,
+            status='valid',
+            uploaded_by_ip='127.0.0.1',
+            uploaded_by_user_agent='test'
+        )
+        declaration = AwarenessDeclaration.objects.create(
+            form_assignment=self.assignment,
+            document_requirement=self.doc_req1,
+            declaration_text="Confermo correttezza",
+            acceptance_ip='127.0.0.1',
+            acceptance_user_agent='test',
+            accepted=True
+        )
+
+        self.assertEqual(DocumentUpload.objects.filter(form_assignment=self.assignment).count(), 1)
+        self.assertEqual(AwarenessDeclaration.objects.filter(form_assignment=self.assignment).count(), 1)
+
         delete_url = reverse('assignment_delete', kwargs={'pk': self.assignment.id})
 
-        # Anonymous cannot delete
+        # 2. Anonymous cannot delete
         self.client.logout()
         resp_anon = self.client.post(delete_url)
         self.assertNotEqual(resp_anon.status_code, 200)
         self.assertTrue(FormAssignment.objects.filter(id=self.assignment.id).exists())
 
-        # Admin deletes assignment
+        # 3. Admin deletes assignment
         self.client.force_login(self.admin_user)
         resp_del = self.client.post(delete_url)
         self.assertRedirects(resp_del, reverse('admin_dashboard'))
 
-        # Assignment is gone from DB
+        # 4. Verification: Assignment is completely gone from DB
         self.assertFalse(FormAssignment.objects.filter(id=self.assignment.id).exists())
-        # Customer and template remain intact
+
+        # 5. Verification: All related DocumentUpload and AwarenessDeclaration records are wiped from DB
+        self.assertEqual(DocumentUpload.objects.filter(id=upload.id).count(), 0)
+        self.assertEqual(DocumentUpload.objects.filter(form_assignment_id=self.assignment.id).count(), 0)
+        self.assertEqual(AwarenessDeclaration.objects.filter(id=declaration.id).count(), 0)
+        self.assertEqual(AwarenessDeclaration.objects.filter(form_assignment_id=self.assignment.id).count(), 0)
+
+        # 6. Verification: Customer and template remain intact
         self.assertTrue(Customer.objects.filter(id=self.customer.id).exists())
         self.assertTrue(FormTemplate.objects.filter(id=self.template.id).exists())
 
