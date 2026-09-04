@@ -216,7 +216,7 @@ def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, 
             left_logo = None
 
     if not left_logo:
-        left_logo = Paragraph("<b>ETICHUB</b><br><font size=7 color='#64748B'>DOCUMENT SYSTEM</font>", s_title)
+        left_logo = Paragraph("<b>ETICHUB</b><br/><font size=7 color='#64748B'>DOCUMENT SYSTEM</font>", s_title)
 
     right_meta = [
         Paragraph("<b>RAPPORTO DI RICEZIONE DOCUMENTI</b>", s_title),

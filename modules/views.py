@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponse, FileResponse, Http404, HttpResponseForbidden
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.utils import timezone
 from .models import FormAssignment, DocumentRequirement, DocumentUpload, AwarenessDeclaration, FormTemplate
 from .utils import get_client_ip, get_user_agent, log_action
@@ -18,7 +19,10 @@ from .views_admin import (
 )
 import os
 import hashlib
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 @require_http_methods(["GET", "POST"])
 def published_form_access(request, form_id):
@@ -728,37 +732,48 @@ def form_submission_view(request, assignment_id):
     if access_password and not request.session.get(session_key, False):
         return redirect('get_form_by_token', token=assignment.secure_token)
 
-    assignment.status = 'submitted'
-    assignment.submission_date = timezone.now()
-    assignment.completion_percentage = 100
-    assignment.save()
-
-    # Generate official PDF receipt on submission
     try:
-        from .report_generator import generate_form_receipt_pdf
-        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
-        client_name = assignment.form_data.get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
-        project_name = assignment.form_data.get('project_name') or ''
-        nas_project_path = os.path.join(nas_base, client_name, project_name)
-        os.makedirs(nas_project_path, exist_ok=True)
-        pdf_path = os.path.join(nas_project_path, 'Report_Ricezione_Documenti.pdf')
-        generate_form_receipt_pdf(assignment.form_template, assignment, pdf_path)
+        assignment.status = 'submitted'
+        assignment.submission_date = timezone.now()
+        assignment.completion_percentage = 100
+        assignment.save()
+
+        # Generate official PDF receipt on submission (non-blocking if NAS or PDF generation has issues)
+        try:
+            from .report_generator import generate_form_receipt_pdf
+            nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+            client_name = assignment.form_data.get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+            project_name = assignment.form_data.get('project_name') or ''
+            nas_project_path = os.path.join(nas_base, client_name, project_name)
+            os.makedirs(nas_project_path, exist_ok=True)
+            pdf_path = os.path.join(nas_project_path, 'Report_Ricezione_Documenti.pdf')
+            generate_form_receipt_pdf(assignment.form_template, assignment, pdf_path)
+        except Exception as e:
+            logger.warning(f"Could not generate PDF receipt on assignment submit: {e}")
+
+        try:
+            cust_id_str = str(assignment.customer.id) if assignment.customer else ''
+            log_action(
+                None,
+                'submit',
+                'FormAssignment',
+                str(assignment.id),
+                {'customer': cust_id_str},
+                ip=get_client_ip(request),
+                user_agent=get_user_agent(request)
+            )
+        except Exception as log_err:
+            logger.warning(f"Could not log submit action: {log_err}")
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({'status': 'success', 'redirect': f'/modules/form/success/?assignment_id={assignment.id}'})
+        return redirect(f'/modules/form/success/?assignment_id={assignment.id}')
+
     except Exception as e:
-        logger.warning(f"Could not generate PDF receipt on assignment submit: {e}")
-
-    log_action(
-        None,
-        'submit',
-        'FormAssignment',
-        str(assignment.id),
-        {'customer': str(assignment.customer.id)},
-        ip=get_client_ip(request),
-        user_agent=get_user_agent(request)
-    )
-
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
-        return JsonResponse({'status': 'success', 'redirect': f'/modules/form/success/?assignment_id={assignment.id}'})
-    return redirect(f'/modules/form/success/?assignment_id={assignment.id}')
+        logger.exception(f"Unexpected error in form_submission_view: {e}")
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({'error': f'Invio fallito: {str(e)}'}, status=500)
+        return redirect(f'/modules/form/success/?assignment_id={assignment.id}')
 
 
 

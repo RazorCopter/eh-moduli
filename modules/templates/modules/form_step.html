@@ -57,8 +57,15 @@
 
                             <!-- Upload Box -->
                             <div class="mt-3">
-                                <div class="upload-dropzone p-3 border border-2 rounded-3 text-center" id="dropzone-{{ item.id }}" style="border-style: dashed !important; border-color: #CBD5E1; background: #FFFFFF; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('file-{{ item.id }}').click()">
-                                    <input type="file" class="d-none" id="file-{{ item.id }}" accept="{{ item.mime_types|default:'*/*' }}" onchange="handleFileUpload('{{ item.id }}', this)">
+                                <div class="upload-dropzone p-3 border border-2 rounded-3 text-center" 
+                                     id="dropzone-{{ item.id }}" 
+                                     style="border-style: dashed !important; border-color: #CBD5E1; background: #FFFFFF; cursor: pointer; transition: all 0.2s;" 
+                                     onclick="document.getElementById('file-{{ item.id }}').click()"
+                                     ondragover="handleDragOver(event, this)"
+                                     ondragenter="handleDragOver(event, this)"
+                                     ondragleave="handleDragLeave(event, this)"
+                                     ondrop="handleDrop(event, '{{ item.id }}', this)">
+                                    <input type="file" class="d-none" id="file-{{ item.id }}" accept="{{ item.mime_types|default:'*/*' }}" onchange="handleFileInputChange('{{ item.id }}', this)">
                                     <i class="bi bi-cloud-arrow-up fs-3 text-secondary mb-1 d-block"></i>
                                     <span class="small fw-semibold text-dark">Clicca qui o trascina il file</span>
                                     <div class="text-muted" style="font-size: 0.75rem;">Formati ammessi: {{ item.allowed_extensions|default:'pdf, docx, jpg, png' }} (max 10MB)</div>
@@ -213,6 +220,54 @@
 </div>
 
 <script>
+// Prevent default drag and drop behavior across window
+window.addEventListener('dragover', function(e) {
+    e.preventDefault();
+}, false);
+window.addEventListener('drop', function(e) {
+    e.preventDefault();
+}, false);
+
+function handleDragOver(e, el) {
+    e.preventDefault();
+    e.stopPropagation();
+    el.style.borderColor = '#E8847D';
+    el.style.backgroundColor = '#FFF5F5';
+}
+
+function handleDragLeave(e, el) {
+    e.preventDefault();
+    e.stopPropagation();
+    el.style.borderColor = '#CBD5E1';
+    el.style.backgroundColor = '#FFFFFF';
+}
+
+function handleDrop(e, reqId, el) {
+    e.preventDefault();
+    e.stopPropagation();
+    el.style.borderColor = '#CBD5E1';
+    el.style.backgroundColor = '#FFFFFF';
+
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        uploadSingleFile(reqId, file);
+    }
+}
+
+function handleFileInputChange(reqId, inputElement) {
+    const file = inputElement.files[0];
+    if (file) {
+        uploadSingleFile(reqId, file);
+    }
+}
+
+function handleFileUpload(reqId, inputElement) {
+    const file = inputElement.files[0];
+    if (file) {
+        uploadSingleFile(reqId, file);
+    }
+}
+
 function toggleUnavailablePanel(reqId) {
     const panel = document.getElementById('unavail-panel-' + reqId);
     if (panel) {
@@ -224,8 +279,7 @@ function toggleUnavailablePanel(reqId) {
     }
 }
 
-async function handleFileUpload(reqId, inputElement) {
-    const file = inputElement.files[0];
+async function uploadSingleFile(reqId, file) {
     if (!file) return;
 
     // Close unavailability panel if open

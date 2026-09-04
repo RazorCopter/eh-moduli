@@ -509,6 +509,21 @@ class PublicAssignmentFlowTests(TestCase):
         self.assertEqual(upload.availability_status, 'not_available')
         self.assertEqual(upload.motivazione_indisponibilita, justification_text)
 
+    def test_form_submission_view_success_and_pdf_generation(self):
+        """Form submission completes successfully, generates receipt, updates status, and redirects without 500 error."""
+        submit_url = reverse('form_submission_view', kwargs={'assignment_id': self.assignment.id})
+        response = self.client.post(submit_url)
+
+        # Must redirect to success page, not crash with 500
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/modules/form/success/', response.url)
+
+        # Check DB status
+        self.assignment.refresh_from_db()
+        self.assertEqual(self.assignment.status, 'submitted')
+        self.assertEqual(self.assignment.completion_percentage, 100)
+        self.assertIsNotNone(self.assignment.submission_date)
+
 
 
 
