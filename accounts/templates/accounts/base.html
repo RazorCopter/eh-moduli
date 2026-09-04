@@ -88,12 +88,21 @@
         }
 
         .navbar-nav {
-            list-style: none;
-            display: flex;
-            gap: 32px;
-            margin: 0;
-            padding: 0;
-            align-items: center;
+            list-style: none !important;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 32px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .navbar-nav li {
+            display: inline-flex !important;
+            align-items: center !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            list-style: none !important;
         }
 
         .navbar-link {
@@ -304,7 +313,8 @@
                 gap: 16px;
             }
             .navbar-nav {
-                gap: 14px;
+                flex-direction: row !important;
+                gap: 14px !important;
             }
             .navbar-nav .navbar-link {
                 font-size: 0.85rem;
@@ -328,7 +338,7 @@
                     <span class="navbar-brand-badge">Moduli</span>
                 </a>
 
-                <ul class="navbar-nav">
+                <ul class="navbar-nav flex-row">
                     {% if user.is_authenticated %}
                         {% if user.is_staff or user.role == 'admin' %}
                             <li>
