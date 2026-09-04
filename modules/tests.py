@@ -396,6 +396,120 @@ class PublicAssignmentFlowTests(TestCase):
         # Check sequence: info1 < doc1 < sep < info2
         self.assertTrue(idx_info1 < idx_doc1 < idx_sep < idx_info2, "Gli elementi e i documenti devono apparire nell'ordine stabilito nel builder")
 
+    def test_assign_form_autogenerates_password_when_empty(self):
+        """Admin assigning a form without explicit password autogenerates 8-char password."""
+        self.client.force_login(self.admin_user)
+        url = reverse('assign_form_to_customer')
+        post_data = {
+            'customer_id': str(self.customer.id),
+            'template_id': str(self.template.id),
+            'project_name': 'TestAutoPwdProject',
+            'access_password': '',  # Empty password
+            'expiry_days': '30',
+        }
+        response = self.client.post(url, post_data, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'success')
+        generated_pwd = data.get('access_password')
+        self.assertTrue(bool(generated_pwd))
+        self.assertEqual(len(generated_pwd), 8)
+
+        # Check in DB
+        assignment = FormAssignment.objects.get(id=data['assignment_id'])
+        self.assertEqual(assignment.form_data.get('access_password'), generated_pwd)
+
+    def test_access_password_protection_flow(self):
+        """Accessing a password-protected assignment requires valid password before viewing form."""
+        self.assignment.form_data['access_password'] = 'Secret12'
+        self.assignment.save()
+
+        token_url = reverse('get_form_by_token', kwargs={'token': self.assignment.secure_token})
+        step_url = reverse('form_step_view', kwargs={'assignment_id': self.assignment.id, 'step_order': 0})
+
+        # 1. Direct step view redirects to token
+        resp_step = self.client.get(step_url)
+        self.assertEqual(resp_step.status_code, 302)
+        self.assertEqual(resp_step.url, token_url)
+
+        # 2. Token view without authentication shows password prompt
+        resp_token = self.client.get(token_url)
+        self.assertEqual(resp_token.status_code, 200)
+        self.assertIn('Accesso al Modulo', resp_token.content.decode('utf-8'))
+        self.assertIn('Inserisci la password', resp_token.content.decode('utf-8'))
+
+        # 3. Wrong password shows error
+        resp_wrong = self.client.post(token_url, {'password': 'WrongPassword'})
+        self.assertEqual(resp_wrong.status_code, 200)
+        self.assertIn('Password errata', resp_wrong.content.decode('utf-8'))
+
+        # 4. Correct password authenticates
+        resp_ok = self.client.post(token_url, {'password': 'Secret12'})
+        self.assertEqual(resp_ok.status_code, 302)
+
+        # 5. Follow redirect: form details are now displayed
+        resp_authed = self.client.get(token_url)
+        self.assertEqual(resp_authed.status_code, 200)
+        self.assertIn('Inizia la Compilazione', resp_authed.content.decode('utf-8'))
+
+    def test_file_upload_success_without_500(self):
+        """Uploading a document succeeds, avoids 500 errors, and registers valid upload."""
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        self.doc_req1.allowed_extensions = "pdf"
+        self.doc_req1.mime_types = "application/pdf"
+        self.doc_req1.save()
+
+        upload_url = reverse('upload_document_view', kwargs={'assignment_id': self.assignment.id})
+        pdf_content = b"%PDF-1.4 valid test pdf file contents"
+        pdf_file = SimpleUploadedFile("test_doc.pdf", pdf_content, content_type="application/pdf")
+
+        response = self.client.post(upload_url, {
+            'file': pdf_file,
+            'requirement_id': str(self.doc_req1.id)
+        })
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data.get('status'), 'success')
+        self.assertEqual(data.get('filename'), 'test_doc.pdf')
+
+        # Check DB
+        upload = self.assignment.documentupload_set.filter(status='valid').first()
+        self.assertIsNotNone(upload)
+        self.assertEqual(upload.original_filename, 'test_doc.pdf')
+        self.assertEqual(upload.availability_status, 'uploaded')
+
+    def test_skip_mandatory_document_requires_justification(self):
+        """Marking a mandatory document as unavailable requires justification."""
+        self.doc_req1.required = True
+        self.doc_req1.save()
+
+        skip_url = reverse('skip_optional_document', kwargs={
+            'assignment_id': self.assignment.id,
+            'requirement_id': self.doc_req1.id
+        })
+
+        # 1. No justification on required document fails with 400
+        resp_fail = self.client.post(skip_url, {'justification': ''})
+        self.assertEqual(resp_fail.status_code, 400)
+        data_fail = resp_fail.json()
+        self.assertIn('giustificativo', data_fail.get('error', '').lower())
+
+        # 2. With justification succeeds and saves unavailable status
+        justification_text = "Documento smarrito, in attesa di duplicato dal comune"
+        resp_ok = self.client.post(skip_url, {'justification': justification_text})
+        self.assertEqual(resp_ok.status_code, 200)
+        data_ok = resp_ok.json()
+        self.assertEqual(data_ok.get('status'), 'success')
+        self.assertEqual(data_ok.get('availability_status'), 'not_available')
+
+        # Check DB DocumentUpload
+        upload = self.assignment.documentupload_set.filter(status='valid').first()
+        self.assertIsNotNone(upload)
+        self.assertEqual(upload.availability_status, 'not_available')
+        self.assertEqual(upload.motivazione_indisponibilita, justification_text)
+
+
 
 
 

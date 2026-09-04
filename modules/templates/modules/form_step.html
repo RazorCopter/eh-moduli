@@ -68,21 +68,53 @@
                                 <div id="uploads-{{ item.id }}" class="mt-2">
                                     {% with upload=existing_uploads|get_item:item.id %}
                                     {% if upload %}
-                                    <div class="alert alert-success py-2 px-3 mb-0 d-flex align-items-center justify-content-between rounded-3">
-                                        <span class="small"><i class="bi bi-check-circle-fill text-success me-2"></i> <strong>{{ upload.original_filename }}</strong> (Già caricato)</span>
-                                        <span class="badge bg-success">Salvato</span>
-                                    </div>
+                                        {% if upload.availability_status == 'not_available' %}
+                                        <div class="alert alert-warning py-2 px-3 mb-2 d-flex align-items-center justify-content-between rounded-3">
+                                            <span class="small"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> <strong>Non disponibile:</strong> <em>{{ upload.motivazione_indisponibilita }}</em></span>
+                                            <span class="badge bg-warning text-dark">Giustificato</span>
+                                        </div>
+                                        {% else %}
+                                        <div class="alert alert-success py-2 px-3 mb-2 d-flex align-items-center justify-content-between rounded-3">
+                                            <span class="small"><i class="bi bi-check-circle-fill text-success me-2"></i> <strong>{{ upload.original_filename }}</strong> (Già caricato)</span>
+                                            <span class="badge bg-success">Salvato</span>
+                                        </div>
+                                        {% endif %}
                                     {% endif %}
                                     {% endwith %}
                                 </div>
 
-                                {% if not item.required %}
-                                <div class="text-end mt-2">
-                                    <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none p-0" onclick="skipDoc('{{ item.id }}')">
-                                        <i class="bi bi-slash-circle me-1"></i> Non ho questo documento
+                                <!-- Unavailability trigger -->
+                                <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+                                    <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-secondary" onclick="toggleUnavailablePanel('{{ item.id }}')">
+                                        <i class="bi bi-question-circle me-1"></i> Non hai questo documento? Giustifica assenza
                                     </button>
                                 </div>
-                                {% endif %}
+
+                                <!-- Panel for Unavailability / Mandatory Justification -->
+                                <div id="unavail-panel-{{ item.id }}" class="mt-3 p-3 rounded-3 border bg-light d-none" style="border-left: 4px solid #ffc107 !important;">
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                                        <strong class="text-dark small">Dichiarazione di Indisponibilità Documento</strong>
+                                    </div>
+                                    <p class="text-muted small mb-2">
+                                        {% if item.required %}
+                                        Questo documento è <span class="text-danger fw-semibold">obbligatorio</span>. Per procedere senza caricarlo, devi inserire una motivazione o un giustificativo valido (obbligatorio).
+                                        {% else %}
+                                        Se non intendi caricare questo documento facoltativo, puoi indicarne il motivo.
+                                        {% endif %}
+                                    </p>
+                                    <div class="mb-2">
+                                        <textarea id="justification-{{ item.id }}" class="form-control form-control-sm" rows="2" placeholder="Inserisci il motivo di indisponibilità del documento (obbligatorio)..."></textarea>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-sm btn-warning fw-semibold px-3" onclick="submitUnavailable('{{ item.id }}', {{ item.required|yesno:'true,false' }})">
+                                            <i class="bi bi-shield-check me-1"></i> Salva Giustificativo
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary px-2" onclick="toggleUnavailablePanel('{{ item.id }}')">
+                                            Annulla
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -181,9 +213,26 @@
 </div>
 
 <script>
+function toggleUnavailablePanel(reqId) {
+    const panel = document.getElementById('unavail-panel-' + reqId);
+    if (panel) {
+        panel.classList.toggle('d-none');
+        if (!panel.classList.contains('d-none')) {
+            const textarea = document.getElementById('justification-' + reqId);
+            if (textarea) textarea.focus();
+        }
+    }
+}
+
 async function handleFileUpload(reqId, inputElement) {
     const file = inputElement.files[0];
     if (!file) return;
+
+    // Close unavailability panel if open
+    const panel = document.getElementById('unavail-panel-' + reqId);
+    if (panel && !panel.classList.contains('d-none')) {
+        panel.classList.add('d-none');
+    }
 
     const targetDiv = document.getElementById('uploads-' + reqId);
     targetDiv.innerHTML = '<div class="alert alert-info py-2 px-3 mb-0 d-flex align-items-center rounded-3"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> <span class="small">Caricamento sicuro di <strong>' + file.name + '</strong> in corso...</span></div>';
@@ -225,24 +274,54 @@ async function handleFileUpload(reqId, inputElement) {
     }
 }
 
-async function skipDoc(reqId) {
-    if (!confirm('Confermi di voler saltare questo documento facoltativo?')) return;
+async function submitUnavailable(reqId, isRequired) {
+    const textarea = document.getElementById('justification-' + reqId);
+    const justification = textarea ? textarea.value.trim() : '';
+
+    if (isRequired && !justification) {
+        alert('Attenzione: Per i documenti obbligatori è necessario indicare una motivazione/giustificativo valido.');
+        if (textarea) textarea.focus();
+        return;
+    }
+
+    const targetDiv = document.getElementById('uploads-' + reqId);
+    targetDiv.innerHTML = '<div class="alert alert-info py-2 px-3 mb-0 d-flex align-items-center rounded-3"><div class="spinner-border spinner-border-sm text-warning me-2" role="status"></div> <span class="small">Registrazione giustificativo in corso...</span></div>';
+
+    const formData = new FormData();
+    formData.append('justification', justification);
+    formData.append('declaration_text', justification);
+
     try {
         const res = await fetch(`/modules/form/{{ assignment.id }}/skip-document/${reqId}/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}'
-            }
+            },
+            body: formData
         });
+
         const data = await res.json();
-        const targetDiv = document.getElementById('uploads-' + reqId);
+        if (res.ok && data.status === 'success') {
+            toggleUnavailablePanel(reqId);
+            targetDiv.innerHTML = `
+                <div class="alert alert-warning py-2 px-3 mb-0 d-flex align-items-center justify-content-between rounded-3">
+                    <span class="small"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> <strong>Documento dichiarato non disponibile:</strong> <em>${data.justification}</em></span>
+                    <span class="badge bg-warning text-dark">Giustificato</span>
+                </div>
+            `;
+        } else {
+            targetDiv.innerHTML = `
+                <div class="alert alert-danger py-2 px-3 mb-0 rounded-3 small">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Errore: ${data.error || 'Operazione fallita'}
+                </div>
+            `;
+        }
+    } catch (e) {
         targetDiv.innerHTML = `
-            <div class="alert alert-secondary py-2 px-3 mb-0 rounded-3 small text-muted">
-                <i class="bi bi-slash-circle me-1"></i> Documento facoltativo non inserito.
+            <div class="alert alert-danger py-2 px-3 mb-0 rounded-3 small">
+                <i class="bi bi-wifi-off me-2"></i> Errore di rete: ${e.message}
             </div>
         `;
-    } catch (e) {
-        console.error('Error skipping document:', e);
     }
 }
 </script>

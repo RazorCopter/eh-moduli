@@ -279,6 +279,18 @@
             <i class="bi bi-box-arrow-up-right"></i> Apri Modulo
         </a>
     </div>
+    {% if assignment.form_data.access_password %}
+    <div style="margin-top: 1rem; padding: 0.85rem 1.25rem; background: rgba(232, 155, 167, 0.12); border: 1px solid #E8D3D8; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <i class="bi bi-key-fill" style="color: #7B1123; font-size: 1.15rem;"></i>
+            <span style="font-weight: 600; color: #2C2C2C; font-size: 0.92rem;">Password di Accesso Cliente:</span>
+            <code id="accessPasswordVal" style="font-size: 1.05rem; font-weight: 700; background: white; padding: 3px 10px; border-radius: 6px; border: 1px solid #D0CBC4; color: #7B1123; letter-spacing: 0.5px;">{{ assignment.form_data.access_password }}</code>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopyPwd" onclick="copyPassword()" style="border-radius: 6px; font-weight: 500;">
+            <i class="bi bi-clipboard"></i> Copia Password
+        </button>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Info Grid -->
@@ -430,6 +442,24 @@ function copyFormLink() {
         }, 2000);
     }).catch(function(err) {
         alert("Impossibile copiare il link: " + err);
+    });
+}
+
+function copyPassword() {
+    const pwd = document.getElementById("accessPasswordVal").innerText.trim();
+    navigator.clipboard.writeText(pwd).then(function() {
+        const btn = document.getElementById("btnCopyPwd");
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> Password Copiata!';
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('btn-success');
+        setTimeout(function() {
+            btn.innerHTML = originalHtml;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-secondary');
+        }, 2000);
+    }).catch(function(err) {
+        alert("Impossibile copiare la password: " + err);
     });
 }
 </script>

@@ -305,6 +305,10 @@ def assign_form_to_customer(request):
         except Exception as e:
             logger.warning(f"Could not pre-create NAS project folder {nas_project_path}: {e}")
 
+        if not access_password:
+            alphabet = string.ascii_letters + string.digits
+            access_password = ''.join(secrets.choice(alphabet) for _ in range(8))
+
         assignment = FormAssignment.objects.create(
             customer=customer,
             form_template=template,
@@ -356,12 +360,13 @@ def assign_form_to_customer(request):
                 'form_url': f"/modules/form/{assignment.secure_token}/",
                 'assignment_id': str(assignment.id),
                 'project_name': project_name,
+                'access_password': access_password,
                 'nas_path': nas_project_path
             })
 
         messages.success(
             request, 
-            f"Modulo '{template.name}' assegnato con successo a {customer.first_name} {customer.last_name} per il progetto '{project_name}'! Cartella NAS dedicata: /{customer.nas_folder_name}/{project_name}/"
+            f"Modulo '{template.name}' assegnato con successo a {customer.first_name} {customer.last_name} per il progetto '{project_name}'! Password di accesso: {access_password}. Cartella NAS: /{customer.nas_folder_name}/{project_name}/"
         )
         return redirect('assignment_detail', pk=assignment.id)
 

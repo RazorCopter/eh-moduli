@@ -414,3 +414,59 @@ def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, 
     # Build the document using the NumberedCanvas
     doc.build(story, canvasmaker=NumberedCanvas)
     return output_pdf_path
+
+
+def generate_form_receipt_pdf(form_template, assignment, pdf_path):
+    """
+    Generate PDF receipt for an assignment submission.
+    """
+    customer = assignment.customer
+    customer_data = {
+        'name': f"{customer.first_name} {customer.last_name}".strip() if customer else "Cliente",
+        'code': customer.code if customer else "—",
+        'email': customer.email if customer else "—",
+        'phone': customer.phone if customer else "—",
+        'vat_number': getattr(customer, 'vat_number', '—'),
+        'fiscal_code': getattr(customer, 'fiscal_code', '—'),
+    }
+    project_name = assignment.form_data.get('project_name', '') if assignment.form_data else ''
+    form_data = {
+        'id': str(assignment.id),
+        'name': form_template.name,
+        'project_name': project_name or getattr(form_template, 'project_name', ''),
+        'submission_time': (assignment.submission_date or datetime.now()).strftime('%d/%m/%Y %H:%M:%S'),
+        'ip': '127.0.0.1',
+    }
+
+    uploads_data = []
+    # Collect all requirements from template steps
+    for step in form_template.formstep_set.all().order_by('order'):
+        for req in step.documentrequirement_set.all().order_by('order'):
+            up = assignment.documentupload_set.filter(document_requirement=req, status='valid').first()
+            if up:
+                is_unavail = (up.availability_status == 'not_available')
+                uploads_data.append({
+                    'document_name': req.name,
+                    'required': req.required,
+                    'availability_status': up.availability_status,
+                    'indisponibile': is_unavail,
+                    'motivazione_indisponibilita': up.motivazione_indisponibilita if is_unavail else '',
+                    'original_filename': up.original_filename if not is_unavail else '—',
+                    'stored_filename': up.stored_filename if not is_unavail else '',
+                    'file_size': up.file_size or 0,
+                    'sha256': up.sha256_checksum or '—',
+                })
+            else:
+                uploads_data.append({
+                    'document_name': req.name,
+                    'required': req.required,
+                    'availability_status': 'not_available',
+                    'indisponibile': True,
+                    'motivazione_indisponibilita': 'Non fornito',
+                    'original_filename': '—',
+                    'stored_filename': '',
+                    'file_size': 0,
+                    'sha256': '—',
+                })
+
+    return generate_submission_pdf(pdf_path, form_data, customer_data, uploads_data)

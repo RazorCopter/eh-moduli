@@ -198,9 +198,9 @@
 
             <!-- 4. Password di Accesso (Opzionale) -->
             <div class="form-group">
-                <label for="access_password">Password di Accesso (opzionale)</label>
-                <input type="text" id="access_password" name="access_password" placeholder="Lascia vuoto se non richiesta password aggiuntiva" value="{{ access_password|default:'' }}">
-                <small class="helper-text">Se impostata, il cliente dovrà inserirla per accedere al caricamento.</small>
+                <label for="access_password">Password di Accesso</label>
+                <input type="text" id="access_password" name="access_password" placeholder="Lascia vuoto per autogenerare una password casuale (consigliato)" value="{{ access_password|default:'' }}">
+                <small class="helper-text">Se lasciata vuota, il sistema genererà automaticamente una password sicura di 8 caratteri da fornire al cliente.</small>
             </div>
 
             <!-- 5. Giorni di Validità -->

@@ -49,6 +49,7 @@ def safe_join_paths(base_path: str, *parts: str) -> Path:
         ValueError: If path traversal detected
     """
     base = Path(base_path).resolve()
+    os.makedirs(str(base), exist_ok=True)
 
     if not base.exists():
         raise ValueError(f"Base path does not exist: {base}")
@@ -219,6 +220,7 @@ def get_mime_type_from_content(file_obj, max_bytes: int = 8192) -> str:
     Detect MIME type from file content (magic bytes), not extension.
 
     Requires: pip install python-magic-bin (Windows) or python-magic (Linux)
+    Falls back gracefully to mimetypes.guess_type if python-magic is unavailable.
 
     Args:
         file_obj: Django UploadedFile object
@@ -227,18 +229,23 @@ def get_mime_type_from_content(file_obj, max_bytes: int = 8192) -> str:
     Returns:
         MIME type string
     """
-    if not HAS_MAGIC:
-        return 'application/octet-stream'
+    if HAS_MAGIC:
+        try:
+            file_obj.seek(0)
+            header = file_obj.read(max_bytes)
+            file_obj.seek(0)
 
-    try:
-        file_obj.seek(0)
-        header = file_obj.read(max_bytes)
-        file_obj.seek(0)
+            mime = magic.Magic(mime=True)
+            detected = mime.from_buffer(header)
+            if detected:
+                return detected
+        except Exception:
+            pass
 
-        mime = magic.Magic(mime=True)
-        return mime.from_buffer(header) or 'application/octet-stream'
-    except Exception:
-        return 'application/octet-stream'
+    import mimetypes
+    name = getattr(file_obj, 'name', '')
+    guessed, _ = mimetypes.guess_type(name)
+    return guessed or 'application/octet-stream'
 
 
 def validate_file_content(file_obj, file_extension: str, detected_mime: str) -> List[str]:
@@ -426,7 +433,7 @@ def generate_secure_filename(file_extension: str) -> str:
 
 
 def save_uploaded_file_secure(file_obj, form_assignment, document_requirement,
-                              storage_base_path: str):
+                              storage_base_path: str, request=None):
     """
     Securely save uploaded file with comprehensive validation.
 
@@ -434,7 +441,8 @@ def save_uploaded_file_secure(file_obj, form_assignment, document_requirement,
         file_obj: Django UploadedFile object
         form_assignment: FormAssignment instance
         document_requirement: DocumentRequirement instance
-        storage_base_path: Base storage path (e.g., /storage/clienti)
+        storage_base_path: Base storage path (e.g., /storage/clienti or dedicated project path)
+        request: HttpRequest object (optional)
 
     Returns:
         DocumentUpload instance
@@ -447,35 +455,50 @@ def save_uploaded_file_secure(file_obj, form_assignment, document_requirement,
 
     customer = form_assignment.customer
     assignment_id = str(form_assignment.id)
+    cust_folder_name = customer.nas_folder_name if customer else '_generic'
 
-    # Validate path components
-    cust_folder, subfolder = validate_path_components(
-        customer.nas_folder_name,
-        document_requirement.destination_subfolder
-    )
-
-    # Construct safe paths
     storage_base = Path(storage_base_path).resolve()
-    final_dir = safe_join_paths(
-        str(storage_base),
-        cust_folder,
-        assignment_id,
-        subfolder
-    )
+    os.makedirs(str(storage_base), exist_ok=True)
+
+    raw_subfolder = (document_requirement.destination_subfolder or '').strip().lstrip('/\\')
+    if raw_subfolder:
+        _, subfolder = validate_path_components(cust_folder_name, raw_subfolder)
+    else:
+        subfolder = ''
+
+    # Check if storage_base already points to project folder (contains customer NAS folder)
+    if cust_folder_name in storage_base.parts:
+        if subfolder:
+            final_dir = safe_join_paths(str(storage_base), subfolder)
+        else:
+            final_dir = storage_base
+    else:
+        cust_folder, safe_sub = validate_path_components(cust_folder_name, subfolder)
+        final_dir = safe_join_paths(str(storage_base), cust_folder, assignment_id, safe_sub)
+
+    os.makedirs(str(final_dir), exist_ok=True)
 
     # Generate safe filename
     file_ext = file_obj.name.rsplit('.', 1)[-1].lower()
     safe_filename = generate_secure_filename(file_ext)
     final_path = final_dir / safe_filename
 
-    # Save file atomically
-    with atomic_file_save(str(final_path)) as temp_path:
-        with open(temp_path, 'wb') as f:
+    # Save file atomically, with direct-write fallback if atomic tempfile fails across mount boundaries
+    try:
+        with atomic_file_save(str(final_path)) as temp_path:
+            with open(temp_path, 'wb') as f:
+                for chunk in file_obj.chunks():
+                    f.write(chunk)
+    except Exception:
+        with open(str(final_path), 'wb') as f:
             for chunk in file_obj.chunks():
                 f.write(chunk)
 
-    # Set restrictive permissions (owner read/write only)
-    os.chmod(str(final_path), stat.S_IRUSR | stat.S_IWUSR)  # 0o600
+    # Set restrictive permissions (owner read/write only) - ignore if FS/OS doesn't support chmod
+    try:
+        os.chmod(str(final_path), stat.S_IRUSR | stat.S_IWUSR)
+    except (OSError, NotImplementedError, PermissionError):
+        pass
 
     # Calculate checksum
     checksum = calculate_checksum_secure(file_obj)
@@ -484,20 +507,28 @@ def save_uploaded_file_secure(file_obj, form_assignment, document_requirement,
     detected_mime = get_mime_type_from_content(file_obj)
 
     # Create database record
-    relative_path = str(final_path.relative_to(storage_base))
+    try:
+        relative_path = str(final_path.relative_to(storage_base)).replace('\\', '/')
+    except ValueError:
+        relative_path = safe_filename
+
+    client_ip = get_client_ip(request)
+    client_ua = get_user_agent(request)
 
     upload = DocumentUpload.objects.create(
         form_assignment=form_assignment,
         document_requirement=document_requirement,
         original_filename=sanitize_filename(file_obj.name),
         stored_filename=safe_filename,
-        relative_path=relative_path.replace('\\', '/'),
+        relative_path=relative_path,
         file_extension=file_ext,
         mime_type_detected=detected_mime,
         file_size=file_obj.size,
         sha256_checksum=checksum,
-        uploaded_by_ip=get_client_ip(None),
-        uploaded_by_user_agent='',
+        uploaded_by_ip=client_ip,
+        uploaded_by_user_agent=client_ua,
+        status='valid',
+        availability_status='uploaded',
     )
 
     return upload

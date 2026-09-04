@@ -160,7 +160,7 @@ def published_form_receipt(request, form_id):
     return FileResponse(open(pdf_path, 'rb'), content_type='application/pdf', as_attachment=True, filename=filename)
 
 
-@require_http_methods(["GET"])
+@require_http_methods(["GET", "POST"])
 def get_form_by_token(request, token):
     try:
         assignment = FormAssignment.objects.get(secure_token=token)
@@ -172,6 +172,33 @@ def get_form_by_token(request, token):
 
         if assignment.status == 'submitted':
             return render(request, 'modules/form_already_submitted.html', {'is_public_form': True})
+
+        # Password Protection Check
+        access_password = assignment.form_data.get('access_password', '') if assignment.form_data else ''
+        if not access_password:
+            access_password = assignment.form_template.access_password or ''
+
+        session_key = f'assignment_access_{assignment.id}'
+
+        if access_password:
+            if request.method == 'POST':
+                entered_pwd = request.POST.get('password', '').strip()
+                if entered_pwd == access_password:
+                    request.session[session_key] = True
+                    request.session.modified = True
+                    return redirect('get_form_by_token', token=token)
+                else:
+                    return render(request, 'modules/form_password.html', {
+                        'error': 'Password errata. Riprova.',
+                        'assignment': assignment,
+                        'form_title': assignment.form_template.name,
+                    })
+
+            if not request.session.get(session_key, False):
+                return render(request, 'modules/form_password.html', {
+                    'assignment': assignment,
+                    'form_title': assignment.form_template.name,
+                })
 
         assignment.last_access_date = timezone.now()
         assignment.save()
@@ -209,6 +236,14 @@ def form_step_view(request, assignment_id, step_order):
         assignment = FormAssignment.objects.get(id=assignment_id)
     except FormAssignment.DoesNotExist:
         return JsonResponse({'error': 'Assignment not found'}, status=404)
+
+    # Password check
+    access_password = assignment.form_data.get('access_password', '') if assignment.form_data else ''
+    if not access_password:
+        access_password = assignment.form_template.access_password or ''
+    session_key = f'assignment_access_{assignment.id}'
+    if access_password and not request.session.get(session_key, False):
+        return redirect('get_form_by_token', token=assignment.secure_token)
 
     steps = list(assignment.form_template.formstep_set.all().order_by('order'))
     if not steps:
@@ -444,17 +479,26 @@ def upload_document_view(request, assignment_id):
 
     try:
         # Get NAS path from form_data (Step 0)
-        client_name = assignment.form_data.get('client_name')
-        project_name = assignment.form_data.get('project_name')
+        client_name = assignment.form_data.get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+        project_name = assignment.form_data.get('project_name') or (assignment.form_template.project_name or 'Progetto')
         nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
         nas_project_path = os.path.join(nas_base, client_name, project_name)
+        os.makedirs(nas_project_path, exist_ok=True)
+
+        # Mark any previous valid uploads for this requirement as superseded
+        DocumentUpload.objects.filter(
+            form_assignment=assignment,
+            document_requirement=requirement,
+            status='valid'
+        ).update(status='superseded')
 
         # SECURE SAVE: atomic write, safe paths, restrictive permissions
         upload = save_uploaded_file_secure(
             file,
             assignment,
             requirement,
-            nas_project_path  # Use Step 0 path instead of /storage/clienti
+            nas_project_path,
+            request=request
         )
 
         # Update tracking info
@@ -462,12 +506,11 @@ def upload_document_view(request, assignment_id):
         upload.uploaded_by_user_agent = get_user_agent(request)
         upload.save()
 
-        # CREATE MANIFEST.JSON with document metadata
+        # CREATE / UPDATE MANIFEST.JSON with document metadata
         try:
             import json
             manifest_path = os.path.join(nas_project_path, 'manifest.json')
 
-            # Load existing manifest or create new
             if os.path.exists(manifest_path):
                 with open(manifest_path, 'r', encoding='utf-8') as f:
                     manifest = json.load(f)
@@ -480,7 +523,6 @@ def upload_document_view(request, assignment_id):
                     'uploads': []
                 }
 
-            # Add this upload to manifest
             manifest['uploads'].append({
                 'requirement_name': requirement.name,
                 'requirement_description': requirement.description,
@@ -490,14 +532,14 @@ def upload_document_view(request, assignment_id):
                 'sha256': upload.sha256_checksum,
                 'mime_type': upload.mime_type_detected,
                 'upload_datetime': upload.upload_datetime.isoformat(),
-                'uploaded_by_ip': upload.uploaded_by_ip
+                'uploaded_by_ip': upload.uploaded_by_ip,
+                'status': 'uploaded',
+                'availability_status': 'uploaded',
             })
 
-            # Save manifest
             with open(manifest_path, 'w', encoding='utf-8') as f:
                 json.dump(manifest, f, indent=2, ensure_ascii=False)
         except Exception as manifest_error:
-            # Log but don't fail the upload
             log_action(
                 None,
                 'create',
@@ -508,7 +550,6 @@ def upload_document_view(request, assignment_id):
                 user_agent=get_user_agent(request)
             )
 
-        # Log action
         log_action(
             None,
             'upload',
@@ -532,7 +573,6 @@ def upload_document_view(request, assignment_id):
         })
 
     except ValueError as e:
-        # Security validation error
         log_action(
             None,
             'upload',
@@ -546,7 +586,7 @@ def upload_document_view(request, assignment_id):
         return JsonResponse({'error': str(e)}, status=400)
 
     except Exception as e:
-        # Unexpected error
+        logger.exception(f"Unexpected upload error: {e}")
         log_action(
             None,
             'upload',
@@ -557,32 +597,94 @@ def upload_document_view(request, assignment_id):
             user_agent=get_user_agent(request),
             success=False
         )
-        return JsonResponse({'error': 'Upload failed'}, status=500)
+        return JsonResponse({'error': f'Caricamento fallito: {str(e)}'}, status=500)
 
 @require_http_methods(["POST"])
 def skip_optional_document(request, assignment_id, requirement_id):
     try:
         assignment = FormAssignment.objects.get(id=assignment_id)
         requirement = DocumentRequirement.objects.get(id=requirement_id)
-    except:
-        return JsonResponse({'error': 'Not found'}, status=404)
+    except (FormAssignment.DoesNotExist, DocumentRequirement.DoesNotExist):
+        return JsonResponse({'error': 'Documento o pratica non trovata.'}, status=404)
 
-    if requirement.required:
-        return JsonResponse({'error': 'Cannot skip required document'}, status=400)
+    justification = (request.POST.get('justification') or request.POST.get('declaration_text') or '').strip()
 
-    declaration_text = request.POST.get('declaration_text', '')
+    if requirement.required and not justification:
+        return JsonResponse({
+            'error': 'Il giustificativo è obbligatorio per i documenti obbligatori non disponibili.'
+        }, status=400)
+
+    # Supersede any previous uploads for this requirement
+    DocumentUpload.objects.filter(
+        form_assignment=assignment,
+        document_requirement=requirement,
+        status='valid'
+    ).update(status='superseded')
+
+    final_motive = justification or 'Documento facoltativo non inserito'
+
+    # Create DocumentUpload record for unavailability tracking
+    DocumentUpload.objects.create(
+        form_assignment=assignment,
+        document_requirement=requirement,
+        original_filename="NON_DISPONIBILE",
+        stored_filename="",
+        relative_path="",
+        file_extension="",
+        mime_type_detected="text/plain",
+        file_size=0,
+        sha256_checksum="",
+        status='valid',
+        availability_status='not_available',
+        motivazione_indisponibilita=final_motive,
+        uploaded_by_ip=get_client_ip(request),
+        uploaded_by_user_agent=get_user_agent(request),
+    )
 
     AwarenessDeclaration.objects.create(
         form_assignment=assignment,
         document_requirement=requirement,
-        declaration_text=declaration_text,
+        declaration_text=final_motive,
         accepted=True,
         acceptance_ip=get_client_ip(request),
         acceptance_user_agent=get_user_agent(request),
         customer_name_declared=request.POST.get('customer_name', '')
     )
 
-    return JsonResponse({'status': 'success'})
+    # Update manifest.json on NAS if it exists
+    try:
+        client_name = assignment.form_data.get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+        project_name = assignment.form_data.get('project_name') or ''
+        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+        manifest_path = os.path.join(nas_base, client_name, project_name, 'manifest.json')
+        if os.path.exists(manifest_path):
+            import json
+            with open(manifest_path, 'r', encoding='utf-8') as f:
+                manifest = json.load(f)
+            manifest.setdefault('uploads', []).append({
+                'requirement_name': requirement.name,
+                'requirement_description': requirement.description,
+                'original_filename': 'NON_DISPONIBILE',
+                'stored_filename': '',
+                'file_size': 0,
+                'sha256': '',
+                'mime_type': 'text/plain',
+                'status': 'not_available',
+                'availability_status': 'not_available',
+                'motivazione_indisponibilita': final_motive,
+                'upload_datetime': timezone.now().isoformat(),
+                'uploaded_by_ip': get_client_ip(request)
+            })
+            with open(manifest_path, 'w', encoding='utf-8') as f:
+                json.dump(manifest, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        logger.warning(f"Could not update manifest for unavailable document: {e}")
+
+    return JsonResponse({
+        'status': 'success',
+        'availability_status': 'not_available',
+        'justification': final_motive
+    })
 
 @require_http_methods(["GET"])
 def form_summary_view(request, assignment_id):
@@ -590,6 +692,14 @@ def form_summary_view(request, assignment_id):
         assignment = FormAssignment.objects.get(id=assignment_id)
     except FormAssignment.DoesNotExist:
         return JsonResponse({'error': 'Assignment not found'}, status=404)
+
+    # Password protection check
+    access_password = assignment.form_data.get('access_password', '') if assignment.form_data else ''
+    if not access_password:
+        access_password = assignment.form_template.access_password or ''
+    session_key = f'assignment_access_{assignment.id}'
+    if access_password and not request.session.get(session_key, False):
+        return redirect('get_form_by_token', token=assignment.secure_token)
 
     uploads = assignment.documentupload_set.filter(status='valid')
     declarations = assignment.awarenessdeclaration_set.filter(accepted=True)
@@ -609,6 +719,14 @@ def form_submission_view(request, assignment_id):
         assignment = FormAssignment.objects.get(id=assignment_id)
     except FormAssignment.DoesNotExist:
         return JsonResponse({'error': 'Assignment not found'}, status=404)
+
+    # Password protection check
+    access_password = assignment.form_data.get('access_password', '') if assignment.form_data else ''
+    if not access_password:
+        access_password = assignment.form_template.access_password or ''
+    session_key = f'assignment_access_{assignment.id}'
+    if access_password and not request.session.get(session_key, False):
+        return redirect('get_form_by_token', token=assignment.secure_token)
 
     assignment.status = 'submitted'
     assignment.submission_date = timezone.now()

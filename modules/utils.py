@@ -12,14 +12,18 @@ def generate_secure_token():
     return ''.join(secrets.choice(alphabet) for i in range(40))
 
 def get_client_ip(request):
+    if not request or not hasattr(request, 'META'):
+        return '127.0.0.1'
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
+        ip = x_forwarded_for.split(',')[0].strip()
     else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
+        ip = request.META.get('REMOTE_ADDR', '127.0.0.1')
+    return ip or '127.0.0.1'
 
 def get_user_agent(request):
+    if not request or not hasattr(request, 'META'):
+        return ''
     return request.META.get('HTTP_USER_AGENT', '')[:500]
 
 def validate_file_upload(file, requirement):
