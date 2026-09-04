@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, FileResponse, Http404, HttpResponseForbidden
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
@@ -13,7 +13,7 @@ from .upload_security import (
 from .views_admin import (
     admin_dashboard, form_template_list, form_template_create,
     form_template_edit, form_template_duplicate, customer_list,
-    customer_create, assignment_detail, assign_form_to_customer,
+    customer_create, customer_delete, assignment_detail, assign_form_to_customer,
     builder_list, builder_create, builder_edit, builder_preview
 )
 import os
@@ -22,9 +22,12 @@ from datetime import datetime
 
 @require_http_methods(["GET", "POST"])
 def published_form_access(request, form_id):
-    """Password-protected access to published forms."""
+    """Password-protected access to published forms.
+    URL is permanent: works regardless of form status (draft/published).
+    Only archived forms are excluded.
+    """
     try:
-        form = FormTemplate.objects.get(id=form_id, status='published')
+        form = FormTemplate.objects.exclude(status='archived').get(id=form_id)
     except FormTemplate.DoesNotExist:
         return render(request, 'modules/form_not_found.html', status=404)
 
@@ -96,10 +99,52 @@ def published_form_access(request, form_id):
 @require_http_methods(["GET"])
 def form_success_view(request):
     """Show success message after form submission."""
+    form_id = request.GET.get('form_id')
+    customer_name = None
+    project_name = None
+
+    if form_id:
+        try:
+            form = FormTemplate.objects.get(id=form_id)
+            if form.customer:
+                customer_name = f"{form.customer.first_name} {form.customer.last_name}"
+            project_name = form.project_name
+        except (FormTemplate.DoesNotExist, ValueError):
+            pass
+
     context = {
-        'timestamp': timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'timestamp': timezone.now().strftime('%d/%m/%Y %H:%M:%S'),
+        'form_id': form_id,
+        'customer': customer_name,
+        'project': project_name,
     }
     return render(request, 'modules/form_success.html', context)
+
+
+@require_http_methods(["GET"])
+def published_form_receipt(request, form_id):
+    """Download the official PDF report receipt for a submitted form."""
+    try:
+        form = FormTemplate.objects.get(id=form_id)
+    except (FormTemplate.DoesNotExist, ValueError):
+        raise Http404("Modulo non trovato")
+
+    session_key = f'form_access_{form_id}'
+    if not request.session.get(session_key, False):
+        return HttpResponseForbidden("Accesso non autorizzato. Effettua prima l'accesso con password.")
+
+    nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+    customer_folder = form.customer.nas_folder_name if form.customer else '_generic'
+    project_folder = form.project_name if form.project_name else str(form.id)
+    nas_project_path = os.path.join(nas_base, customer_folder, project_folder)
+    pdf_path = os.path.join(nas_project_path, 'Report_Ricezione_Documenti.pdf')
+
+    if not os.path.exists(pdf_path):
+        raise Http404("Il report PDF non è stato ancora generato per questo modulo.")
+
+    safe_title = "".join(c for c in form.name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+    filename = f"Ricevuta_{safe_title}.pdf"
+    return FileResponse(open(pdf_path, 'rb'), content_type='application/pdf', as_attachment=True, filename=filename)
 
 
 @require_http_methods(["GET"])
@@ -230,7 +275,7 @@ def published_form_upload(request, form_id):
     from datetime import datetime
 
     try:
-        form = FormTemplate.objects.get(id=form_id, status='published')
+        form = FormTemplate.objects.exclude(status='archived').get(id=form_id)
     except FormTemplate.DoesNotExist:
         return JsonResponse({'error': 'Form not found'}, status=404)
 
@@ -587,7 +632,7 @@ def published_form_submit(request, form_id):
     from datetime import datetime
 
     try:
-        form = FormTemplate.objects.get(id=form_id, status='published')
+        form = FormTemplate.objects.exclude(status='archived').get(id=form_id)
     except FormTemplate.DoesNotExist:
         return render(request, 'modules/form_not_found.html', status=404)
 
@@ -598,12 +643,11 @@ def published_form_submit(request, form_id):
             'error': 'Session expired. Please enter password again.'
         }, status=401)
 
-    if not form.customer:
-        return render(request, 'modules/form_not_found.html', status=400)
-
     try:
         nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
-        nas_project_path = os.path.join(nas_base, form.customer.nas_folder_name, form.project_name)
+        customer_folder = form.customer.nas_folder_name if form.customer else '_generic'
+        project_folder = form.project_name if form.project_name else str(form.id)
+        nas_project_path = os.path.join(nas_base, customer_folder, project_folder)
         os.makedirs(nas_project_path, exist_ok=True)
 
         manifest_path = os.path.join(nas_project_path, 'manifest.json')
@@ -612,19 +656,38 @@ def published_form_submit(request, form_id):
             with open(manifest_path, 'r', encoding='utf-8') as f:
                 manifest = json.load(f)
         else:
+            customer_display = (form.customer.first_name + ' ' + form.customer.last_name) if form.customer else 'Generic'
+            customer_code = form.customer.code if form.customer else 'GEN'
             manifest = {
                 'form_id': str(form.id),
                 'form_name': form.name,
-                'customer': form.customer.first_name + ' ' + form.customer.last_name,
-                'customer_code': form.customer.code,
-                'project': form.project_name,
+                'customer': customer_display,
+                'customer_code': customer_code,
+                'project': form.project_name or '',
                 'created_at': timezone.now().isoformat(),
                 'uploads': []
             }
 
-        # Process each document requirement
-        for requirement in form.formstep_set.first().documentrequirement_set.all():
-            requirement_id = str(requirement.id)
+        # Process each document requirement and doc_upload FormElement across all steps
+        all_requirements = []
+        for step in form.formstep_set.all():
+            for doc in step.documentrequirement_set.all():
+                all_requirements.append({
+                    'id': str(doc.id),
+                    'name': doc.name,
+                    'required': doc.required,
+                    'destination_subfolder': doc.destination_subfolder or ''
+                })
+            for elem in step.formelement_set.filter(element_type='doc_upload'):
+                all_requirements.append({
+                    'id': str(elem.id),
+                    'name': elem.config.get('label') or 'Documento',
+                    'required': elem.config.get('required', False),
+                    'destination_subfolder': elem.config.get('destination_subfolder', '')
+                })
+
+        for requirement in all_requirements:
+            requirement_id = requirement['id']
             availability_key = f'availability_{requirement_id}'
             motivation_key = f'motivazione_indisponibilita_{requirement_id}'
             file_key = f'file_{requirement_id}'
@@ -634,9 +697,9 @@ def published_form_submit(request, form_id):
             uploaded_file = request.FILES.get(file_key)
 
             doc_record = {
-                'document_name': requirement.name,
+                'document_name': requirement['name'],
                 'requirement_id': requirement_id,
-                'required': requirement.required,
+                'required': requirement['required'],
                 'availability_status': availability_status,
                 'upload_datetime': timezone.now().isoformat(),
                 'uploaded_from_ip': get_client_ip(request)
@@ -656,7 +719,7 @@ def published_form_submit(request, form_id):
                 safe_filename = f"{secrets.token_hex(4)}_{timestamp}.{ext}"
 
                 # Save file
-                dest_subfolder = requirement.destination_subfolder or ''
+                dest_subfolder = requirement['destination_subfolder']
                 file_path_dest = os.path.join(nas_project_path, dest_subfolder)
                 os.makedirs(file_path_dest, exist_ok=True)
 
@@ -685,9 +748,61 @@ def published_form_submit(request, form_id):
 
             manifest['uploads'].append(doc_record)
 
-        # Save manifest
+        # Collect submitted form element fields (text, email, phone, date, etc.)
+        form_fields = []
+        for step in form.formstep_set.all():
+            for elem in step.formelement_set.exclude(element_type__in=['doc_upload', 'separator', 'text_info']):
+                elem_id = str(elem.id)
+                val = request.POST.get(f'element_{elem_id}', '').strip()
+                label = elem.config.get('label') or elem.element_type
+                if val:
+                    form_fields.append({
+                        'label': label,
+                        'value': val,
+                        'type': elem.element_type
+                    })
+
+        # Save manifest.json as machine-readable record
         with open(manifest_path, 'w', encoding='utf-8') as f:
             json.dump(manifest, f, indent=2, ensure_ascii=False)
+
+        # Generate Premium PDF Report with Etichub vector logo
+        try:
+            from .report_generator import generate_submission_pdf
+            from django.conf import settings
+
+            logo_svg = os.path.join(settings.BASE_DIR, 'static', 'images', 'Etichub_Logo_V2_Verticale_Color.svg')
+            pdf_report_path = os.path.join(nas_project_path, 'Report_Ricezione_Documenti.pdf')
+
+            form_meta = {
+                'form_id': str(form.id),
+                'name': form.name,
+                'project_name': form.project_name or '',
+                'submission_datetime': timezone.now().strftime('%d/%m/%Y %H:%M:%S'),
+                'client_ip': get_client_ip(request),
+                'user_agent': get_user_agent(request)
+            }
+
+            customer_info = {
+                'name': (form.customer.first_name + ' ' + form.customer.last_name) if form.customer else 'Non specificato',
+                'code': form.customer.code if form.customer else '—',
+                'email': form.customer.email if form.customer else '—',
+                'phone': form.customer.phone if form.customer else '—',
+                'vat': getattr(form.customer, 'vat_number', '') or getattr(form.customer, 'fiscal_code', '') or '—'
+            }
+
+            generate_submission_pdf(
+                output_pdf_path=pdf_report_path,
+                form_data=form_meta,
+                customer_data=customer_info,
+                uploads=manifest['uploads'],
+                form_fields=form_fields,
+                logo_path=logo_svg
+            )
+        except Exception as pdf_err:
+            import logging
+            logger = logging.getLogger('modules')
+            logger.error(f"Error generating submission PDF: {pdf_err}\n{traceback.format_exc()}")
 
         log_action(
             None,
@@ -695,15 +810,15 @@ def published_form_submit(request, form_id):
             'PublishedForm',
             str(form.id),
             {
-                'customer': form.customer.code,
-                'project': form.project_name,
+                'customer': form.customer.code if form.customer else 'generic',
+                'project': form.project_name or '',
                 'document_count': len(manifest['uploads'])
             },
             ip=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
 
-        return redirect('form_success_view')
+        return redirect(f'/modules/form/success/?form_id={form.id}')
 
     except Exception as e:
         logger = logging.getLogger('modules')

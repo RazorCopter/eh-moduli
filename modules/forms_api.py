@@ -469,3 +469,44 @@ def api_customer_create(request):
 
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@user_passes_test(is_admin)
+@csrf_protect
+@require_http_methods(['POST', 'DELETE'])
+def api_customer_delete(request, customer_id):
+    """Delete customer from database via API (preserves files on NAS)."""
+    try:
+        customer = get_object_or_404(Customer, id=customer_id)
+        customer_code = customer.code
+        customer_name = f"{customer.first_name} {customer.last_name}".strip()
+        nas_folder = customer.nas_folder_name
+
+        # Delete database record only
+        # Physical files and directories on NAS remain untouched
+        customer.delete()
+
+        log_action(
+            request.user,
+            'delete',
+            'Customer',
+            str(customer_id),
+            {
+                'code': customer_code,
+                'name': customer_name,
+                'nas_folder_name': nas_folder,
+                'physical_files_kept': True,
+                'via': 'api',
+            },
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        return JsonResponse({
+            'success': True,
+            'message': f"Cliente '{customer_name}' ({customer_code}) eliminato con successo dal database. File sul NAS preservati."
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+

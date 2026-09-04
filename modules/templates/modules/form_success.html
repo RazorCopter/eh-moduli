@@ -4,142 +4,294 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Form Submitted</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="description" content="Modulo inviato con successo - Etichub Document Collector">
+    <title>Modulo Inviato — Etichub</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+
     <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --brand-50: #fdf2f1;
+            --brand-500: #E8847D;
+            --brand-600: #d4635b;
+            --brand-700: #b24840;
+            --gray-50: #f9fafb;
+            --gray-100: #f2f4f7;
+            --gray-200: #eaecf0;
+            --gray-300: #d0d5dd;
+            --gray-400: #98a2b3;
+            --gray-500: #667085;
+            --gray-600: #475467;
+            --gray-700: #344054;
+            --gray-800: #1d2939;
+            --gray-900: #101828;
+            --success-50: #ecfdf3;
+            --success-100: #d1fadf;
+            --success-500: #12b76a;
+            --success-700: #027a48;
+        }
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--gray-900);
+            line-height: 1.6;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            padding: 2rem 1rem;
+            background: #f0ebe5;
+            background-image:
+                radial-gradient(ellipse at 30% 60%, rgba(18, 183, 106, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 30%, rgba(232, 132, 125, 0.05) 0%, transparent 50%);
+            -webkit-font-smoothing: antialiased;
         }
-        .success-container {
+
+        .success-card {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            max-width: 500px;
+            border-radius: 24px;
+            box-shadow:
+                0 20px 24px -4px rgba(16, 24, 40, 0.08),
+                0 8px 8px -4px rgba(16, 24, 40, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            max-width: 480px;
             width: 100%;
-            padding: 3rem;
+            padding: 2.5rem;
             text-align: center;
+            animation: fadeInUp 0.6s ease-out;
         }
-        .success-icon {
-            font-size: 4rem;
-            color: #28a745;
-            margin-bottom: 1.5rem;
-            animation: bounce 0.6s;
+
+        .success-logo {
+            margin-bottom: 2rem;
         }
-        @keyframes bounce {
-            0%, 100% { transform: scale(0.8); opacity: 0; }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); opacity: 1; }
+
+        .success-logo img {
+            height: 64px;
+            width: auto;
+            filter: drop-shadow(0 2px 8px rgba(127, 23, 24, 0.1));
         }
-        .success-title {
+
+        .success-icon-wrapper {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1.5rem;
+            background: var(--success-50);
+            border: 2px solid var(--success-100);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--success-500);
             font-size: 1.75rem;
-            font-weight: 700;
-            color: #212529;
+            animation: scaleIn 0.5s ease-out 0.2s both;
+        }
+
+        .success-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--gray-900);
             margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
         }
+
         .success-message {
-            color: #6c757d;
-            font-size: 1rem;
-            line-height: 1.5;
-            margin-bottom: 2rem;
+            color: var(--gray-500);
+            font-size: 0.9375rem;
+            line-height: 1.6;
+            margin-bottom: 1.75rem;
         }
-        .success-details {
-            background: #f0f9ff;
-            border-left: 4px solid #28a745;
-            padding: 1rem;
-            border-radius: 4px;
-            margin-bottom: 2rem;
+
+        .details-card {
+            background: var(--success-50);
+            border: 1px solid var(--success-100);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.75rem;
             text-align: left;
-            font-size: 0.9rem;
-            color: #004085;
         }
+
         .detail-row {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             padding: 0.5rem 0;
-            border-bottom: 1px solid #e0e8f0;
+            border-bottom: 1px solid rgba(18, 183, 106, 0.1);
         }
+
         .detail-row:last-child {
             border-bottom: none;
         }
+
         .detail-label {
             font-weight: 600;
-            color: #212529;
+            font-size: 0.8125rem;
+            color: var(--gray-700);
         }
+
         .detail-value {
-            color: #6c757d;
+            font-size: 0.8125rem;
+            color: var(--success-700);
+            font-weight: 500;
         }
-        .btn-home {
-            display: inline-block;
-            padding: 0.75rem 1.5rem;
-            background: #667eea;
+
+        .close-hint {
+            font-size: 0.8125rem;
+            color: var(--gray-400);
+            margin-bottom: 1.5rem;
+        }
+
+        .btn-receipt {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.8125rem 1.5rem;
+            background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
             color: white;
             border: none;
-            border-radius: 6px;
+            border-radius: 10px;
+            font-family: inherit;
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.9375rem;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s ease;
             text-decoration: none;
+            box-shadow: 0 4px 14px rgba(178, 72, 64, 0.25);
+            margin-bottom: 0.75rem;
         }
-        .btn-home:hover {
-            background: #5568d3;
+
+        .btn-receipt:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 6px 20px rgba(178, 72, 64, 0.4);
+            color: white;
+        }
+
+        .btn-home {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.5rem;
+            background: white;
+            color: var(--gray-700);
+            border: 1.5px solid var(--gray-300);
+            border-radius: 10px;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            width: 100%;
+        }
+
+        .btn-home:hover {
+            border-color: var(--brand-500);
+            color: var(--brand-700);
+            background: var(--brand-50);
+        }
+
+        .powered-by {
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            color: var(--gray-400);
+        }
+
+        .powered-by a {
+            color: var(--brand-600);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.5); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @media (max-width: 480px) {
+            .success-card {
+                padding: 2rem 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="success-container">
-        <div style="margin-bottom: 2rem; text-align: center;">
-            <svg style="height: 50px; width: auto;" viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
-                <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Poppins, sans-serif" font-size="24" font-weight="700" fill="#28a745">Etichub</text>
-            </svg>
+    <div class="success-card">
+        <div class="success-logo">
+            <img src="{% static 'images/Etichub_Logo_V2_Verticale_Color.svg' %}"
+                 alt="Etichub"
+                 loading="eager">
         </div>
-        <div class="success-icon">
-            <i class="bi bi-check-circle"></i>
+
+        <div class="success-icon-wrapper">
+            <i class="bi bi-check-lg"></i>
         </div>
-        <h1 class="success-title">Form Submitted Successfully!</h1>
+
+        <h1 class="success-title">Modulo Inviato!</h1>
         <p class="success-message">
-            Thank you for submitting your documents. We've received all files and they are being processed.
+            Grazie per aver inviato i documenti. Abbiamo ricevuto tutto correttamente e i file sono in fase di elaborazione.
         </p>
 
-        <div class="success-details">
+        <div class="details-card">
             <div class="detail-row">
-                <span class="detail-label">Status:</span>
-                <span class="detail-value">✓ Completed</span>
+                <span class="detail-label">Stato</span>
+                <span class="detail-value">✓ Completato</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">Timestamp:</span>
+                <span class="detail-label">Data e ora</span>
                 <span class="detail-value">{{ timestamp }}</span>
             </div>
             {% if customer %}
             <div class="detail-row">
-                <span class="detail-label">Customer:</span>
+                <span class="detail-label">Cliente</span>
                 <span class="detail-value">{{ customer }}</span>
             </div>
             {% endif %}
             {% if project %}
             <div class="detail-row">
-                <span class="detail-label">Project:</span>
+                <span class="detail-label">Progetto</span>
                 <span class="detail-value">{{ project }}</span>
             </div>
             {% endif %}
         </div>
 
-        <p style="color: #6c757d; font-size: 0.9rem; margin-bottom: 2rem;">
-            You can close this window or return to the home page.
+        <p class="close-hint">
+            Puoi scaricare la ricevuta ufficiale o chiudere questa finestra in sicurezza.
         </p>
 
-        <a href="/" class="btn-home">
-            <i class="bi bi-house"></i> Return Home
+        {% if form_id %}
+        <a href="{% url 'published_form_receipt' form_id %}" class="btn-receipt">
+            <i class="bi bi-file-earmark-pdf-fill"></i>
+            Scarica Ricevuta Ufficiale (PDF)
         </a>
+        {% endif %}
+
+        <a href="/" class="btn-home">
+            <i class="bi bi-house"></i>
+            Torna alla Home
+        </a>
+
+        <div class="powered-by">
+            Powered by <a href="#">Etichub</a>
+        </div>
     </div>
 </body>
 </html>

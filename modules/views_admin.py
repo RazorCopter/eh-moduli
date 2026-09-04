@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.db.models import Count, Q
@@ -174,6 +175,55 @@ def customer_create(request):
         return redirect('customer_list')
 
     return render(request, 'modules/admin/customer_form.html')
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def customer_delete(request, pk):
+    """Delete customer from DB only.
+    Files and directories on the NAS are preserved.
+    """
+    customer = get_object_or_404(Customer, id=pk)
+    customer_code = customer.code
+    customer_name = f"{customer.first_name} {customer.last_name}".strip()
+    nas_folder = customer.nas_folder_name
+
+    try:
+        # Delete the customer record from DB
+        # This will SET_NULL on FormTemplate.customer, and CASCADE related FormAssignment
+        # Physical NAS directories and files are untouched
+        customer.delete()
+
+        log_action(
+            request.user,
+            'delete',
+            'Customer',
+            str(pk),
+            {
+                'code': customer_code,
+                'name': customer_name,
+                'nas_folder_name': nas_folder,
+                'physical_files_kept': True,
+            },
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        msg = f"Cliente '{customer_name}' ({customer_code}) eliminato con successo dal database. La cartella NAS '{nas_folder}' è rimasta intatta."
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({'success': True, 'message': msg})
+
+        messages.success(request, msg)
+        return redirect('customer_list')
+    except Exception as e:
+        logger.error(f"Errore durante l'eliminazione del cliente {pk}: {str(e)}")
+        err_msg = f"Errore durante l'eliminazione del cliente: {str(e)}"
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({'success': False, 'error': err_msg}, status=500)
+        messages.error(request, err_msg)
+        return redirect('customer_list')
+
 
 @login_required
 @user_passes_test(is_admin)
@@ -362,12 +412,20 @@ def builder_edit(request, pk):
 @user_passes_test(is_admin)
 def builder_preview(request, pk):
     """Preview form as client would see it (read-only)."""
+    from itertools import chain
     template = get_object_or_404(FormTemplate, id=pk)
     steps = template.formstep_set.all().order_by('order')
 
+    # Combine FormElement and DocumentRequirement for each step, ordered by order field
+    for step in steps:
+        elements = step.formelement_set.all().order_by('order')
+        documents = step.documentrequirement_set.all().order_by('order')
+        step.combined_items = sorted(chain(elements, documents), key=lambda x: x.order)
+
     context = {
+        'form': template,
         'template': template,
         'steps': steps,
         'is_preview': True
     }
-    return render(request, 'modules/admin/builder_preview.html', context)
+    return render(request, 'modules/published_form.html', context)

@@ -6,3 +6,5 @@ Pillow==10.2.0
 requests==2.32.3
 python-magic==0.4.27
 whitenoise==6.7.0
+reportlab>=4.2.0
+svglib>=2.2.0

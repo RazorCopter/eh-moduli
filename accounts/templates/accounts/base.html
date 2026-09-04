@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -10,6 +11,9 @@
 
     <!-- Design System CSS (etichub style) -->
     <link rel="stylesheet" href="{% static 'css/design-system.css' %}">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 
     <style>
         /* Custom app-specific styles */
@@ -33,12 +37,30 @@
         }
 
         .navbar-brand {
-            font-family: var(--font-primary);
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--color-text);
+            display: flex;
+            align-items: center;
+            gap: 12px;
             text-decoration: none;
-            letter-spacing: -0.5px;
+        }
+
+        .navbar-brand img {
+            height: 34px;
+            width: auto;
+            max-width: 140px;
+            object-fit: contain;
+            display: block;
+        }
+
+        .navbar-brand-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--color-text-light);
+            background: #F8FAFC;
+            border: 1px solid var(--color-border);
+            padding: 3px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
 
         .navbar-nav {
@@ -157,12 +179,17 @@
     <!-- Navigation -->
     <nav class="navbar">
         <div class="navbar-container">
-            <a href="/" class="navbar-brand">📋 DOCUMENT COLLECTOR</a>
+            <a href="/" class="navbar-brand">
+                <img src="{% static 'images/Etichub_Logo_V2_Verticale_Color.svg' %}" alt="EticHUB" class="navbar-logo">
+                <span class="navbar-brand-badge">Moduli</span>
+            </a>
 
             <ul class="navbar-nav">
                 {% if user.is_authenticated %}
                     {% if user.is_staff or user.role == 'admin' %}
                         <li><a href="{% url 'admin_dashboard' %}" class="navbar-link">Dashboard</a></li>
+                        <li><a href="{% url 'builder_list' %}" class="navbar-link">Moduli</a></li>
+                        <li><a href="{% url 'customer_list' %}" class="navbar-link">Clienti</a></li>
                     {% endif %}
                     <li><a href="#" class="navbar-link">Help</a></li>
                 {% endif %}

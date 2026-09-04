@@ -205,17 +205,20 @@
     <div class="header">
         <div class="header-top">
             <div class="logo-section">
-                <svg style="height: 150px; width: auto;" viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
-                    <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="Poppins, sans-serif" font-size="48" font-weight="700" fill="#E89BA7">Etichub</text>
-                </svg>
+                <img src="{% static 'images/Etichub_Logo_V2_Verticale_Color.svg' %}" alt="EticHUB" style="height: 48px; width: auto; max-width: 180px; object-fit: contain;">
                 <div class="header-title-block">
                     <h1>Form Builder</h1>
                     <p>Crea e gestisci i tuoi moduli di raccolta documenti</p>
                 </div>
             </div>
-            <a href="{% url 'builder_create' %}" class="btn-new-form">
-                <i class="bi bi-plus-circle"></i> Nuovo Modulo
-            </a>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <a href="{% url 'customer_list' %}" class="btn-new-form" style="background: white; color: #2C2C2C; border: 1px solid rgba(232, 155, 167, 0.4);">
+                    <i class="bi bi-people"></i> Gestione Clienti
+                </a>
+                <a href="{% url 'builder_create' %}" class="btn-new-form">
+                    <i class="bi bi-plus-circle"></i> Nuovo Modulo
+                </a>
+            </div>
         </div>
     </div>
 

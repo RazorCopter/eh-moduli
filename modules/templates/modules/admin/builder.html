@@ -648,6 +648,9 @@
         <!-- Header -->
         <div class="builder-header">
             <div class="builder-header-left">
+                <a href="/admin/modules/forms/" title="Torna alla lista moduli" style="display: flex; align-items: center; text-decoration: none; margin-right: 0.75rem;">
+                    <img src="{% static 'images/Etichub_Logo_V2_Verticale_Color.svg' %}" alt="EticHUB" style="height: 32px; width: auto; max-width: 125px; object-fit: contain;">
+                </a>
                 <input type="text" class="form-title-inline" x-model="form.name" placeholder="Form Title" @blur="autoSave()">
                 <span class="form-status" :class="form.status">
                     <i :class="form.status === 'published' ? 'bi-check-circle' : 'bi-pencil'"></i>
@@ -812,15 +815,43 @@
                                         <label>Type</label>
                                         <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].element_type" readonly>
                                     </div>
-                                    <div class="form-group">
+                                    <div class="form-group" x-show="form.steps[selectedStep].elements[selectedElement].element_type !== 'separator' && form.steps[selectedStep].elements[selectedElement].element_type !== 'text_info'">
                                         <label>Label</label>
                                         <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.label" placeholder="Field label">
                                     </div>
-                                    <div class="form-group">
+                                    <template x-if="form.steps[selectedStep].elements[selectedElement].element_type === 'text_info'">
+                                        <div>
+                                            <div class="form-group">
+                                                <label>Titolo / Etichetta (opzionale)</label>
+                                                <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.label" placeholder="Es. Informazioni importanti">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Contenuto Testo Informativo</label>
+                                                <textarea x-model="form.steps[selectedStep].elements[selectedElement].config.text" placeholder="Scrivi qui il testo informativo da mostrare..." style="min-height: 100px; width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 0.5rem;"></textarea>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <template x-if="form.steps[selectedStep].elements[selectedElement].element_type === 'doc_upload'">
+                                        <div>
+                                            <div class="form-group">
+                                                <label>Nome Documento</label>
+                                                <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.label" placeholder="Es. Documento A, Carta d'Identità">
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Descrizione</label>
+                                                <textarea x-model="form.steps[selectedStep].elements[selectedElement].config.description" placeholder="Istruzioni o dettagli sul documento..."></textarea>
+                                            </div>
+                                            <div class="form-group">
+                                                <label>Estensioni permesse</label>
+                                                <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.allowed_extensions" placeholder="pdf,docx,jpg">
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <div class="form-group" x-show="form.steps[selectedStep].elements[selectedElement].element_type !== 'separator' && form.steps[selectedStep].elements[selectedElement].element_type !== 'text_info' && form.steps[selectedStep].elements[selectedElement].element_type !== 'doc_upload'">
                                         <label>Placeholder</label>
                                         <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.placeholder" placeholder="Placeholder text">
                                     </div>
-                                    <div class="form-group">
+                                    <div class="form-group" x-show="form.steps[selectedStep].elements[selectedElement].element_type !== 'separator' && form.steps[selectedStep].elements[selectedElement].element_type !== 'text_info'">
                                         <label>
                                             <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].config.required">
                                             Required
@@ -1098,10 +1129,10 @@
                     project: ''
                 },
                 shareData: {
-                    url: '{{ request.build_absolute_uri }}'.replace('/edit/', '/'),
+                    url: `${window.location.origin}/modules/form/published/{{ template.id }}/`,
                     password: '{{ template.access_password }}',
-                    customer: '{{ template.customer.code|default:"" }}',
-                    project: '{{ template.project_name }}'
+                    customer: '{% if template.customer %}{{ template.customer.first_name }} {{ template.customer.last_name }} ({{ template.customer.code }}){% else %}Non assegnato{% endif %}',
+                    project: '{{ template.project_name|default:"—" }}'
                 },
 
                 init() {
@@ -1133,6 +1164,7 @@
                         date_field: 'bi-calendar',
                         text_info: 'bi-info-circle',
                         separator: 'bi-dash',
+                        doc_upload: 'bi-file-earmark-arrow-up',
                         document: 'bi-file-earmark'
                     };
                     return iconMap[element.element_type] || iconMap[element.type] || 'bi-question-circle';
@@ -1292,17 +1324,37 @@
 
                     // If dragging from palette (elementType set)
                     if (elementType) {
-                        const newElement = {
-                            id: 'elem-' + Date.now(),
-                            type: 'element',
-                            element_type: elementType,
-                            order: this.form.steps[stepIndex].elements.length,
-                            config: {
-                                label: elementType.replace('_', ' ').toUpperCase(),
-                                placeholder: '',
-                                required: false
-                            }
-                        };
+                        let newElement;
+                        if (elementType === 'doc_upload') {
+                            newElement = {
+                                id: 'doc-' + Date.now(),
+                                type: 'document',
+                                name: 'Nuovo Documento',
+                                description: '',
+                                required: true,
+                                allowed_extensions: 'pdf,docx',
+                                mime_types: 'application/pdf,application/msword',
+                                max_file_size: 10485760,
+                                max_files: 1,
+                                destination_subfolder: '',
+                                order: this.form.steps[stepIndex].elements.length,
+                                awareness_text: '',
+                                awareness_required_when_empty: false
+                            };
+                        } else {
+                            newElement = {
+                                id: 'elem-' + Date.now(),
+                                type: 'element',
+                                element_type: elementType,
+                                order: this.form.steps[stepIndex].elements.length,
+                                config: {
+                                    label: elementType.replace('_', ' ').toUpperCase(),
+                                    placeholder: '',
+                                    text: '',
+                                    required: false
+                                }
+                            };
+                        }
                         this.form.steps[stepIndex].elements.push(newElement);
                         this.selectElement(stepIndex, this.form.steps[stepIndex].elements.length - 1);
                     }
@@ -1375,6 +1427,13 @@
                                 project: project
                             };
 
+                            this.shareData = {
+                                url: pubUrl,
+                                password: password,
+                                customer: customer,
+                                project: project
+                            };
+
                             this.showPublishModal = true;
                             this.publishLink = pubUrl;
                         } else {
@@ -1390,6 +1449,7 @@
                 },
 
                 showShareModal() {
+                    this.shareData.url = `${window.location.origin}/modules/form/published/{{ template.id }}/`;
                     this.showShareModal_ = true;
                 },
 

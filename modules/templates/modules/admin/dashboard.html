@@ -19,12 +19,15 @@
         </div>
     </div>
     <div class="col-md-3 mb-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <h6 class="card-title">Clienti Attivi</h6>
-                <h2>{{ customers_count }}</h2>
+        <a href="{% url 'customer_list' %}" style="text-decoration: none; color: inherit;">
+            <div class="card text-center h-100" style="transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Clienti Attivi</h6>
+                    <h2 class="text-primary">{{ customers_count }}</h2>
+                    <small class="text-muted"><i class="bi bi-arrow-right"></i> Gestisci</small>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     <div class="col-md-3 mb-4">
         <div class="card text-center">
@@ -73,8 +76,9 @@
 </div>
 
 <div class="row mt-4">
-    <div class="col-12">
-        <a href="{% url 'form_template_create' %}" class="btn btn-primary">+ Nuovo Modulo</a>
+    <div class="col-12 d-flex gap-2 flex-wrap">
+        <a href="{% url 'builder_create' %}" class="btn btn-primary">+ Nuovo Modulo</a>
+        <a href="{% url 'customer_list' %}" class="btn btn-outline-primary">👥 Gestione Clienti</a>
         <a href="{% url 'customer_create' %}" class="btn btn-secondary">+ Nuovo Cliente</a>
         <a href="{% url 'assign_form_to_customer' %}" class="btn btn-success">📋 Assegna Modulo</a>
     </div>

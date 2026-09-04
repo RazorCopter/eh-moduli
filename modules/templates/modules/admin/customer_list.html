@@ -1,41 +1,597 @@
 {% extends "accounts/base.html" %}
 
-{% block title %}Clienti - Admin{% endblock %}
+{% block title %}Gestione Clienti - Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .customer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .customer-title-block h1 {
+        font-size: 1.85rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        margin: 0;
+    }
+    .customer-title-block p {
+        color: #7A7A7A;
+        font-size: 0.95rem;
+        margin: 0.25rem 0 0 0;
+    }
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+    }
+    .btn-new-cust {
+        background: linear-gradient(135deg, #E89BA7, #E0849B);
+        color: white;
+        border: none;
+        padding: 0.65rem 1.4rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(232, 155, 167, 0.25);
+    }
+    .btn-new-cust:hover {
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(232, 155, 167, 0.35);
+    }
+    .btn-outline-custom {
+        background: white;
+        color: #4A4A4A;
+        border: 1px solid #D8D8D8;
+        padding: 0.65rem 1.2rem;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.95rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s ease;
+    }
+    .btn-outline-custom:hover {
+        background: #F8F9FA;
+        color: #2C2C2C;
+        border-color: #B0B0B0;
+    }
+
+    /* Stats bar */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    .stat-chip {
+        background: white;
+        border: 1px solid #EAE6E1;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .stat-chip-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        background: #FDF4F5;
+        color: #E0849B;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+    }
+    .stat-chip-content h4 {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #2C2C2C;
+    }
+    .stat-chip-content span {
+        font-size: 0.85rem;
+        color: #8C8C8C;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Table Container */
+    .table-card {
+        background: white;
+        border: 1px solid #EAE6E1;
+        border-radius: 14px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.04);
+        overflow: hidden;
+    }
+    .table-toolbar {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #F0ECE8;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    .search-box {
+        position: relative;
+        min-width: 280px;
+        max-width: 400px;
+        flex: 1;
+    }
+    .search-box i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9E9E9E;
+    }
+    .search-box input {
+        width: 100%;
+        padding: 0.6rem 1rem 0.6rem 2.4rem;
+        border: 1px solid #E0DCD7;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .search-box input:focus {
+        border-color: #E89BA7;
+        box-shadow: 0 0 0 3px rgba(232, 155, 167, 0.15);
+    }
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+    .custom-table th {
+        background: #FAF8F6;
+        color: #5C5C5C;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #EAE6E1;
+    }
+    .custom-table td {
+        padding: 1.1rem 1.25rem;
+        border-bottom: 1px solid #F3EFEA;
+        font-size: 0.95rem;
+        color: #333333;
+        vertical-align: middle;
+    }
+    .custom-table tr:hover {
+        background: #FDFCFB;
+    }
+    .client-code {
+        font-family: monospace;
+        background: #F0EDE8;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #4A4A4A;
+    }
+    .nas-badge {
+        font-family: monospace;
+        background: #EDF4FB;
+        color: #1A5276;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .badge-status-active {
+        background: #E8F5E9;
+        color: #2E7D32;
+        font-size: 0.8rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: 600;
+        display: inline-block;
+    }
+    .badge-status-inactive {
+        background: #FFEBEE;
+        color: #C62828;
+        font-size: 0.8rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: 600;
+        display: inline-block;
+    }
+    .btn-action-delete {
+        background: #FFF0F2;
+        color: #D32F2F;
+        border: 1px solid #FFCDD2;
+        padding: 0.45rem 0.85rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: all 0.2s ease;
+    }
+    .btn-action-delete:hover {
+        background: #D32F2F;
+        color: white;
+        border-color: #D32F2F;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(211, 47, 47, 0.25);
+    }
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #8C8C8C;
+    }
+    .empty-state i {
+        font-size: 3rem;
+        color: #D4CDC5;
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    /* Delete Confirmation Modal */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+    .modal-overlay.active {
+        display: flex;
+    }
+    .modal-card {
+        background: white;
+        border-radius: 16px;
+        max-width: 520px;
+        width: 100%;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        overflow: hidden;
+        animation: modalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalIn {
+        from { opacity: 0; transform: scale(0.94) translateY(10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-header-delete {
+        background: #FFF5F6;
+        border-bottom: 1px solid #FFE0E3;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .modal-icon-danger {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #FFEBEE;
+        color: #D32F2F;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+    .modal-header-delete h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #B71C1C;
+    }
+    .modal-body {
+        padding: 1.5rem;
+        color: #3C3C3C;
+        font-size: 0.95rem;
+        line-height: 1.55;
+    }
+    .nas-notice-box {
+        background: #F0F7FF;
+        border: 1px solid #CFE2FF;
+        border-left: 4px solid #0D6EFD;
+        border-radius: 8px;
+        padding: 1rem 1.1rem;
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        color: #084298;
+    }
+    .nas-notice-box strong {
+        color: #052C65;
+    }
+    .modal-footer {
+        padding: 1.25rem 1.5rem;
+        background: #FAF9F8;
+        border-top: 1px solid #EAE6E1;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+    }
+    .btn-modal-cancel {
+        background: white;
+        color: #4A4A4A;
+        border: 1px solid #D0CBC4;
+        padding: 0.6rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+    .btn-modal-cancel:hover {
+        background: #EFECE8;
+    }
+    .btn-modal-confirm-delete {
+        background: #D32F2F;
+        color: white;
+        border: none;
+        padding: 0.6rem 1.35rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s;
+        box-shadow: 0 2px 6px rgba(211, 47, 47, 0.3);
+    }
+    .btn-modal-confirm-delete:hover {
+        background: #B71C1C;
+        box-shadow: 0 4px 12px rgba(211, 47, 47, 0.4);
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h1>👥 Clienti</h1>
-        <a href="{% url 'customer_create' %}" class="btn btn-primary mt-3">+ Nuovo Cliente</a>
+<div class="customer-header">
+    <div class="customer-title-block">
+        <h1>👥 Gestione Clienti</h1>
+        <p>Anagrafica clienti e configurazione cartelle dedicate per la raccolta documentale</p>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'builder_list' %}" class="btn-outline-custom">
+            <i class="bi bi-folder2-open"></i> Moduli
+        </a>
+        <a href="{% url 'customer_create' %}" class="btn-new-cust">
+            <i class="bi bi-person-plus-fill"></i> Nuovo Cliente
+        </a>
     </div>
 </div>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Codice</th>
-            <th>Nome</th>
-            <th>Email</th>
-            <th>Assegnazioni</th>
-            <th>Stato</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for customer in customers %}
-        <tr>
-            <td>{{ customer.code }}</td>
-            <td>{{ customer.first_name }} {{ customer.last_name }}</td>
-            <td>{{ customer.email }}</td>
-            <td>{{ customer.assignments_count }}</td>
-            <td>
-                {% if customer.active %}
-                <span class="badge bg-success">Attivo</span>
-                {% else %}
-                <span class="badge bg-danger">Inattivo</span>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<!-- Stats Row -->
+<div class="stats-row">
+    <div class="stat-chip">
+        <div class="stat-chip-icon">
+            <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-chip-content">
+            <h4>{{ customers|length }}</h4>
+            <span>Totale Clienti</span>
+        </div>
+    </div>
+    <div class="stat-chip">
+        <div class="stat-chip-icon" style="background: #E8F5E9; color: #2E7D32;">
+            <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <div class="stat-chip-content">
+            <h4>{{ customers|length }}</h4>
+            <span>Configurati</span>
+        </div>
+    </div>
+    <div class="stat-chip">
+        <div class="stat-chip-icon" style="background: #EDE7F6; color: #5E35B1;">
+            <i class="bi bi-hdd-network-fill"></i>
+        </div>
+        <div class="stat-chip-content">
+            <h4>NAS</h4>
+            <span>Archiviazione Attiva</span>
+        </div>
+    </div>
+</div>
+
+<!-- Table Card -->
+<div class="table-card">
+    <div class="table-toolbar">
+        <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" id="customerSearch" placeholder="Cerca per codice, nome, email o cartella NAS..." onkeyup="filterCustomers()">
+        </div>
+        <div style="font-size: 0.9rem; color: #7A7A7A;">
+            Mostrati <strong id="visibleCount">{{ customers|length }}</strong> clienti
+        </div>
+    </div>
+
+    {% if customers %}
+    <div style="overflow-x: auto;">
+        <table class="custom-table" id="customersTable">
+            <thead>
+                <tr>
+                    <th>Codice</th>
+                    <th>Cliente</th>
+                    <th>Email</th>
+                    <th>Cartella NAS</th>
+                    <th>Assegnazioni</th>
+                    <th>Stato</th>
+                    <th style="text-align: right;">Azioni</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr class="customer-row" data-search="{{ customer.code }} {{ customer.first_name }} {{ customer.last_name }} {{ customer.email }} {{ customer.nas_folder_name }}">
+                    <td>
+                        <span class="client-code">{{ customer.code }}</span>
+                    </td>
+                    <td>
+                        <div style="font-weight: 600; color: #2C2C2C;">
+                            {{ customer.first_name }} {{ customer.last_name }}
+                        </div>
+                        {% if customer.phone %}
+                        <small style="color: #8C8C8C;"><i class="bi bi-telephone"></i> {{ customer.phone }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="mailto:{{ customer.email }}" style="color: #555; text-decoration: none;">
+                            <i class="bi bi-envelope text-muted"></i> {{ customer.email }}
+                        </a>
+                    </td>
+                    <td>
+                        <span class="nas-badge" title="Percorso cartella sul NAS">
+                            <i class="bi bi-folder-fill"></i> {{ customer.nas_folder_name }}
+                        </span>
+                    </td>
+                    <td>
+                        <span style="font-weight: 600; color: #4A4A4A;">
+                            {{ customer.assignments_count }}
+                        </span>
+                        <small style="color: #999;">moduli</small>
+                    </td>
+                    <td>
+                        {% if customer.active %}
+                        <span class="badge-status-active"><i class="bi bi-dot"></i> Attivo</span>
+                        {% else %}
+                        <span class="badge-status-inactive"><i class="bi bi-dot"></i> Inattivo</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <button type="button" 
+                                class="btn-action-delete"
+                                onclick="openDeleteModal('{{ customer.id }}', '{{ customer.first_name|escapejs }} {{ customer.last_name|escapejs }}', '{{ customer.code|escapejs }}', '{{ customer.nas_folder_name|escapejs }}')">
+                            <i class="bi bi-trash3"></i> Elimina
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-people"></i>
+        <h3>Nessun cliente presente</h3>
+        <p>Non hai ancora registrato nessun cliente. Creane uno nuovo per iniziare.</p>
+        <a href="{% url 'customer_create' %}" class="btn-new-cust mt-3">
+            <i class="bi bi-plus-lg"></i> Crea Nuovo Cliente
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal Conferma Eliminazione -->
+<div class="modal-overlay" id="deleteModal" onclick="handleOverlayClick(event)">
+    <div class="modal-card">
+        <div class="modal-header-delete">
+            <div class="modal-icon-danger">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+            </div>
+            <div>
+                <h3>Elimina Cliente dal Database</h3>
+                <small style="color: #8C8C8C;">Conferma operazione di cancellazione</small>
+            </div>
+        </div>
+        <div class="modal-body">
+            <p style="margin-top: 0;">
+                Sei sicuro di voler eliminare il cliente <strong id="modalCustName"></strong> (<code id="modalCustCode"></code>)?
+            </p>
+
+            <div class="nas-notice-box">
+                <div style="font-weight: 600; margin-bottom: 0.35rem;">
+                    <i class="bi bi-shield-check"></i> Preservazione File e Cartelle NAS
+                </div>
+                <div>
+                    La cancellazione rimuove <strong>esclusivamente l'anagrafica dal database</strong>. 
+                    La cartella sul NAS <code id="modalCustNas" style="background: rgba(13,110,253,0.1); padding: 2px 6px; border-radius: 4px;"></code> 
+                    e tutti i file/sottocartelle già archiviati <strong>rimarranno intatti sul file system</strong>.
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-modal-cancel" onclick="closeDeleteModal()">Annulla</button>
+            <form id="deleteForm" method="POST" action="" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn-modal-confirm-delete">
+                    <i class="bi bi-trash3-fill"></i> Sì, Elimina dal Database
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterCustomers() {
+    const input = document.getElementById('customerSearch');
+    const filter = input.value.toLowerCase();
+    const rows = document.querySelectorAll('.customer-row');
+    let visible = 0;
+
+    rows.forEach(row => {
+        const text = row.getAttribute('data-search').toLowerCase();
+        if (text.includes(filter)) {
+            row.style.display = '';
+            visible++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    const countElem = document.getElementById('visibleCount');
+    if (countElem) {
+        countElem.textContent = visible;
+    }
+}
+
+function openDeleteModal(customerId, customerName, customerCode, nasFolderName) {
+    document.getElementById('modalCustName').textContent = customerName.trim() || customerCode;
+    document.getElementById('modalCustCode').textContent = customerCode;
+    document.getElementById('modalCustNas').textContent = '/' + nasFolderName + '/';
+    
+    // Set form action dynamically
+    const form = document.getElementById('deleteForm');
+    form.action = `/modules/admin/customers/${customerId}/delete/`;
+
+    document.getElementById('deleteModal').classList.add('active');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('active');
+}
+
+function handleOverlayClick(event) {
+    if (event.target === document.getElementById('deleteModal')) {
+        closeDeleteModal();
+    }
+}
+
+// Close on Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeDeleteModal();
+    }
+});
+</script>
 {% endblock %}

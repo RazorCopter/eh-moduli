@@ -136,9 +136,11 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
 
 # WhiteNoise: serve static files directly from Gunicorn (no Nginx needed)
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+WHITENOISE_MANIFEST_STRICT = False  # Prevents 500 crashes if a static file is not in the manifest
 
 # Media files
 MEDIA_URL = '/media/'
@@ -211,6 +213,7 @@ is_production = ENVIRONMENT == 'production'
 SESSION_COOKIE_SECURE = is_production and os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 365  # 1 year - keeps public form access alive
 
 CSRF_COOKIE_SECURE = is_production and os.getenv('CSRF_COOKIE_SECURE', 'False').lower() == 'true'
 CSRF_COOKIE_HTTPONLY = True  # CSRF protection shouldn't need to be accessed by JavaScript

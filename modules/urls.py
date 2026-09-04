@@ -15,6 +15,7 @@ urlpatterns = [
     path('admin/builder/<uuid:pk>/preview/', views.builder_preview, name='builder_preview'),
     path('admin/customers/', views.customer_list, name='customer_list'),
     path('admin/customers/create/', views.customer_create, name='customer_create'),
+    path('admin/customers/<uuid:pk>/delete/', views.customer_delete, name='customer_delete'),
     path('admin/assign-form/', views.assign_form_to_customer, name='assign_form_to_customer'),
     path('admin/assignments/<uuid:pk>/', views.assignment_detail, name='assignment_detail'),
 
@@ -28,11 +29,13 @@ urlpatterns = [
     path('api/v1/forms/<uuid:form_id>/duplicate/', forms_api.api_form_duplicate, name='api_form_duplicate'),
     path('api/v1/forms/<uuid:form_id>/delete/', forms_api.api_form_delete, name='api_form_delete'),
     path('api/v1/customers/create/', forms_api.api_customer_create, name='api_customer_create'),
+    path('api/v1/customers/<uuid:customer_id>/delete/', forms_api.api_customer_delete, name='api_customer_delete'),
 
     # Public form views
     path('form/published/<uuid:form_id>/', views.published_form_access, name='published_form_access'),
     path('form/published/<uuid:form_id>/submit/', views.published_form_submit, name='published_form_submit'),
     path('form/published/<uuid:form_id>/upload/', views.published_form_upload, name='published_form_upload'),
+    path('form/published/<uuid:form_id>/receipt/', views.published_form_receipt, name='published_form_receipt'),
     path('form/success/', views.form_success_view, name='form_success_view'),
     path('form/<str:token>/', views.get_form_by_token, name='get_form_by_token'),
     path('form/<uuid:assignment_id>/step/<int:step_order>/', views.form_step_view, name='form_step_view'),
