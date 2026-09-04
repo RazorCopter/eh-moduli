@@ -422,10 +422,17 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    {% block navbar %}
     <!-- Standard Universal Navigation Header -->
     <nav class="navbar">
         <div class="navbar-container">
             <div class="navbar-left">
+                {% if is_public_form %}
+                <div class="navbar-brand" style="cursor: default;">
+                    <img src="{% static 'images/Etichub_Logo_V2_Verticale_Color.svg' %}" alt="EticHUB" class="navbar-logo">
+                    <span class="navbar-brand-badge" style="background: rgba(45, 138, 78, 0.1); color: #2D8A4E; border-color: rgba(45, 138, 78, 0.2);">Raccolta Documenti</span>
+                </div>
+                {% else %}
                 <!-- Click on logo directs to Dashboard -->
                 <a href="{% url 'admin_dashboard' %}" class="navbar-brand" title="Vai alla Dashboard">
                     <img src="{% static 'images/Etichub_Logo_V2_Verticale_Color.svg' %}" alt="EticHUB" class="navbar-logo">
@@ -458,18 +465,22 @@
                         </li>
                     {% endif %}
                 </ul>
+                {% endif %}
             </div>
 
             <div class="navbar-user">
-                {% if user.is_authenticated %}
-                    <span class="navbar-username">{{ user.username }}</span>
-                    <a href="{% url 'logout' %}" class="btn-logout-pill">Logout</a>
-                {% else %}
-                    <a href="{% url 'login' %}" class="btn btn-sm btn-primary" style="border-radius: 20px; padding: 5px 18px;">Login</a>
+                {% if not is_public_form %}
+                    {% if user.is_authenticated %}
+                        <span class="navbar-username">{{ user.username }}</span>
+                        <a href="{% url 'logout' %}" class="btn-logout-pill">Logout</a>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="btn btn-sm btn-primary" style="border-radius: 20px; padding: 5px 18px;">Login</a>
+                    {% endif %}
                 {% endif %}
             </div>
         </div>
     </nav>
+    {% endblock %}
 
     <!-- Main Content -->
     <div class="main-container">

@@ -1,27 +1,58 @@
 {% extends "accounts/base.html" %}
+{% load static %}
 
-{% block title %}{{ form_template.name }}{% endblock %}
+{% block title %}{{ form_template.name }} — EticHUB{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card mt-5">
-            <div class="card-body p-5">
-                <h1>{{ form_template.name }}</h1>
-
-                <div class="alert alert-info mt-4">
-                    {{ form_template.intro_text|safe }}
+    <div class="col-lg-8 col-xl-7">
+        <div class="card border-0 shadow-sm mt-3 mb-5" style="border-radius: 16px; overflow: hidden;">
+            <div style="height: 6px; background: linear-gradient(90deg, #E8847D 0%, #2D8A4E 100%);"></div>
+            <div class="card-body p-4 p-md-5">
+                
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <span class="badge" style="background: rgba(45, 138, 78, 0.12); color: #2D8A4E; font-size: 0.85rem; padding: 6px 14px; border-radius: 20px; font-weight: 600;">
+                        <i class="bi bi-file-earmark-check me-1"></i> Raccolta Documenti
+                    </span>
+                    {% if assignment.customer %}
+                    <span class="text-muted small">
+                        Destinatario: <strong class="text-dark">{{ assignment.customer.first_name }} {{ assignment.customer.last_name }}</strong>
+                        {% if project_name %} · <span>{{ project_name }}</span>{% endif %}
+                    </span>
+                    {% endif %}
                 </div>
 
-                {% if form_template.privacy_text %}
-                <div class="alert alert-light border">
-                    <small>{{ form_template.privacy_text|safe }}</small>
+                <h1 class="h2 fw-bold text-dark mb-4">{{ form_template.name }}</h1>
+
+                {% if form_template.intro_text %}
+                <div class="alert alert-info border-0 rounded-3 p-3 mb-4" style="background-color: #f0f7ff; color: #0c4a6e;">
+                    <div class="d-flex gap-3">
+                        <i class="bi bi-info-circle-fill fs-5 text-primary flex-shrink-0 mt-1"></i>
+                        <div style="white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6;">{{ form_template.intro_text|safe }}</div>
+                    </div>
                 </div>
                 {% endif %}
 
-                <div class="mt-5">
-                    <a href="{% url 'form_step_view' assignment.id 1 %}" class="btn btn-primary btn-lg">Inizia</a>
+                {% if form_template.privacy_text %}
+                <div class="card bg-light border-0 rounded-3 p-3 mb-4">
+                    <div class="d-flex gap-2 mb-2">
+                        <i class="bi bi-shield-lock text-secondary"></i>
+                        <span class="small fw-semibold text-secondary text-uppercase tracking-wider">Informativa Privacy e Trattamento Dati</span>
+                    </div>
+                    <div class="text-muted small" style="white-space: pre-wrap; line-height: 1.5;">{{ form_template.privacy_text|safe }}</div>
                 </div>
+                {% endif %}
+
+                <div class="mt-4 pt-2 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <a href="{% url 'form_step_view' assignment.id first_step_order %}" class="btn btn-primary btn-lg px-4 py-2" style="border-radius: 10px; font-weight: 600; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);">
+                        Inizia la Compilazione <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+
+                    <div class="small text-muted d-flex align-items-center gap-1">
+                        <i class="bi bi-lock-fill text-success"></i> Connessione Protetta & Cifrata
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>

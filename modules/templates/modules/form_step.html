@@ -1,188 +1,253 @@
 {% extends "accounts/base.html" %}
+{% load static %}
+{% load modules_tags %}
 
-{% block title %}{{ step.title }} - Modulo{% endblock %}
+{% block title %}{{ step.title }} — {{ assignment.form_template.name }}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card mt-5">
-            <div class="card-body p-5">
-                <div class="progress mb-4" style="height: 20px;">
-                    <div class="progress-bar" style="width: {{ step.order|multiply:100|divide:step_count }}%"></div>
+    <div class="col-lg-8 col-xl-7">
+        
+        <!-- Stepper / Progress Bar -->
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="small fw-semibold text-muted text-uppercase tracking-wider">
+                    Passaggio {{ current_index }} di {{ step_count }}
+                </span>
+                <span class="small fw-bold text-primary">{{ progress_pct }}% Completato</span>
+            </div>
+            <div class="progress" style="height: 8px; border-radius: 4px; background-color: #E2E8F0;">
+                <div class="progress-bar" role="progressbar" style="width: {{ progress_pct }}%; background: linear-gradient(90deg, #E8847D 0%, #2D8A4E 100%); border-radius: 4px; transition: width 0.4s ease;" aria-valuenow="{{ progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-5" style="border-radius: 16px; overflow: hidden;">
+            <div class="card-body p-4 p-md-5">
+
+                <!-- Step Title & Description -->
+                <div class="mb-4 pb-3 border-bottom">
+                    <h2 class="h3 fw-bold text-dark mb-2">{{ step.title }}</h2>
+                    {% if step.description %}
+                    <p class="text-secondary mb-0" style="font-size: 0.95rem; line-height: 1.6;">{{ step.description|safe }}</p>
+                    {% endif %}
                 </div>
 
-                <h2>{{ step.title }}</h2>
-                <p class="text-muted">Step {{ step.order }} di {{ step_count }}</p>
+                <!-- Form Elements (Info, separators, text fields, etc.) -->
+                {% for element in step.formelement_set.all %}
+                <div class="mb-4">
+                    {% if element.element_type == 'text_info' %}
+                    <div class="alert alert-info border-0 rounded-3 p-3" style="background-color: #f0f7ff; color: #0c4a6e;">
+                        <div class="d-flex gap-2">
+                            <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+                            <div>{{ element.config.text|default:element.config.label|default:"Informazione" }}</div>
+                        </div>
+                    </div>
 
-                {% if step.description %}
-                <div class="mt-3 p-3 bg-light rounded">
-                    {{ step.description|safe }}
+                    {% elif element.element_type == 'separator' %}
+                    <hr class="my-4" style="border-top: 1px dashed #CBD5E1;">
+
+                    {% elif element.element_type == 'text_field' %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">
+                            {{ element.config.label|default:"Campo di Testo" }}
+                            {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
+                        </label>
+                        <input type="text" class="form-control form-control-lg fs-6" placeholder="{{ element.config.placeholder|default:'' }}" {% if element.config.required %}required{% endif %}>
+                    </div>
+
+                    {% elif element.element_type == 'email_field' %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">
+                            {{ element.config.label|default:"Email" }}
+                            {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
+                        </label>
+                        <input type="email" class="form-control form-control-lg fs-6" placeholder="{{ element.config.placeholder|default:'nome@esempio.it' }}" {% if element.config.required %}required{% endif %}>
+                    </div>
+
+                    {% elif element.element_type == 'phone_field' %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">
+                            {{ element.config.label|default:"Telefono" }}
+                            {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
+                        </label>
+                        <input type="tel" class="form-control form-control-lg fs-6" placeholder="{{ element.config.placeholder|default:'+39 ...' }}" {% if element.config.required %}required{% endif %}>
+                    </div>
+
+                    {% elif element.element_type == 'date_field' %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">
+                            {{ element.config.label|default:"Data" }}
+                            {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
+                        </label>
+                        <input type="date" class="form-control form-control-lg fs-6" {% if element.config.required %}required{% endif %}>
+                    </div>
+
+                    {% elif element.element_type == 'awareness_declaration' %}
+                    <div class="p-3 rounded-3 mb-3 border bg-light">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="aware-{{ element.id }}" {% if element.config.required %}required{% endif %}>
+                            <label class="form-check-label fw-semibold text-dark" for="aware-{{ element.id }}">
+                                {{ element.config.text|default:"Dichiaro di aver preso visione e di accettare" }}
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                <!-- Document Requirements Section -->
+                {% if requirements %}
+                <div class="mt-4 mb-4">
+                    <h5 class="fw-bold text-dark mb-3">Documenti Richiesti in questo Passaggio</h5>
+
+                    {% for req in requirements %}
+                    <div class="card mb-3 border border-light-subtle shadow-none rounded-3" style="background-color: #FBFBFC;">
+                        <div class="card-body p-3 p-md-4">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <div>
+                                    <h6 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                                        <i class="bi bi-file-earmark-arrow-up text-primary"></i>
+                                        {{ req.name }}
+                                    </h6>
+                                    {% if req.description %}
+                                    <p class="text-muted small mb-0">{{ req.description }}</p>
+                                    {% endif %}
+                                </div>
+                                {% if req.required %}
+                                <span class="badge" style="background: rgba(220, 53, 69, 0.1); color: #dc3545; font-weight: 600;">Obbligatorio</span>
+                                {% else %}
+                                <span class="badge" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; font-weight: 500;">Facoltativo</span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Upload Box -->
+                            <div class="mt-3">
+                                <div class="upload-dropzone p-3 border border-2 rounded-3 text-center" id="dropzone-{{ req.id }}" style="border-style: dashed !important; border-color: #CBD5E1; background: #FFFFFF; cursor: pointer; transition: all 0.2s;" onclick="document.getElementById('file-{{ req.id }}').click()">
+                                    <input type="file" class="d-none" id="file-{{ req.id }}" accept="{{ req.mime_types|default:'*/*' }}" onchange="handleFileUpload('{{ req.id }}', this)">
+                                    <i class="bi bi-cloud-arrow-up fs-3 text-secondary mb-1 d-block"></i>
+                                    <span class="small fw-semibold text-dark">Clicca qui o trascina il file</span>
+                                    <div class="text-muted" style="font-size: 0.75rem;">Formati ammessi: {{ req.allowed_extensions|default:'pdf, docx, jpg, png' }} (max 10MB)</div>
+                                </div>
+
+                                <!-- Feedback Area -->
+                                <div id="uploads-{{ req.id }}" class="mt-2">
+                                    {% with upload=existing_uploads|get_item:req.id %}
+                                    {% if upload %}
+                                    <div class="alert alert-success py-2 px-3 mb-0 d-flex align-items-center justify-content-between rounded-3">
+                                        <span class="small"><i class="bi bi-check-circle-fill text-success me-2"></i> <strong>{{ upload.original_filename }}</strong> (Già caricato)</span>
+                                        <span class="badge bg-success">Salvato</span>
+                                    </div>
+                                    {% endif %}
+                                    {% endwith %}
+                                </div>
+
+                                {% if not req.required %}
+                                <div class="text-end mt-2">
+                                    <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none p-0" onclick="skipDoc('{{ req.id }}')">
+                                        <i class="bi bi-slash-circle me-1"></i> Non ho questo documento
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
                 {% endif %}
 
-                <div class="mt-5">
-                    {% for element in step.formelement_set.all %}
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            {% if element.element_type == 'client_dropdown' %}
-                            <div class="mb-3">
-                                <label for="elem-{{ element.id }}" class="form-label">
-                                    {{ element.config.label|default:"Select Client" }}
-                                    {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
-                                </label>
-                                <select class="form-control" id="elem-{{ element.id }}" name="client_name"
-                                        {% if element.config.required %}required{% endif %}>
-                                    <option value="">{{ element.config.placeholder|default:"-- Choose Client --" }}</option>
-                                    {% for client in available_clients %}
-                                        <option value="{{ client }}">{{ client }}</option>
-                                    {% endfor %}
-                                    {% if element.config.allow_new %}
-                                        <option value="__new__">+ Create New Client</option>
-                                    {% endif %}
-                                </select>
-                            </div>
+                <!-- Navigation Controls -->
+                <div class="mt-5 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    {% if prev_step %}
+                        <a href="{% url 'form_step_view' assignment.id prev_step.order %}" class="btn btn-outline-secondary px-3 py-2 rounded-3">
+                            <i class="bi bi-arrow-left me-1"></i> Indietro
+                        </a>
+                    {% else %}
+                        <a href="{% url 'get_form_by_token' assignment.secure_token %}" class="btn btn-outline-secondary px-3 py-2 rounded-3">
+                            <i class="bi bi-arrow-left me-1"></i> Inizio
+                        </a>
+                    {% endif %}
 
-                            {% elif element.element_type == 'project_name_field' %}
-                            <div class="mb-3">
-                                <label for="elem-{{ element.id }}" class="form-label">
-                                    {{ element.config.label|default:"Project Name" }}
-                                    {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
-                                </label>
-                                <input type="text" class="form-control" id="elem-{{ element.id }}"
-                                       name="project_name"
-                                       placeholder="{{ element.config.placeholder|default:'Enter project name' }}"
-                                       {% if element.config.required %}required{% endif %}>
-                            </div>
-
-                            {% elif element.element_type == 'text_field' %}
-                            <div class="mb-3">
-                                <label for="elem-{{ element.id }}" class="form-label">
-                                    {{ element.config.label|default:"Text Input" }}
-                                    {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
-                                </label>
-                                <input type="text" class="form-control" id="elem-{{ element.id }}"
-                                       placeholder="{{ element.config.placeholder|default:'' }}"
-                                       {% if element.config.required %}required{% endif %}>
-                            </div>
-
-                            {% elif element.element_type == 'email_field' %}
-                            <div class="mb-3">
-                                <label for="elem-{{ element.id }}" class="form-label">
-                                    {{ element.config.label|default:"Email Address" }}
-                                    {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
-                                </label>
-                                <input type="email" class="form-control" id="elem-{{ element.id }}"
-                                       placeholder="{{ element.config.placeholder|default:'name@example.com' }}"
-                                       {% if element.config.required %}required{% endif %}>
-                            </div>
-
-                            {% elif element.element_type == 'phone_field' %}
-                            <div class="mb-3">
-                                <label for="elem-{{ element.id }}" class="form-label">
-                                    {{ element.config.label|default:"Phone Number" }}
-                                    {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
-                                </label>
-                                <input type="tel" class="form-control" id="elem-{{ element.id }}"
-                                       placeholder="{{ element.config.placeholder|default:'+39 0XX XXXX XXXX' }}"
-                                       {% if element.config.required %}required{% endif %}>
-                            </div>
-
-                            {% elif element.element_type == 'date_field' %}
-                            <div class="mb-3">
-                                <label for="elem-{{ element.id }}" class="form-label">
-                                    {{ element.config.label|default:"Date" }}
-                                    {% if element.config.required %}<span class="text-danger">*</span>{% endif %}
-                                </label>
-                                <input type="date" class="form-control" id="elem-{{ element.id }}"
-                                       {% if element.config.required %}required{% endif %}>
-                            </div>
-
-                            {% elif element.element_type == 'text_info' %}
-                            <div class="alert alert-info" role="alert">
-                                {{ element.config.text|default:"Information" }}
-                            </div>
-
-                            {% elif element.element_type == 'separator' %}
-                            <hr>
-
-                            {% elif element.element_type == 'awareness_declaration' %}
-                            <div class="alert alert-warning" role="alert">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="aware-{{ element.id }}"
-                                           {% if element.config.required %}required{% endif %}>
-                                    <label class="form-check-label" for="aware-{{ element.id }}">
-                                        {{ element.config.text|default:"I accept the terms" }}
-                                    </label>
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
-
-                    {% for req in requirements %}
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h5>{{ req.name }}</h5>
-                            {% if req.required %}
-                            <span class="badge bg-danger">Obbligatorio</span>
-                            {% else %}
-                            <span class="badge bg-warning">Facoltativo</span>
-                            {% endif %}
-                        </div>
-                        <div class="card-body">
-                            {% if req.description %}
-                            <p>{{ req.description }}</p>
-                            {% endif %}
-
-                            <div class="mb-3">
-                                <input type="file" class="form-control" id="file-{{ req.id }}"
-                                       hx-post="{% url 'upload_document_view' assignment.id %}"
-                                       hx-include="[name='requirement_id']"
-                                       hx-target="#uploads-{{ req.id }}"
-                                       accept="{{ req.mime_types|default:'*/*' }}">
-                                <input type="hidden" name="requirement_id" value="{{ req.id }}">
-                            </div>
-
-                            <div id="uploads-{{ req.id }}"></div>
-
-                            {% if not req.required %}
-                            <button class="btn btn-link text-muted"
-                                    hx-post="{% url 'skip_optional_document' assignment.id req.id %}"
-                                    hx-confirm="Sei sicuro di voler saltare questo documento?">
-                                ⊘ Salta documento
-                            </button>
-                            {% endif %}
-
-                            {% if not req.required and req.awareness_text and req.awareness_required_when_empty %}
-                            <div class="alert alert-info mt-3">
-                                <div class="form-check">
-                                    <input type="checkbox" class="form-check-input" id="aware-doc-{{ req.id }}" required>
-                                    <label class="form-check-label" for="aware-doc-{{ req.id }}">
-                                        {{ req.awareness_text }}
-                                    </label>
-                                </div>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endfor %}
+                    {% if next_step %}
+                        <a href="{% url 'form_step_view' assignment.id next_step.order %}" class="btn btn-primary px-4 py-2 rounded-3 fw-semibold">
+                            Avanti (Passaggio {{ current_index|add:1 }}) <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    {% else %}
+                        <a href="{% url 'form_summary_view' assignment.id %}" class="btn btn-success px-4 py-2 rounded-3 fw-semibold" style="box-shadow: 0 4px 12px rgba(25, 135, 84, 0.25);">
+                            Vai al Riepilogo e Invia <i class="bi bi-check2-circle ms-1"></i>
+                        </a>
+                    {% endif %}
                 </div>
 
-                <div class="mt-5">
-                    <a href="{% url 'form_summary_view' assignment.id %}" class="btn btn-primary">Avanti →</a>
-                </div>
             </div>
         </div>
+
     </div>
 </div>
 
 <script>
-function multiply(a, b) {
-    return parseInt(a) * parseInt(b);
+async function handleFileUpload(reqId, inputElement) {
+    const file = inputElement.files[0];
+    if (!file) return;
+
+    const targetDiv = document.getElementById('uploads-' + reqId);
+    targetDiv.innerHTML = '<div class="alert alert-info py-2 px-3 mb-0 d-flex align-items-center rounded-3"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> <span class="small">Caricamento sicuro di <strong>' + file.name + '</strong> in corso...</span></div>';
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('requirement_id', reqId);
+
+    try {
+        const response = await fetch("{% url 'upload_document_view' assignment.id %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        });
+
+        const data = await response.json();
+        if (response.ok && data.status === 'success') {
+            targetDiv.innerHTML = `
+                <div class="alert alert-success py-2 px-3 mb-0 d-flex align-items-center justify-content-between rounded-3">
+                    <span class="small"><i class="bi bi-check-circle-fill text-success me-2"></i> <strong>${data.filename}</strong> (${(data.size / 1024).toFixed(1)} KB)</span>
+                    <span class="badge bg-success">Caricato con successo</span>
+                </div>
+            `;
+        } else {
+            targetDiv.innerHTML = `
+                <div class="alert alert-danger py-2 px-3 mb-0 rounded-3 small">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Errore: ${data.error || (data.errors && data.errors.join(', ')) || 'Caricamento fallito'}
+                </div>
+            `;
+        }
+    } catch (err) {
+        targetDiv.innerHTML = `
+            <div class="alert alert-danger py-2 px-3 mb-0 rounded-3 small">
+                <i class="bi bi-wifi-off me-2"></i> Errore di rete: ${err.message}
+            </div>
+        `;
+    }
 }
-function divide(a, b) {
-    return parseInt(a) / parseInt(b);
+
+async function skipDoc(reqId) {
+    if (!confirm('Confermi di voler saltare questo documento facoltativo?')) return;
+    try {
+        const res = await fetch(`/modules/form/{{ assignment.id }}/skip-document/${reqId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        const data = await res.json();
+        const targetDiv = document.getElementById('uploads-' + reqId);
+        targetDiv.innerHTML = `
+            <div class="alert alert-secondary py-2 px-3 mb-0 rounded-3 small text-muted">
+                <i class="bi bi-slash-circle me-1"></i> Documento facoltativo non inserito.
+            </div>
+        `;
+    } catch (e) {
+        console.error('Error skipping document:', e);
+    }
 }
 </script>
 {% endblock %}

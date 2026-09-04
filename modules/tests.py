@@ -259,4 +259,98 @@ class DashboardAndNavigationTests(TestCase):
         self.assertIn('/volume1/Clienti/', content)
 
 
+class PublicAssignmentFlowTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin_user = User.objects.create_user(
+            username='admin_pub',
+            email='admin_pub@test.com',
+            password='password123',
+            role='admin',
+            is_staff=True
+        )
+        self.customer = Customer.objects.create(
+            code="CLIENT_01",
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario@rossi.it",
+            nas_folder_name="MARIO_ROSSI"
+        )
+        self.template = FormTemplate.objects.create(
+            name="Modulo Raccolta Fiscale",
+            intro_text="Benvenuto. Carica i tuoi documenti.",
+            privacy_text="Informativa trattamento dati personali.",
+            status="published",
+            version=1,
+            author=self.admin_user
+        )
+        # Create 2 steps
+        from .models import FormStep, DocumentRequirement
+        self.step1 = FormStep.objects.create(
+            form_template=self.template,
+            title="Dati Anagrafici",
+            description="Carica la carta d'identità",
+            order=0,
+            required=True
+        )
+        self.doc_req1 = DocumentRequirement.objects.create(
+            form_step=self.step1,
+            name="Carta Identità",
+            required=True,
+            order=0,
+            max_file_size=10485760,
+            destination_subfolder=''
+        )
+        self.step2 = FormStep.objects.create(
+            form_template=self.template,
+            title="Documenti Reddituali",
+            description="Carica il CUD o modello 730",
+            order=1,
+            required=True
+        )
+        from django.utils import timezone
+        self.assignment = FormAssignment.objects.create(
+            customer=self.customer,
+            form_template=self.template,
+            expiry_date=timezone.now() + timezone.timedelta(days=30),
+            operator=self.admin_user,
+            status='draft',
+            form_data={
+                'client_name': self.customer.nas_folder_name,
+                'project_name': 'Pratica2026'
+            }
+        )
+
+    def test_get_form_by_token_renders_public_page_without_admin_nav(self):
+        url = reverse('get_form_by_token', kwargs={'token': self.assignment.secure_token})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        self.assertIn('Modulo Raccolta Fiscale', content)
+        self.assertIn('Raccolta Documenti', content)
+        self.assertIn('Inizia la Compilazione', content)
+        # Verify admin navbar items are NOT shown
+        self.assertNotIn('href="/modules/admin/" class="navbar-link', content)
+
+    def test_form_step_view_step_1_renders_without_500_error(self):
+        # Accessing step 1 directly (as reported by user)
+        url = reverse('form_step_view', kwargs={'assignment_id': self.assignment.id, 'step_order': 1})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        self.assertIn('Documenti Reddituali', content)
+        self.assertIn('Passaggio 2 di 2', content)
+        self.assertIn('handleFileUpload', content)
+
+    def test_form_step_view_step_0_renders_without_500_error(self):
+        url = reverse('form_step_view', kwargs={'assignment_id': self.assignment.id, 'step_order': 0})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        self.assertIn('Dati Anagrafici', content)
+        self.assertIn('Carta Identità', content)
+        self.assertIn('Passaggio 1 di 2', content)
+
+
+
 

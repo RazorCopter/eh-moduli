@@ -100,10 +100,20 @@ def published_form_access(request, form_id):
 def form_success_view(request):
     """Show success message after form submission."""
     form_id = request.GET.get('form_id')
+    assignment_id = request.GET.get('assignment_id')
     customer_name = None
     project_name = None
 
-    if form_id:
+    if assignment_id:
+        try:
+            assignment = FormAssignment.objects.get(id=assignment_id)
+            form_id = str(assignment.form_template_id)
+            if assignment.customer:
+                customer_name = f"{assignment.customer.first_name} {assignment.customer.last_name}"
+            project_name = assignment.form_data.get('project_name', '')
+        except (FormAssignment.DoesNotExist, ValueError):
+            pass
+    elif form_id:
         try:
             form = FormTemplate.objects.get(id=form_id)
             if form.customer:
@@ -115,10 +125,13 @@ def form_success_view(request):
     context = {
         'timestamp': timezone.now().strftime('%d/%m/%Y %H:%M:%S'),
         'form_id': form_id,
+        'assignment_id': assignment_id,
         'customer': customer_name,
         'project': project_name,
+        'is_public_form': True,
     }
     return render(request, 'modules/form_success.html', context)
+
 
 
 @require_http_methods(["GET"])
@@ -155,17 +168,24 @@ def get_form_by_token(request, token):
         if assignment.is_expired():
             assignment.status = 'expired'
             assignment.save()
-            return render(request, 'modules/form_expired.html')
+            return render(request, 'modules/form_expired.html', {'is_public_form': True})
 
         if assignment.status == 'submitted':
-            return render(request, 'modules/form_already_submitted.html')
+            return render(request, 'modules/form_already_submitted.html', {'is_public_form': True})
 
         assignment.last_access_date = timezone.now()
         assignment.save()
 
+        steps = list(assignment.form_template.formstep_set.all().order_by('order'))
+        first_step_order = steps[0].order if steps else 0
+        project_name = assignment.form_data.get('project_name', '') if assignment.form_data else ''
+
         context = {
             'assignment': assignment,
             'form_template': assignment.form_template,
+            'first_step_order': first_step_order,
+            'project_name': project_name,
+            'is_public_form': True,
         }
 
         log_action(
@@ -181,7 +201,7 @@ def get_form_by_token(request, token):
         return render(request, 'modules/form_detail.html', context)
 
     except FormAssignment.DoesNotExist:
-        return render(request, 'modules/form_not_found.html', status=404)
+        return render(request, 'modules/form_not_found.html', {'is_public_form': True}, status=404)
 
 @require_http_methods(["GET", "POST"])
 def form_step_view(request, assignment_id, step_order):
@@ -190,83 +210,56 @@ def form_step_view(request, assignment_id, step_order):
     except FormAssignment.DoesNotExist:
         return JsonResponse({'error': 'Assignment not found'}, status=404)
 
-    try:
-        step = assignment.form_template.formstep_set.get(order=step_order)
-    except:
-        return JsonResponse({'error': 'Step not found'}, status=404)
+    steps = list(assignment.form_template.formstep_set.all().order_by('order'))
+    if not steps:
+        return render(request, 'modules/form_empty.html', {'assignment': assignment, 'is_public_form': True})
+
+    # Resilient step lookup: match order, fallback to index
+    step = next((s for s in steps if s.order == step_order), None)
+    if not step:
+        if 1 <= step_order <= len(steps):
+            step = steps[step_order - 1]
+        elif 0 <= step_order < len(steps):
+            step = steps[step_order]
+        else:
+            step = steps[0]
 
     requirements = step.documentrequirement_set.all().order_by('order')
 
     if request.method == 'POST':
-        # STEP 0: Handle client_name and project_name
-        if step_order == 0:
-            client_name = request.POST.get('client_name', '').strip()
-            project_name = request.POST.get('project_name', '').strip()
-
-            if not client_name or not project_name:
-                return JsonResponse({'error': 'Client and Project names are required'}, status=400)
-
-            # Save to form_data
-            assignment.form_data = {
-                'client_name': client_name,
-                'project_name': project_name,
-                'created_at': timezone.now().isoformat()
-            }
-            assignment.save()
-
-            # Create NAS folder structure: /storage/clienti/{client}/{project}/
-            try:
-                nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
-                nas_path = os.path.join(nas_base, client_name, project_name)
-                os.makedirs(nas_path, exist_ok=True)
-                log_action(
-                    request.user if request.user.is_authenticated else None,
-                    'create',
-                    'NASFolder',
-                    nas_path,
-                    {'client': client_name, 'project': project_name},
-                    ip=get_client_ip(request),
-                    user_agent=get_user_agent(request)
-                )
-            except Exception as e:
-                log_action(
-                    request.user if request.user.is_authenticated else None,
-                    'create',
-                    'NASFolder',
-                    nas_path,
-                    {'error': str(e)},
-                    ip=get_client_ip(request),
-                    user_agent=get_user_agent(request)
-                )
-
         assignment.last_completed_step = step
         assignment.status = 'in_progress'
         assignment.save()
         return JsonResponse({'status': 'ok'})
 
     # GET: Prepare context
+    current_index = steps.index(step) + 1
+    step_count = len(steps)
+    progress_pct = int((current_index / max(step_count, 1)) * 100)
+    prev_step = steps[current_index - 2] if current_index > 1 else None
+    next_step = steps[current_index] if current_index < step_count else None
+
+    # Load existing valid uploads for this assignment
+    existing_uploads = {}
+    for upload in assignment.documentupload_set.filter(status='valid'):
+        existing_uploads[str(upload.document_requirement_id)] = upload
+        existing_uploads[upload.document_requirement_id] = upload
+
     context = {
         'assignment': assignment,
         'step': step,
         'requirements': requirements,
-        'step_count': assignment.form_template.formstep_set.count(),
+        'step_count': step_count,
+        'current_index': current_index,
+        'progress_pct': progress_pct,
+        'prev_step': prev_step,
+        'next_step': next_step,
+        'existing_uploads': existing_uploads,
+        'is_public_form': True,
     }
 
-    # Fetch available clients from NAS folder
-    try:
-        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
-        if os.path.exists(nas_base):
-            available_clients = [d for d in os.listdir(nas_base)
-                                if os.path.isdir(os.path.join(nas_base, d)) and not d.startswith('.')]
-            available_clients.sort()
-        else:
-            available_clients = []
-    except:
-        available_clients = []
-
-    context['available_clients'] = available_clients
-
     return render(request, 'modules/form_step.html', context)
+
 
 @require_http_methods(["POST"])
 def published_form_upload(request, form_id):
@@ -595,6 +588,7 @@ def form_summary_view(request, assignment_id):
         'assignment': assignment,
         'uploads': uploads,
         'declarations': declarations,
+        'is_public_form': True,
     }
 
     return render(request, 'modules/form_summary.html', context)
@@ -608,7 +602,21 @@ def form_submission_view(request, assignment_id):
 
     assignment.status = 'submitted'
     assignment.submission_date = timezone.now()
+    assignment.completion_percentage = 100
     assignment.save()
+
+    # Generate official PDF receipt on submission
+    try:
+        from .report_generator import generate_form_receipt_pdf
+        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+        client_name = assignment.form_data.get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+        project_name = assignment.form_data.get('project_name') or ''
+        nas_project_path = os.path.join(nas_base, client_name, project_name)
+        os.makedirs(nas_project_path, exist_ok=True)
+        pdf_path = os.path.join(nas_project_path, 'Report_Ricezione_Documenti.pdf')
+        generate_form_receipt_pdf(assignment.form_template, assignment, pdf_path)
+    except Exception as e:
+        logger.warning(f"Could not generate PDF receipt on assignment submit: {e}")
 
     log_action(
         None,
@@ -620,7 +628,10 @@ def form_submission_view(request, assignment_id):
         user_agent=get_user_agent(request)
     )
 
-    return JsonResponse({'status': 'success', 'redirect': '/modules/form/success/'})
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+        return JsonResponse({'status': 'success', 'redirect': f'/modules/form/success/?assignment_id={assignment.id}'})
+    return redirect(f'/modules/form/success/?assignment_id={assignment.id}')
+
 
 
 @require_http_methods(["POST"])
