@@ -1032,18 +1032,17 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 
     <script>
         function builderApp() {
             return {
                 form: {
-                    id: '{{ template.id }}',
-                    name: '{{ template.name }}',
-                    description: '{{ template.description }}',
-                    intro_text: '{{ template.intro_text }}',
-                    privacy_text: '{{ template.privacy_text }}',
-                    status: '{{ template.status }}',
+                    id: '{{ template.id|escapejs }}',
+                    name: '{{ template.name|escapejs }}',
+                    description: '{{ template.description|escapejs }}',
+                    intro_text: '{{ template.intro_text|escapejs }}',
+                    privacy_text: '{{ template.privacy_text|escapejs }}',
+                    status: '{{ template.status|escapejs }}',
                     steps: []
                 },
                 selectedStep: null,
@@ -1051,7 +1050,7 @@
                 showElementModal: false,
                 currentStepForElement: null,
                 publishLink: null,
-                csrfToken: '{{ csrf_token }}',
+                csrfToken: '{{ csrf_token|escapejs }}',
                 showPublishModal: false,
                 showShareModal_: false,
                 publishData: {
@@ -1061,10 +1060,10 @@
                     project: ''
                 },
                 shareData: {
-                    url: `${window.location.origin}/modules/form/published/{{ template.id }}/`,
-                    password: '{{ template.access_password }}',
-                    customer: '{% if template.customer %}{{ template.customer.first_name }} {{ template.customer.last_name }} ({{ template.customer.code }}){% else %}Non assegnato{% endif %}',
-                    project: '{{ template.project_name|default:"—" }}'
+                    url: `${window.location.origin}/modules/form/published/{{ template.id|escapejs }}/`,
+                    password: '{{ template.access_password|escapejs }}',
+                    customer: '{% if template.customer %}{{ template.customer.first_name|escapejs }} {{ template.customer.last_name|escapejs }} ({{ template.customer.code|escapejs }}){% else %}Non assegnato{% endif %}',
+                    project: '{{ template.project_name|default:"—"|escapejs }}'
                 },
 
                 init() {
@@ -1074,7 +1073,7 @@
 
                 async loadForm() {
                     try {
-                        const response = await fetch(`/modules/api/v1/forms/{{ template.id }}/`);
+                        const response = await fetch(`/modules/api/v1/forms/{{ template.id|escapejs }}/`);
                         const result = await response.json();
                         if (result.success) {
                             this.form = result.data;
@@ -1316,7 +1315,7 @@
 
                 async save() {
                     try {
-                        const response = await fetch(`/modules/api/v1/forms/{{ template.id }}/save/`, {
+                        const response = await fetch(`/modules/api/v1/forms/{{ template.id|escapejs }}/save/`, {
                             method: 'PUT',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -1338,7 +1337,7 @@
                 async publish() {
                     if (!confirm('Pubblica questo modulo? Diventerà read-only e creerà la struttura delle cartelle NAS.')) return;
                     try {
-                        const response = await fetch(`/modules/api/v1/forms/{{ template.id }}/publish/`, {
+                        const response = await fetch(`/modules/api/v1/forms/{{ template.id|escapejs }}/publish/`, {
                             method: 'POST',
                             headers: {
                                 'X-CSRFToken': this.csrfToken
@@ -1381,7 +1380,7 @@
                 },
 
                 showShareModal() {
-                    this.shareData.url = `${window.location.origin}/modules/form/published/{{ template.id }}/`;
+                    this.shareData.url = `${window.location.origin}/modules/form/published/{{ template.id|escapejs }}/`;
                     this.showShareModal_ = true;
                 },
 
@@ -1389,7 +1388,7 @@
                     if (!confirm('⚠️ Ripristinare questo modulo in bozza?\n\nI clienti non potranno più accedere al link pubblico.\nPotrai modificare il modulo e ripubblicarlo in seguito.')) return;
 
                     try {
-                        const response = await fetch(`/modules/api/v1/forms/{{ template.id }}/revert-to-draft/`, {
+                        const response = await fetch(`/modules/api/v1/forms/{{ template.id|escapejs }}/revert-to-draft/`, {
                             method: 'POST',
                             headers: {
                                 'X-CSRFToken': this.csrfToken
@@ -1424,14 +1423,14 @@
                 },
 
                 preview() {
-                    window.open(`/modules/admin/builder/{{ template.id }}/preview/`, '_blank');
+                    window.open(`/modules/admin/builder/{{ template.id|escapejs }}/preview/`, '_blank');
                 },
 
                 async deleteForm() {
                     if (!confirm('⚠️ Sei sicuro di voler eliminare questo modulo? Questa azione non può essere annullata.\n\nVerranno eliminati anche:\n- Tutti gli step e gli elementi\n- Tutte le assegnazioni a clienti\n- Tutti i documenti caricati')) return;
 
                     try {
-                        const response = await fetch(`/modules/api/v1/forms/{{ template.id }}/delete/`, {
+                        const response = await fetch(`/modules/api/v1/forms/{{ template.id|escapejs }}/delete/`, {
                             method: 'DELETE',
                             headers: {
                                 'X-CSRFToken': this.csrfToken
@@ -1456,6 +1455,12 @@
                 }
             };
         }
+
+        window.builderApp = builderApp;
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('builderApp', builderApp);
+        });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </body>
 </html>
