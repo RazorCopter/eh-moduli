@@ -277,7 +277,12 @@
             Puoi scaricare la ricevuta ufficiale o chiudere questa finestra in sicurezza.
         </p>
 
-        {% if form_id %}
+        {% if assignment_id %}
+        <a href="{% url 'assignment_receipt' assignment_id %}" class="btn-receipt">
+            <i class="bi bi-file-earmark-pdf-fill"></i>
+            Scarica Ricevuta Ufficiale (PDF)
+        </a>
+        {% elif form_id %}
         <a href="{% url 'published_form_receipt' form_id %}" class="btn-receipt">
             <i class="bi bi-file-earmark-pdf-fill"></i>
             Scarica Ricevuta Ufficiale (PDF)

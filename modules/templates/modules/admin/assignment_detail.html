@@ -398,6 +398,11 @@
             <span class="info-label">Data Sottomissione</span>
             <span class="info-val text-success">{{ assignment.submission_date|date:"d/m/Y H:i" }}</span>
         </div>
+        <div class="mt-3">
+            <a href="{% url 'assignment_receipt' assignment.id %}" target="_blank" class="btn btn-sm btn-outline-success w-100" style="border-radius: 8px; font-weight: 600; padding: 6px 12px;">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Scarica Ricevuta Ufficiale (PDF)
+            </a>
+        </div>
         {% endif %}
     </div>
 </div>

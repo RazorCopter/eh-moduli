@@ -634,6 +634,68 @@ class PublicAssignmentFlowTests(TestCase):
         self.assertEqual(self.assignment.status, 'submitted')
         self.assertEqual(self.assignment.completion_percentage, 100)
 
+    def test_reopened_assignment_requests_password_and_downloads_receipt_without_forbidden(self):
+        """Reopening an assignment requires password on new link and allows downloading receipt without 403 error."""
+        # 1. Set password on assignment
+        self.assignment.form_data['access_password'] = 'SecretPass123'
+        self.assignment.save()
+
+        # Reopen practice
+        self.client.force_login(self.admin_user)
+        reopen_url = reverse('reopen_assignment', kwargs={'pk': self.assignment.id})
+        self.client.post(reopen_url)
+        self.assignment.refresh_from_db()
+        self.client.logout()
+
+        # 2. Accessing new token URL prompts for password
+        form_url = reverse('get_form_by_token', kwargs={'token': self.assignment.secure_token})
+        resp_prompt = self.client.get(form_url)
+        self.assertEqual(resp_prompt.status_code, 200)
+        self.assertTemplateUsed(resp_prompt, 'modules/form_password.html')
+
+        # 3. Entering wrong password fails
+        resp_wrong = self.client.post(form_url, {'password': 'wrong'})
+        self.assertEqual(resp_wrong.status_code, 200)
+        self.assertTemplateUsed(resp_wrong, 'modules/form_password.html')
+        self.assertContains(resp_wrong, 'Password errata')
+
+        # 4. Entering correct password succeeds and unlocks form
+        resp_ok = self.client.post(form_url, {'password': 'SecretPass123'})
+        self.assertEqual(resp_ok.status_code, 302)
+
+        # Following redirect to form_detail succeeds
+        resp_detail = self.client.get(form_url)
+        self.assertEqual(resp_detail.status_code, 200)
+        self.assertTemplateUsed(resp_detail, 'modules/form_detail.html')
+
+        # 5. Submit form
+        submit_url = reverse('form_submission_view', kwargs={'assignment_id': self.assignment.id})
+        resp_submit = self.client.post(submit_url)
+        self.assertEqual(resp_submit.status_code, 302)
+        self.assertIn('/modules/form/success/', resp_submit.url)
+
+        # Success page has receipt download link pointing to assignment_receipt
+        resp_success = self.client.get(resp_submit.url)
+        self.assertEqual(resp_success.status_code, 200)
+        receipt_url = reverse('assignment_receipt', kwargs={'assignment_id': self.assignment.id})
+        self.assertContains(resp_success, receipt_url)
+
+        # 6. Downloading receipt returns 200 PDF without 403 Forbidden
+        resp_receipt = self.client.get(receipt_url)
+        self.assertEqual(resp_receipt.status_code, 200)
+        self.assertEqual(resp_receipt['Content-Type'], 'application/pdf')
+
+        # 7. Anonymous user with no session gets 403 Forbidden
+        anon_client = Client()
+        resp_unauth = anon_client.get(receipt_url)
+        self.assertEqual(resp_unauth.status_code, 403)
+
+        # 8. Admin user can download directly even without client session
+        anon_client.force_login(self.admin_user)
+        resp_admin = anon_client.get(receipt_url)
+        self.assertEqual(resp_admin.status_code, 200)
+        self.assertEqual(resp_admin['Content-Type'], 'application/pdf')
+
 
 
 

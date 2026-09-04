@@ -147,8 +147,11 @@ def published_form_receipt(request, form_id):
     except (FormTemplate.DoesNotExist, ValueError):
         raise Http404("Modulo non trovato")
 
+    is_staff = request.user.is_authenticated and (request.user.is_staff or getattr(request.user, 'role', '') == 'admin')
+    has_assignment_access = any(k.startswith('assignment_access_') and v is True for k, v in request.session.items())
     session_key = f'form_access_{form_id}'
-    if not request.session.get(session_key, False):
+
+    if not request.session.get(session_key, False) and not is_staff and not has_assignment_access:
         return HttpResponseForbidden("Accesso non autorizzato. Effettua prima l'accesso con password.")
 
     nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
@@ -161,6 +164,49 @@ def published_form_receipt(request, form_id):
         raise Http404("Il report PDF non è stato ancora generato per questo modulo.")
 
     safe_title = "".join(c for c in form.name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+    filename = f"Ricevuta_{safe_title}.pdf"
+    return FileResponse(open(pdf_path, 'rb'), content_type='application/pdf', as_attachment=True, filename=filename)
+
+
+@require_http_methods(["GET"])
+def assignment_receipt(request, assignment_id):
+    """Download the official PDF report receipt for a submitted assignment."""
+    try:
+        assignment = FormAssignment.objects.get(id=assignment_id)
+    except (FormAssignment.DoesNotExist, ValueError):
+        raise Http404("Pratica non trovata")
+
+    is_staff = request.user.is_authenticated and (request.user.is_staff or getattr(request.user, 'role', '') == 'admin')
+    token_session_key = f'assignment_access_{assignment.id}_{assignment.secure_token}'
+    legacy_session_key = f'assignment_access_{assignment.id}'
+    has_access = bool(request.session.get(token_session_key, False) or request.session.get(legacy_session_key, False))
+
+    access_password = assignment.form_data.get('access_password', '') if assignment.form_data else ''
+    if not access_password:
+        access_password = assignment.form_template.access_password or ''
+
+    if access_password and not has_access and not is_staff:
+        return HttpResponseForbidden("Accesso non autorizzato. Effettua prima l'accesso con password.")
+
+    nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+    client_name = assignment.form_data.get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+    project_name = assignment.form_data.get('project_name') or ''
+    nas_project_path = os.path.join(nas_base, client_name, project_name)
+    pdf_path = os.path.join(nas_project_path, 'Report_Ricezione_Documenti.pdf')
+
+    if not os.path.exists(pdf_path):
+        try:
+            from .report_generator import generate_form_receipt_pdf
+            os.makedirs(nas_project_path, exist_ok=True)
+            generate_form_receipt_pdf(assignment.form_template, assignment, pdf_path)
+        except Exception as e:
+            logger.warning(f"Could not generate PDF receipt on demand: {e}")
+
+    if not os.path.exists(pdf_path):
+        raise Http404("Il report PDF non è stato ancora generato per questa pratica.")
+
+    template_name = assignment.form_template.name if assignment.form_template else "Modulo"
+    safe_title = "".join(c for c in template_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
     filename = f"Ricevuta_{safe_title}.pdf"
     return FileResponse(open(pdf_path, 'rb'), content_type='application/pdf', as_attachment=True, filename=filename)
 
@@ -183,13 +229,14 @@ def get_form_by_token(request, token):
         if not access_password:
             access_password = assignment.form_template.access_password or ''
 
-        session_key = f'assignment_access_{assignment.id}'
+        session_key = f'assignment_access_{assignment.id}_{assignment.secure_token}'
 
         if access_password:
             if request.method == 'POST':
                 entered_pwd = request.POST.get('password', '').strip()
                 if entered_pwd == access_password:
                     request.session[session_key] = True
+                    request.session[f'assignment_access_{assignment.id}'] = True
                     request.session.modified = True
                     return redirect('get_form_by_token', token=token)
                 else:
@@ -246,8 +293,10 @@ def form_step_view(request, assignment_id, step_order):
     access_password = assignment.form_data.get('access_password', '') if assignment.form_data else ''
     if not access_password:
         access_password = assignment.form_template.access_password or ''
-    session_key = f'assignment_access_{assignment.id}'
-    if access_password and not request.session.get(session_key, False):
+    token_key = f'assignment_access_{assignment.id}_{assignment.secure_token}'
+    legacy_key = f'assignment_access_{assignment.id}'
+    has_access = request.session.get(token_key, False) or request.session.get(legacy_key, False)
+    if access_password and not has_access:
         return redirect('get_form_by_token', token=assignment.secure_token)
 
     steps = list(assignment.form_template.formstep_set.all().order_by('order'))
@@ -702,8 +751,10 @@ def form_summary_view(request, assignment_id):
     access_password = assignment.form_data.get('access_password', '') if assignment.form_data else ''
     if not access_password:
         access_password = assignment.form_template.access_password or ''
-    session_key = f'assignment_access_{assignment.id}'
-    if access_password and not request.session.get(session_key, False):
+    token_key = f'assignment_access_{assignment.id}_{assignment.secure_token}'
+    legacy_key = f'assignment_access_{assignment.id}'
+    has_access = request.session.get(token_key, False) or request.session.get(legacy_key, False)
+    if access_password and not has_access:
         return redirect('get_form_by_token', token=assignment.secure_token)
 
     uploads = assignment.documentupload_set.filter(status='valid')
@@ -729,8 +780,10 @@ def form_submission_view(request, assignment_id):
     access_password = assignment.form_data.get('access_password', '') if assignment.form_data else ''
     if not access_password:
         access_password = assignment.form_template.access_password or ''
-    session_key = f'assignment_access_{assignment.id}'
-    if access_password and not request.session.get(session_key, False):
+    token_key = f'assignment_access_{assignment.id}_{assignment.secure_token}'
+    legacy_key = f'assignment_access_{assignment.id}'
+    has_access = request.session.get(token_key, False) or request.session.get(legacy_key, False)
+    if access_password and not has_access:
         return redirect('get_form_by_token', token=assignment.secure_token)
 
     try:

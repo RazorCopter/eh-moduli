@@ -552,6 +552,11 @@ def reopen_assignment_for_upload(request, pk):
 
     assignment.save()
 
+    # Invalidate existing session credentials for this assignment
+    request.session.pop(f'assignment_access_{assignment.id}', None)
+    request.session.pop(f'assignment_access_{assignment.id}_{old_token}', None)
+    request.session.modified = True
+
     # Audit log
     log_action(
         request.user,
