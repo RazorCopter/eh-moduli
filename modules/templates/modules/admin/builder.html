@@ -900,59 +900,53 @@
                                     </div>
                                     <hr style="margin: 1rem 0;">
                                     <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
-                                        <strong style="font-size: 0.875rem; text-transform: uppercase; color: var(--secondary);">Upload Settings</strong>
+                                        <strong style="font-size: 0.875rem; text-transform: uppercase; color: var(--secondary);">Impostazioni Documento</strong>
                                     </div>
                                     <div class="form-group">
-                                        <label>
-                                            <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].required" @change="form.steps[selectedStep].elements[selectedElement].awareness_required_when_empty = false">
-                                            <strong>Required Document</strong>
+                                        <label style="cursor: pointer;">
+                                            <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].required">
+                                            <strong>Documento Obbligatorio (Required)</strong>
                                         </label>
-                                        <small class="text-muted">Customer must upload to proceed</small>
+                                        <small class="text-muted" x-show="form.steps[selectedStep].elements[selectedElement].required">Il cliente è tenuto a caricare questo documento per completare il modulo.</small>
+                                        <small class="text-muted" x-show="!form.steps[selectedStep].elements[selectedElement].required">Il cliente può saltare questo documento o dichiararne l'assenza.</small>
                                     </div>
                                     <div class="form-group">
-                                        <label>Allowed File Types</label>
-                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].allowed_extensions" placeholder="pdf,docx,xlsx,jpg,png" title="Comma-separated extensions">
-                                        <small class="text-muted">Comma-separated (e.g.: pdf,docx,jpg)</small>
+                                        <label>Tipi di File Consentiti (Estensioni)</label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].allowed_extensions" placeholder="pdf,docx,xlsx,jpg,png" title="Estensioni separate da virgola">
+                                        <small class="text-muted">Estensioni separate da virgola (es: pdf,docx,jpg)</small>
                                     </div>
                                     <div class="form-group">
-                                        <label>Max File Size (MB)</label>
-                                        <input type="number" x-model.number="form.steps[selectedStep].elements[selectedElement].max_file_size" @change="form.steps[selectedStep].elements[selectedElement].max_file_size = form.steps[selectedStep].elements[selectedElement].max_file_size * 1024 * 1024" placeholder="10" value="10">
-                                        <small class="text-muted">Default: 10 MB</small>
+                                        <label>Dimensione Massima (MB)</label>
+                                        <input type="number" x-model.number="form.steps[selectedStep].elements[selectedElement].max_file_size" placeholder="10">
+                                        <small class="text-muted">Predefinito: 10 MB</small>
                                     </div>
                                     <div class="form-group">
-                                        <label>Max Files to Upload</label>
-                                        <input type="number" x-model.number="form.steps[selectedStep].elements[selectedElement].max_files" placeholder="1" min="1" value="1">
-                                        <small class="text-muted">Number of files customer can upload</small>
+                                        <label>Numero Massimo di File</label>
+                                        <input type="number" x-model.number="form.steps[selectedStep].elements[selectedElement].max_files" placeholder="1" min="1">
+                                        <small class="text-muted">Numero di allegati consentiti per questo requisito</small>
                                     </div>
                                     <div class="form-group">
-                                        <label>NAS Destination Subfolder</label>
-                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].destination_subfolder" placeholder="e.g., /identity_docs" title="NAS subfolder path">
-                                        <small class="text-muted">Subfolder on NAS where files are saved</small>
+                                        <label>Sottocartella NAS di Destinazione</label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].destination_subfolder" placeholder="es. /materie_prime" title="Percorso cartella NAS">
+                                        <small class="text-muted">Sottocartella del cliente in cui archiviare i file sul NAS</small>
                                     </div>
-                                    <hr style="margin: 1rem 0;">
-                                    <div style="background: #fff3cd; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
-                                        <strong style="font-size: 0.875rem; text-transform: uppercase; color: #856404;">Optional Document Settings</strong>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>
-                                            <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].required" @change="form.steps[selectedStep].elements[selectedElement].required = !form.steps[selectedStep].elements[selectedElement].required">
-                                            <strong>Optional Document</strong>
-                                        </label>
-                                        <small class="text-muted">Customer can skip this document</small>
-                                    </div>
+
+                                    <!-- Opzioni Aggiuntive per Documento Facoltativo -->
                                     <template x-if="!form.steps[selectedStep].elements[selectedElement].required">
-                                        <div>
-                                            <div class="form-group">
-                                                <label>Awareness Declaration Text</label>
-                                                <textarea x-model="form.steps[selectedStep].elements[selectedElement].awareness_text" placeholder="e.g., 'I declare that I don't have this document'" style="min-height: 60px;"></textarea>
-                                                <small class="text-muted">Text shown when customer skips this document</small>
+                                        <div style="background: #fff8e6; padding: 1rem; border-radius: 6px; margin-top: 1rem; border: 1px solid #ffeeba;">
+                                            <strong style="font-size: 0.85rem; text-transform: uppercase; color: #856404; display: block; margin-bottom: 0.5rem;">
+                                                <i class="bi bi-info-circle"></i> Opzioni Documento Facoltativo
+                                            </strong>
+                                            <div class="form-group mb-2">
+                                                <label style="font-size: 0.85rem; color: #856404;">Testo Dichiarazione di Assenza (Opzionale)</label>
+                                                <textarea x-model="form.steps[selectedStep].elements[selectedElement].awareness_text" placeholder="Es. Dichiaro di non essere in possesso di questo certificato..." style="min-height: 55px; font-size: 0.85rem;"></textarea>
+                                                <small class="text-muted">Testo mostrato al cliente se sceglie di non caricare il file</small>
                                             </div>
-                                            <div class="form-group">
-                                                <label>
+                                            <div class="form-group mb-0">
+                                                <label style="cursor: pointer; font-size: 0.85rem;">
                                                     <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].awareness_required_when_empty">
-                                                    <strong>☑️ Declaration is Required</strong>
+                                                    <strong>Richiedi spunta obbligatoria se non caricato</strong>
                                                 </label>
-                                                <small class="text-muted">Customer must accept the declaration to proceed without uploading</small>
                                             </div>
                                         </div>
                                     </template>
