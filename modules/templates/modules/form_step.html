@@ -368,6 +368,7 @@ function uploadSingleFile(reqId, file) {
     .then(data => {
         // Update document status indicator
         if (container) {
+            container.setAttribute('data-status', 'uploaded');
             const statusIndicator = container.querySelector('.doc-status-indicator');
             if (statusIndicator) {
                 statusIndicator.textContent = 'uploaded';
@@ -605,6 +606,11 @@ async function submitAbsenceDeclaration() {
 
             // Update UI card feedback
             if (targetDiv) {
+                const container = targetDiv.closest('[data-req-id]');
+                if (container) {
+                    container.setAttribute('data-status', 'not_available');
+                }
+                
                 if (data.is_declaration_file && data.filename && data.filename !== 'NON_DISPONIBILE') {
                     targetDiv.innerHTML = `
                         <div class="alert alert-warning py-2 px-3 mb-0 d-flex align-items-center justify-content-between rounded-3">
@@ -615,18 +621,19 @@ async function submitAbsenceDeclaration() {
                                     <div class="text-muted" style="font-size: 0.72rem;">Carta intestata timbrata e firmata ${data.justification && data.justification !== 'Dichiarazione formale su carta intestata timbrata e firmata' ? '· <em>' + data.justification + '</em>' : ''}</div>
                                 </div>
                             </div>
-                            <span class="badge bg-warning text-dark">Dichiarazione Acquisita</span>
+                            <span class="badge bg-warning text-dark doc-status-indicator" data-status="not_available">Dichiarazione Acquisita</span>
                         </div>
                     `;
                 } else {
                     targetDiv.innerHTML = `
                         <div class="alert alert-warning py-2 px-3 mb-0 d-flex align-items-center justify-content-between rounded-3">
                             <span class="small"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> <strong>Documento dichiarato non disponibile:</strong> <em>${data.justification}</em></span>
-                            <span class="badge bg-warning text-dark">Giustificato</span>
+                            <span class="badge bg-warning text-dark doc-status-indicator" data-status="not_available">Giustificato</span>
                         </div>
                     `;
                 }
             }
+            updateNextButtonState();
         } else {
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-upload me-1"></i> Salva Dichiarazione Formale';
