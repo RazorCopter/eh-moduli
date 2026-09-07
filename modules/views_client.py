@@ -234,6 +234,46 @@ def client_dashboard(request):
 
         status_label = t.get(f'status_{assignment.status}', assignment.status)
 
+        # Build timeline history milestones for this assignment
+        is_submitted_or_beyond = assignment.status in ('submitted', 'in_processing', 'completed')
+        is_processing_or_beyond = assignment.status in ('in_processing', 'completed')
+        is_completed = assignment.status == 'completed'
+
+        timeline_steps = [
+            {
+                'id': 1,
+                'title': t.get('timeline_step_assigned', 'Pratica Creata e Assegnata'),
+                'desc': t.get('timeline_step_assigned_desc', 'Modulo predisposto per l\'upload documentale.'),
+                'status': 'completed',
+                'date': assignment.assignment_date,
+                'icon': 'bi-folder-plus',
+            },
+            {
+                'id': 2,
+                'title': t.get('timeline_step_submitted', 'Invio Documentale Concluso'),
+                'desc': t.get('timeline_step_submitted_desc', 'Tutti i documenti richiesti trasmessi dal cliente.'),
+                'status': 'completed' if is_submitted_or_beyond else ('active' if assignment.status in ('draft', 'in_progress') else 'pending'),
+                'date': assignment.submission_date if is_submitted_or_beyond else None,
+                'icon': 'bi-cloud-check',
+            },
+            {
+                'id': 3,
+                'title': t.get('timeline_step_processing', 'Presa in Carico Ufficio Regolatorio'),
+                'desc': t.get('timeline_step_processing_desc', 'Verifica tecnica e redazione PIF in corso presso Etichub.'),
+                'status': 'completed' if is_completed else ('active' if assignment.status == 'in_processing' else 'pending'),
+                'date': None,
+                'icon': 'bi-gear-wide-connected',
+            },
+            {
+                'id': 4,
+                'title': t.get('timeline_step_completed', 'Lavorazione Regolatoria Completata'),
+                'desc': t.get('timeline_step_completed_desc', 'Dossier regolatorio validato con successo.'),
+                'status': 'completed' if is_completed else 'pending',
+                'date': None,
+                'icon': 'bi-patch-check-fill',
+            },
+        ]
+
         products.append({
             'assignment': assignment,
             'project_name': project_name or assignment.form_template.name,
@@ -247,6 +287,7 @@ def client_dashboard(request):
             'assignment_date': assignment.assignment_date,
             'expiry_date': assignment.expiry_date,
             'can_upload': assignment.status in ('draft', 'in_progress') and not is_expired,
+            'timeline_steps': timeline_steps,
         })
 
     welcome_msg = t['hello_user'].format(name=customer.first_name) if customer.first_name else t['welcome_back']

@@ -285,6 +285,149 @@
         color: #10B981;
     }
 
+    /* Interactive Timeline Trigger */
+    .product-progress-interactive {
+        cursor: pointer;
+        padding: 6px 8px;
+        margin: -6px -8px 0.85rem -8px;
+        border-radius: 10px;
+        transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+    .product-progress-interactive:hover {
+        background-color: rgba(232, 132, 125, 0.06);
+    }
+    .product-progress-interactive:hover .macro-progress-bar {
+        box-shadow: 0 0 0 2px rgba(232, 132, 125, 0.2);
+    }
+    .timeline-trigger-badge {
+        font-size: 0.68rem;
+        background: #F3EFEA;
+        color: #7A726A;
+        padding: 2px 7px;
+        border-radius: 12px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.2s ease;
+    }
+    .product-progress-interactive:hover .timeline-trigger-badge {
+        background: #E8847D;
+        color: #FFFFFF;
+    }
+
+    /* Modal Timeline Styles */
+    .timeline-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.55);
+        backdrop-filter: blur(4px);
+        z-index: 1050;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+    .timeline-modal-backdrop.show {
+        display: flex;
+        opacity: 1;
+    }
+    .timeline-modal-box {
+        background: #FFFFFF;
+        border-radius: 20px;
+        max-width: 540px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.25);
+        border: 1px solid #EAE6E1;
+        animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes modalSlideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .timeline-modal-header {
+        padding: 20px 24px 16px 24px;
+        border-bottom: 1px solid #F3EFEA;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .timeline-modal-body {
+        padding: 24px;
+    }
+    .timeline-track {
+        position: relative;
+        padding-left: 36px;
+    }
+    .timeline-track::before {
+        content: '';
+        position: absolute;
+        left: 14px;
+        top: 10px;
+        bottom: 20px;
+        width: 2px;
+        background: #E5E1DA;
+    }
+    .timeline-item {
+        position: relative;
+        margin-bottom: 28px;
+    }
+    .timeline-item:last-child {
+        margin-bottom: 0;
+    }
+    .timeline-node {
+        position: absolute;
+        left: -36px;
+        top: 2px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #F8F7F5;
+        border: 2px solid #CBD5E1;
+        color: #94A3B8;
+        font-size: 0.85rem;
+        z-index: 2;
+        transition: all 0.25s ease;
+    }
+    .timeline-item.completed .timeline-node {
+        background: #10B981;
+        border-color: #10B981;
+        color: #FFFFFF;
+        box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+    }
+    .timeline-item.active .timeline-node {
+        background: #3B82F6;
+        border-color: #3B82F6;
+        color: #FFFFFF;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        animation: pulseNode 2s infinite;
+    }
+    @keyframes pulseNode {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    .timeline-content {
+        background: #FAF8F6;
+        border-radius: 12px;
+        padding: 12px 16px;
+        border: 1px solid #EFECE6;
+    }
+    .timeline-item.active .timeline-content {
+        background: #EFF6FF;
+        border-color: #BFDBFE;
+    }
+    .timeline-item.completed .timeline-content {
+        background: #F0FDF4;
+        border-color: #BBF7D0;
+    }
+
 
     /* ─── Product Meta ─── */
     .product-meta {
@@ -486,10 +629,15 @@
             {{ p.module_name }}
         </div>
 
-        <!-- Macro Progress Stepper (50% Acquisizione Doc, 100% Lavorazione Etichub) -->
-        <div class="product-progress">
+        <!-- Macro Progress Stepper (Interactive Timeline Trigger) -->
+        <div class="product-progress-interactive" onclick="openTimelineModal('modal-timeline-{{ p.assignment.id }}')" title="{{ t.timeline_click_hint|default:'Clicca per visualizzare lo storico dettagliato' }}">
             <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="small fw-bold text-dark">{{ p.status_label }}</span>
+                <span class="small fw-bold text-dark d-flex align-items-center gap-1">
+                    {{ p.status_label }}
+                    <span class="timeline-trigger-badge">
+                        <i class="bi bi-clock-history"></i> {{ t.timeline_btn_history|default:'Storico' }}
+                    </span>
+                </span>
                 <span class="small fw-bold {% if p.completion_pct == 100 %}text-success{% elif p.completion_pct >= 50 %}text-primary{% else %}text-secondary{% endif %}">{{ p.completion_pct }}%</span>
             </div>
 
@@ -516,6 +664,66 @@
                     <i class="bi {% if p.completion_pct == 100 %}bi-check-circle-fill text-success{% else %}bi-circle{% endif %} me-1"></i>
                     {{ t.macro_step_2_short }}
                 </span>
+            </div>
+        </div>
+
+        <!-- Modal Timeline Pratica per questo prodotto -->
+        <div id="modal-timeline-{{ p.assignment.id }}" class="timeline-modal-backdrop" onclick="handleBackdropClick(event, 'modal-timeline-{{ p.assignment.id }}')">
+            <div class="timeline-modal-box">
+                <div class="timeline-modal-header">
+                    <div>
+                        <h5 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2" style="font-size: 1.05rem;">
+                            <i class="bi bi-clock-history text-primary"></i> {{ t.timeline_modal_title|default:'Storico e Avanzamento' }}
+                        </h5>
+                        <small class="text-muted">{{ p.project_name }} · {{ p.module_name }}</small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-light rounded-circle p-2" onclick="closeTimelineModal('modal-timeline-{{ p.assignment.id }}')" aria-label="Chiudi" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="timeline-modal-body">
+                    <div class="timeline-track">
+                        {% for step in p.timeline_steps %}
+                        <div class="timeline-item {{ step.status }}">
+                            <div class="timeline-node">
+                                {% if step.status == 'completed' %}
+                                    <i class="bi bi-check-lg"></i>
+                                {% elif step.status == 'active' %}
+                                    <i class="bi bi-arrow-repeat"></i>
+                                {% else %}
+                                    <i class="bi {{ step.icon }}"></i>
+                                {% endif %}
+                            </div>
+                            <div class="timeline-content">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong style="font-size: 0.9rem; color: #1E293B;">{{ step.title }}</strong>
+                                    {% if step.status == 'completed' %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0" style="font-size: 0.68rem;">Completato</span>
+                                    {% elif step.status == 'active' %}
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0" style="font-size: 0.68rem;">In corso</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-muted border rounded-pill px-2 py-0" style="font-size: 0.68rem;">Da avviare</span>
+                                    {% endif %}
+                                </div>
+                                <p class="small mb-1 text-secondary" style="font-size: 0.82rem; line-height: 1.45;">
+                                    {{ step.desc }}
+                                </p>
+                                {% if step.date %}
+                                <div class="text-muted font-monospace mt-1" style="font-size: 0.72rem;">
+                                    <i class="bi bi-calendar-check me-1 text-success"></i> {{ step.date|date:"d/m/Y H:i" }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="p-3 border-top bg-light rounded-bottom-4 d-flex justify-content-between align-items-center">
+                    <span class="small text-muted font-monospace">Codice: {{ p.assignment.customer.code }}</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 rounded-3" onclick="closeTimelineModal('modal-timeline-{{ p.assignment.id }}')">
+                        {{ t.timeline_close|default:'Chiudi' }}
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -609,6 +817,43 @@
         const statSubmitted = document.getElementById('stat-submitted');
         if (statActive) statActive.textContent = activeCount;
         if (statSubmitted) statSubmitted.textContent = submittedCount;
+    });
+
+    function openTimelineModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('show');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeTimelineModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+            }, 250);
+        }
+    }
+
+    function handleBackdropClick(event, modalId) {
+        if (event.target.id === modalId) {
+            closeTimelineModal(modalId);
+        }
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.timeline-modal-backdrop.show').forEach(m => {
+                closeTimelineModal(m.id);
+            });
+        }
     });
 </script>
 {% endblock %}

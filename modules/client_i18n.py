@@ -135,6 +135,21 @@ TRANSLATIONS = {
         
         # Success page & cross-links
         'back_to_portal': 'Torna ai Tuoi Prodotti (Area Personale)',
+        
+        # Timeline / History Modal
+        'timeline_modal_title': 'Storico e Avanzamento Pratica',
+        'timeline_click_hint': 'Clicca per vedere lo storico',
+        'timeline_step_assigned': 'Pratica Creata e Assegnata',
+        'timeline_step_assigned_desc': 'Il modulo è stato predisposto e reso disponibile per il caricamento dei documenti.',
+        'timeline_step_submitted': 'Invio Documentale Concluso',
+        'timeline_step_submitted_desc': 'Tutti i documenti richiesti sono stati trasmessi con dichiarazione di consapevolezza.',
+        'timeline_step_processing': 'Presa in Carico Ufficio Regolatorio',
+        'timeline_step_processing_desc': 'I tecnici Etichub hanno avviato la revisione documentale e la lavorazione tecnica del fascicolo (PIF).',
+        'timeline_step_completed': 'Lavorazione Regolatoria Completata',
+        'timeline_step_completed_desc': 'Verifica e fascicolo tecnico evasi con successo. Ciclo completato.',
+        'timeline_step_pending': 'In attesa delle fasi precedenti',
+        'timeline_close': 'Chiudi',
+        'timeline_btn_history': 'Storico Avanzamento',
     },
 
     'en': {
@@ -258,6 +273,21 @@ TRANSLATIONS = {
         
         # Success page & cross-links
         'back_to_portal': 'Back to Your Products (Client Portal)',
+        
+        # Timeline / History Modal
+        'timeline_modal_title': 'Case History & Progression',
+        'timeline_click_hint': 'Click to view case history',
+        'timeline_step_assigned': 'Case Created & Assigned',
+        'timeline_step_assigned_desc': 'The form has been prepared and opened for document upload.',
+        'timeline_step_submitted': 'Document Submission Completed',
+        'timeline_step_submitted_desc': 'All required documents have been submitted with awareness declaration.',
+        'timeline_step_processing': 'Taken in Charge by Regulatory Office',
+        'timeline_step_processing_desc': 'Etichub specialists have initiated regulatory review and PIF technical dossier preparation.',
+        'timeline_step_completed': 'Regulatory Processing Completed',
+        'timeline_step_completed_desc': 'Technical dossier verified and successfully validated. Process complete.',
+        'timeline_step_pending': 'Pending previous phases',
+        'timeline_close': 'Close',
+        'timeline_btn_history': 'Progress History',
     },
 
     'fr': {
@@ -381,6 +411,21 @@ TRANSLATIONS = {
         
         # Success page & cross-links
         'back_to_portal': 'Retour à Vos Produits (Espace Client)',
+        
+        # Timeline / History Modal
+        'timeline_modal_title': 'Historique et progression du dossier',
+        'timeline_click_hint': 'Cliquez pour voir l\'historique',
+        'timeline_step_assigned': 'Dossier créé et assigné',
+        'timeline_step_assigned_desc': 'Le formulaire a été préparé et ouvert pour le dépôt des documents.',
+        'timeline_step_submitted': 'Collecte documentaire terminée',
+        'timeline_step_submitted_desc': 'Tous les documents requis ont été transmis avec déclaration formelle.',
+        'timeline_step_processing': 'Prise en charge par le service réglementaire',
+        'timeline_step_processing_desc': 'Les experts Etichub ont démarré l\'instruction technique et l\'élaboration du DIP.',
+        'timeline_step_completed': 'Traitement réglementaire terminé',
+        'timeline_step_completed_desc': 'Dossier validé et finalisé avec succès. Cycle terminé.',
+        'timeline_step_pending': 'En attente des étapes précédentes',
+        'timeline_close': 'Fermer',
+        'timeline_btn_history': 'Historique du dossier',
     },
 
     'de': {
@@ -504,6 +549,21 @@ TRANSLATIONS = {
         
         # Success page & cross-links
         'back_to_portal': 'Zurück zu Ihren Produkten (Kundenportal)',
+        
+        # Timeline / History Modal
+        'timeline_modal_title': 'Vorgangsverlauf & Bearbeitungsstatus',
+        'timeline_click_hint': 'Klicken Sie, um den Verlauf anzuzeigen',
+        'timeline_step_assigned': 'Vorgang erstellt & zugewiesen',
+        'timeline_step_assigned_desc': 'Das Formular wurde vorbereitet und für das Hochladen von Unterlagen freigegeben.',
+        'timeline_step_submitted': 'Dokumentenübermittlung abgeschlossen',
+        'timeline_step_submitted_desc': 'Alle erforderlichen Dokumente wurden mit Vollständigkeitserklärung übermittelt.',
+        'timeline_step_processing': 'Übernahme durch die regulatorische Abteilung',
+        'timeline_step_processing_desc': 'Etichub-Experten haben mit der technischen Prüfung und Erstellung der PID begonnen.',
+        'timeline_step_completed': 'Regulatorische Bearbeitung abgeschlossen',
+        'timeline_step_completed_desc': 'Zertifizierungsunterlagen erfolgreich validiert und abgeschlossen. Zyklus beendet.',
+        'timeline_step_pending': 'Warten auf vorherige Phasen',
+        'timeline_close': 'Schließen',
+        'timeline_btn_history': 'Bearbeitungsverlauf',
     },
 }
 
