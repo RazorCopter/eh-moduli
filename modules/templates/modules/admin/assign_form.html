@@ -196,11 +196,14 @@
                 <small class="helper-text">Nome della sottocartella che verrà creata all'interno della cartella NAS del cliente.</small>
             </div>
 
-            <!-- 4. Password di Accesso (Opzionale) -->
-            <div class="form-group">
-                <label for="access_password">Password di Accesso</label>
-                <input type="text" id="access_password" name="access_password" placeholder="Lascia vuoto per autogenerare una password casuale (consigliato)" value="{{ access_password|default:'' }}">
-                <small class="helper-text">Se lasciata vuota, il sistema genererà automaticamente una password sicura di 8 caratteri da fornire al cliente.</small>
+            <!-- 4. Autenticazione Cliente -->
+            <div class="form-group" style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 0.875rem 1rem; border-radius: 8px;">
+                <div style="font-size: 0.875rem; font-weight: 600; color: #334155; margin-bottom: 0.25rem;">
+                    <i class="bi bi-shield-lock-fill" style="color: #2A79BA;"></i> Accesso del Cliente
+                </div>
+                <div style="font-size: 0.8125rem; color: #64748B;">
+                    Il cliente accederà a questo modulo direttamente dalla sua area personale su <strong>/clienti/</strong> utilizzando il proprio <strong>Codice Cliente</strong> e la <strong>Password Anagrafica</strong> impostata nella sua scheda.
+                </div>
             </div>
 
             <!-- 5. Giorni di Validità -->

@@ -348,22 +348,29 @@ class FormAssignment(models.Model):
             self.form_data['access_password'] = ''
 
     def check_access_password(self, raw_password):
-        """Verify raw password against assignment hash (or template fallback) or legacy plain text."""
+        """Verify raw password against assignment hash, template fallback, or customer portal_password."""
+        if not raw_password:
+            return False
         pwd = (self.form_data or {}).get('access_password', '')
         if not pwd and self.form_template:
             pwd = self.form_template.access_password or ''
-        if not pwd or not raw_password:
-            return False
-        if pwd.startswith(('pbkdf2_', 'argon2', 'bcrypt')):
-            return check_password(raw_password, pwd)
-        return secrets.compare_digest(raw_password, pwd)
+        if pwd:
+            if pwd.startswith(('pbkdf2_', 'argon2', 'bcrypt')):
+                return check_password(raw_password, pwd)
+            return secrets.compare_digest(raw_password, pwd)
+        # Fallback to customer's portal_password if set
+        if self.customer and self.customer.portal_password:
+            return self.customer.check_portal_password(raw_password)
+        return False
 
     def has_access_password(self):
-        """Check if this assignment or its template has an access password configured."""
+        """Check if this assignment, its template, or its customer has an access password configured."""
         pwd = (self.form_data or {}).get('access_password', '')
         if not pwd and self.form_template:
             pwd = self.form_template.access_password or ''
-        return bool(pwd)
+        if pwd:
+            return True
+        return bool(self.customer and self.customer.portal_password)
 
 class DocumentUpload(models.Model):
     STATUS_CHOICES = [

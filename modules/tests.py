@@ -398,29 +398,28 @@ class PublicAssignmentFlowTests(TestCase):
         # Check sequence: info1 < doc1 < sep < info2
         self.assertTrue(idx_info1 < idx_doc1 < idx_sep < idx_info2, "Gli elementi e i documenti devono apparire nell'ordine stabilito nel builder")
 
-    def test_assign_form_autogenerates_password_when_empty(self):
-        """Admin assigning a form without explicit password autogenerates 8-char password."""
+    def test_assign_form_uses_customer_portal_credentials_when_empty(self):
+        """Admin assigning a form without explicit password links to customer portal credentials."""
+        self.customer.set_portal_password('CustomerPass123')
+        self.customer.save()
         self.client.force_login(self.admin_user)
         url = reverse('assign_form_to_customer')
         post_data = {
             'customer_id': str(self.customer.id),
             'template_id': str(self.template.id),
-            'project_name': 'TestAutoPwdProject',
-            'access_password': '',  # Empty password
+            'project_name': 'TestCustomerPwdProject',
             'expiry_days': '30',
         }
         response = self.client.post(url, post_data, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data['status'], 'success')
-        generated_pwd = data.get('access_password')
-        self.assertTrue(bool(generated_pwd))
-        self.assertEqual(len(generated_pwd), 8)
 
-        # Check in DB: password must be hashed, not stored in plaintext
+        # Check in DB: assignment is protected by customer portal password
         assignment = FormAssignment.objects.get(id=data['assignment_id'])
-        self.assertTrue(assignment.check_access_password(generated_pwd))
-        self.assertNotEqual(assignment.form_data.get('access_password'), generated_pwd)
+        self.assertTrue(assignment.has_access_password())
+        self.assertTrue(assignment.check_access_password('CustomerPass123'))
+        self.assertFalse(assignment.check_access_password('WrongPass'))
 
     def test_access_password_protection_flow(self):
         """Accessing a password-protected assignment requires valid password before viewing form."""
