@@ -36,7 +36,10 @@
                 {% for item in combined_items %}
                     {% if item.is_document_requirement %}
                     <!-- Document Requirement Item -->
-                    <div class="card mb-4 border border-light-subtle shadow-none rounded-3" style="background-color: #FBFBFC;">
+                    <div class="card mb-4 border border-light-subtle shadow-none rounded-3" style="background-color: #FBFBFC;"
+                         data-req-id="{{ item.id }}"
+                         data-required="{{ item.required|yesno:'true,false' }}"
+                         data-status="{% if existing_uploads|get_item:item.id %}{{ existing_uploads|get_item:item.id|get_attr:'availability_status' }}{% else %}none{% endif %}">
                         <div class="card-body p-3 p-md-4">
                             <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                                 <div>
@@ -88,16 +91,23 @@
                                                     {% endif %}
                                                 </div>
                                             </div>
-                                            <span class="badge bg-warning text-dark">Dichiarazione Acquisita</span>
+                                            <span class="badge bg-warning text-dark doc-status-indicator" data-status="not_available">Dichiarazione Acquisita</span>
                                         </div>
                                         {% else %}
                                         <div class="alert alert-success py-2 px-3 mb-2 d-flex align-items-center justify-content-between rounded-3">
                                             <span class="small"><i class="bi bi-check-circle-fill text-success me-2"></i> <strong>{{ upload.original_filename }}</strong> (Già caricato)</span>
-                                            <span class="badge bg-success">Salvato</span>
+                                            <span class="badge bg-success doc-status-indicator" data-status="uploaded">Salvato</span>
                                         </div>
                                         {% endif %}
                                     {% endif %}
                                     {% endwith %}
+                                    <!-- Loading indicator -->
+                                    <div class="upload-loading d-none mt-2">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span class="visually-hidden">Caricamento...</span>
+                                        </div>
+                                        <small class="text-muted ms-2">Caricamento file in corso...</small>
+                                    </div>
                                 </div>
 
                                 <!-- Unavailability trigger -->
@@ -187,9 +197,9 @@
                     {% endif %}
 
                     {% if next_step %}
-                        <a href="{% url 'form_step_view' assignment.id next_step.order %}" class="btn btn-primary px-4 py-2 rounded-3 fw-semibold">
+                        <button type="button" class="btn btn-primary px-4 py-2 rounded-3 fw-semibold" id="nextStepBtn" onclick="proceedToNextStep('{% url 'form_step_view' assignment.id next_step.order %}')">
                             Avanti (Passaggio {{ current_index|add:1 }}) <i class="bi bi-arrow-right ms-1"></i>
-                        </a>
+                        </button>
                     {% else %}
                         <a href="{% url 'form_summary_view' assignment.id %}" class="btn btn-success px-4 py-2 rounded-3 fw-semibold" style="box-shadow: 0 4px 12px rgba(25, 135, 84, 0.25);">
                             Vai al Riepilogo e Invia <i class="bi bi-check2-circle ms-1"></i>
@@ -327,6 +337,105 @@ function handleFileUpload(reqId, inputElement) {
         uploadSingleFile(reqId, file);
     }
 }
+
+// Upload a single file via multipart POST
+function uploadSingleFile(reqId, file) {
+    const assignmentId = '{{ assignment.id }}';
+    const formData = new FormData();
+    formData.append('file_' + reqId, file);
+    formData.append('availability_' + reqId, 'uploaded');
+
+    const uploadUrl = `/modules/form/${assignmentId}/upload/`;
+
+    // Show loading state
+    const container = document.querySelector(`[data-req-id="${reqId}"]`);
+    if (container) {
+        const loadingEl = container.querySelector('.upload-loading');
+        if (loadingEl) loadingEl.classList.remove('d-none');
+    }
+
+    fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Upload failed');
+        return response.json();
+    })
+    .then(data => {
+        // Update document status indicator
+        if (container) {
+            const statusIndicator = container.querySelector('.doc-status-indicator');
+            if (statusIndicator) {
+                statusIndicator.textContent = 'uploaded';
+                statusIndicator.className = 'doc-status-indicator badge bg-success';
+            }
+            const loadingEl = container.querySelector('.upload-loading');
+            if (loadingEl) loadingEl.classList.add('d-none');
+        }
+        // Re-validate button state
+        updateNextButtonState();
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        if (container) {
+            const loadingEl = container.querySelector('.upload-loading');
+            if (loadingEl) loadingEl.classList.add('d-none');
+        }
+        alert('Errore durante il caricamento del file. Riprova.');
+    });
+}
+
+// Validate if all mandatory documents are satisfied
+function validateMandatoryDocuments() {
+    const requiredDocs = document.querySelectorAll('[data-required="true"]');
+    let allValid = true;
+
+    requiredDocs.forEach(docEl => {
+        const status = docEl.getAttribute('data-status') || '';
+        if (status !== 'uploaded' && status !== 'not_available') {
+            allValid = false;
+        }
+    });
+
+    return allValid;
+}
+
+// Update next button state based on document validation
+function updateNextButtonState() {
+    const btn = document.getElementById('nextStepBtn');
+    if (!btn) return;
+
+    const isValid = validateMandatoryDocuments();
+    btn.disabled = !isValid;
+
+    if (!isValid) {
+        btn.classList.add('disabled');
+        btn.style.cursor = 'not-allowed';
+        btn.title = 'Carica tutti i documenti obbligatori prima di procedere';
+    } else {
+        btn.classList.remove('disabled');
+        btn.style.cursor = 'pointer';
+        btn.title = '';
+    }
+}
+
+// Navigate to next step after validation
+function proceedToNextStep(nextUrl) {
+    if (!validateMandatoryDocuments()) {
+        alert('Carica tutti i documenti obbligatori prima di procedere.');
+        return;
+    }
+    window.location.href = nextUrl;
+}
+
+// Initialize button state on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateNextButtonState();
+});
 
 // Helpers per formattazione e modale dichiarazione assenza
 function formatBytes(bytes) {

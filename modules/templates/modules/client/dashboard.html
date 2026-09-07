@@ -667,66 +667,6 @@
             </div>
         </div>
 
-        <!-- Modal Timeline Pratica per questo prodotto -->
-        <div id="modal-timeline-{{ p.assignment.id }}" class="timeline-modal-backdrop" onclick="handleBackdropClick(event, 'modal-timeline-{{ p.assignment.id }}')">
-            <div class="timeline-modal-box">
-                <div class="timeline-modal-header">
-                    <div>
-                        <h5 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2" style="font-size: 1.05rem;">
-                            <i class="bi bi-clock-history text-primary"></i> {{ t.timeline_modal_title|default:'Storico e Avanzamento' }}
-                        </h5>
-                        <small class="text-muted">{{ p.project_name }} · {{ p.module_name }}</small>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-light rounded-circle p-2" onclick="closeTimelineModal('modal-timeline-{{ p.assignment.id }}')" aria-label="Chiudi" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
-                </div>
-                <div class="timeline-modal-body">
-                    <div class="timeline-track">
-                        {% for step in p.timeline_steps %}
-                        <div class="timeline-item {{ step.status }}">
-                            <div class="timeline-node">
-                                {% if step.status == 'completed' %}
-                                    <i class="bi bi-check-lg"></i>
-                                {% elif step.status == 'active' %}
-                                    <i class="bi bi-arrow-repeat"></i>
-                                {% else %}
-                                    <i class="bi {{ step.icon }}"></i>
-                                {% endif %}
-                            </div>
-                            <div class="timeline-content">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <strong style="font-size: 0.9rem; color: #1E293B;">{{ step.title }}</strong>
-                                    {% if step.status == 'completed' %}
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0" style="font-size: 0.68rem;">Completato</span>
-                                    {% elif step.status == 'active' %}
-                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0" style="font-size: 0.68rem;">In corso</span>
-                                    {% else %}
-                                        <span class="badge bg-light text-muted border rounded-pill px-2 py-0" style="font-size: 0.68rem;">Da avviare</span>
-                                    {% endif %}
-                                </div>
-                                <p class="small mb-1 text-secondary" style="font-size: 0.82rem; line-height: 1.45;">
-                                    {{ step.desc }}
-                                </p>
-                                {% if step.date %}
-                                <div class="text-muted font-monospace mt-1" style="font-size: 0.72rem;">
-                                    <i class="bi bi-calendar-check me-1 text-success"></i> {{ step.date|date:"d/m/Y H:i" }}
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                <div class="p-3 border-top bg-light rounded-bottom-4 d-flex justify-content-between align-items-center">
-                    <span class="small text-muted font-monospace">Codice: {{ p.assignment.customer.code }}</span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 rounded-3" onclick="closeTimelineModal('modal-timeline-{{ p.assignment.id }}')">
-                        {{ t.timeline_close|default:'Chiudi' }}
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <!-- Notification / Status Banner -->
         {% if p.status == 'submitted' %}
         <div class="mt-2 p-2 rounded-3" style="background: #eff6ff; border-left: 3px solid #3b82f6; font-size: 0.76rem; color: #1e40af; line-height: 1.4;">
@@ -786,6 +726,71 @@
     </div>
     {% endfor %}
 </div>
+
+<!-- Timeline Modals Container (outside product-card) -->
+<div id="timeline-modals-container" style="position: fixed; inset: 0; pointer-events: none; z-index: 9999;">
+    {% for p in products %}
+    <div id="modal-timeline-{{ p.assignment.id }}" class="timeline-modal-backdrop" style="pointer-events: auto;" onclick="handleBackdropClick(event, 'modal-timeline-{{ p.assignment.id }}')">
+        <div class="timeline-modal-box">
+            <div class="timeline-modal-header">
+                <div>
+                    <h5 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2" style="font-size: 1.05rem;">
+                        <i class="bi bi-clock-history text-primary"></i> {{ t.timeline_modal_title|default:'Storico e Avanzamento' }}
+                    </h5>
+                    <small class="text-muted">{{ p.project_name }} · {{ p.module_name }}</small>
+                </div>
+                <button type="button" class="btn btn-sm btn-light rounded-circle p-2" onclick="closeTimelineModal('modal-timeline-{{ p.assignment.id }}')" aria-label="Chiudi" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="timeline-modal-body">
+                <div class="timeline-track">
+                    {% for step in p.timeline_steps %}
+                    <div class="timeline-item {{ step.status }}">
+                        <div class="timeline-node">
+                            {% if step.status == 'completed' %}
+                                <i class="bi bi-check-lg"></i>
+                            {% elif step.status == 'active' %}
+                                <i class="bi bi-arrow-repeat"></i>
+                            {% else %}
+                                <i class="bi {{ step.icon }}"></i>
+                            {% endif %}
+                        </div>
+                        <div class="timeline-content">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong style="font-size: 0.9rem; color: #1E293B;">{{ step.title }}</strong>
+                                {% if step.status == 'completed' %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-0" style="font-size: 0.68rem;">Completato</span>
+                                {% elif step.status == 'active' %}
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-0" style="font-size: 0.68rem;">In corso</span>
+                                {% else %}
+                                    <span class="badge bg-light text-muted border rounded-pill px-2 py-0" style="font-size: 0.68rem;">Da avviare</span>
+                                {% endif %}
+                            </div>
+                            <p class="small mb-1 text-secondary" style="font-size: 0.82rem; line-height: 1.45;">
+                                {{ step.desc }}
+                            </p>
+                            {% if step.date %}
+                            <div class="text-muted font-monospace mt-1" style="font-size: 0.72rem;">
+                                <i class="bi bi-calendar-check me-1 text-success"></i> {{ step.date|date:"d/m/Y H:i" }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="p-3 border-top bg-light rounded-bottom-4 d-flex justify-content-between align-items-center">
+                <span class="small text-muted font-monospace">Codice: {{ p.assignment.customer.code }}</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3 rounded-3" onclick="closeTimelineModal('modal-timeline-{{ p.assignment.id }}')">
+                    {{ t.timeline_close|default:'Chiudi' }}
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
 {% else %}
 <div class="empty-state">
     <div class="empty-state-icon">
