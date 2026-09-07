@@ -29,3 +29,11 @@ def get_item(dictionary, key):
         return dictionary.get(key) or dictionary.get(str(key))
     return None
 
+@register.filter(name='get_attr')
+def get_attr(obj, attr_name):
+    """Returns attribute value from object by name."""
+    try:
+        return getattr(obj, attr_name, None)
+    except (AttributeError, TypeError):
+        return None
+
