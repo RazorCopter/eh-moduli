@@ -4,24 +4,41 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils import timezone
-from .models import FormAssignment, DocumentRequirement, DocumentUpload, AwarenessDeclaration, FormTemplate
+from django.db import transaction
+from django.db.models import Prefetch
+from django.conf import settings
+from .models import (
+    FormAssignment, DocumentRequirement, DocumentUpload,
+    AwarenessDeclaration, FormTemplate, NotificationLog, FormElement
+)
+from .client_i18n import get_translation_context
 from .utils import get_client_ip, get_user_agent, log_action
 from .upload_security import (
     validate_file_upload_secure,
+    validate_absence_declaration_file,
     save_uploaded_file_secure,
     delete_document_secure,
+    safe_join_paths,
+    save_manifest_atomic,
 )
 from .views_admin import (
     admin_dashboard, form_template_list, form_template_create,
     form_template_edit, form_template_duplicate, customer_list,
-    customer_create, customer_delete, assignment_detail, assign_form_to_customer,
+    customer_create, customer_delete, customer_reset_password,
+    assignment_detail, assign_form_to_customer,
     builder_list, builder_create, builder_edit, builder_preview, operational_guide,
-    reopen_assignment_for_upload, assignment_delete
+    reopen_assignment_for_upload, assignment_delete, assignment_update_status
 )
 import os
+import json
 import hashlib
+import secrets
+import tempfile
+import traceback
 import logging
+from itertools import chain
 from datetime import datetime
+from .report_generator import generate_form_receipt_pdf, generate_submission_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +60,7 @@ def published_form_access(request, form_id):
     if request.method == 'POST':
         password = request.POST.get('password', '')
 
-        if password == form.access_password:
+        if form.check_access_password(password):
             request.session[session_key] = True
             request.session.modified = True
 
@@ -58,13 +75,15 @@ def published_form_access(request, form_id):
             )
 
             # Render the form directly (not in assignment context)
-            from itertools import chain
-            steps = form.formstep_set.all().order_by('order')
+            steps = form.formstep_set.all().prefetch_related(
+                Prefetch('formelement_set', queryset=FormElement.objects.order_by('order')),
+                Prefetch('documentrequirement_set', queryset=DocumentRequirement.objects.order_by('order'))
+            ).order_by('order')
 
             # Combine FormElement and DocumentRequirement for each step, ordered by order field
             for step in steps:
-                elements = step.formelement_set.all().order_by('order')
-                documents = step.documentrequirement_set.all().order_by('order')
+                elements = step.formelement_set.all()
+                documents = step.documentrequirement_set.all()
                 step.combined_items = sorted(chain(elements, documents), key=lambda x: x.order)
 
             context = {
@@ -81,13 +100,15 @@ def published_form_access(request, form_id):
 
     # GET request
     if is_authenticated:
-        from itertools import chain
-        steps = form.formstep_set.all().order_by('order')
+        steps = form.formstep_set.all().prefetch_related(
+            Prefetch('formelement_set', queryset=FormElement.objects.order_by('order')),
+            Prefetch('documentrequirement_set', queryset=DocumentRequirement.objects.order_by('order'))
+        ).order_by('order')
 
         # Combine FormElement and DocumentRequirement for each step, ordered by order field
         for step in steps:
-            elements = step.formelement_set.all().order_by('order')
-            documents = step.documentrequirement_set.all().order_by('order')
+            elements = step.formelement_set.all()
+            documents = step.documentrequirement_set.all()
             step.combined_items = sorted(chain(elements, documents), key=lambda x: x.order)
 
         context = {
@@ -127,6 +148,7 @@ def form_success_view(request):
         except (FormTemplate.DoesNotExist, ValueError):
             pass
 
+    trans_ctx = get_translation_context(request)
     context = {
         'timestamp': timezone.now().strftime('%d/%m/%Y %H:%M:%S'),
         'form_id': form_id,
@@ -134,6 +156,7 @@ def form_success_view(request):
         'customer': customer_name,
         'project': project_name,
         'is_public_form': True,
+        **trans_ctx,
     }
     return render(request, 'modules/form_success.html', context)
 
@@ -181,22 +204,17 @@ def assignment_receipt(request, assignment_id):
     legacy_session_key = f'assignment_access_{assignment.id}'
     has_access = bool(request.session.get(token_session_key, False) or request.session.get(legacy_session_key, False))
 
-    access_password = assignment.form_data.get('access_password', '') if assignment.form_data else ''
-    if not access_password:
-        access_password = assignment.form_template.access_password or ''
-
-    if access_password and not has_access and not is_staff:
+    if assignment.has_access_password() and not has_access and not is_staff:
         return HttpResponseForbidden("Accesso non autorizzato. Effettua prima l'accesso con password.")
 
     nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
-    client_name = assignment.form_data.get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
-    project_name = assignment.form_data.get('project_name') or ''
-    nas_project_path = os.path.join(nas_base, client_name, project_name)
-    pdf_path = os.path.join(nas_project_path, 'Report_Ricezione_Documenti.pdf')
+    client_name = (assignment.form_data or {}).get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+    project_name = (assignment.form_data or {}).get('project_name') or ''
+    nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
+    pdf_path = str(safe_join_paths(nas_project_path, 'Report_Ricezione_Documenti.pdf'))
 
     if not os.path.exists(pdf_path):
         try:
-            from .report_generator import generate_form_receipt_pdf
             os.makedirs(nas_project_path, exist_ok=True)
             generate_form_receipt_pdf(assignment.form_template, assignment, pdf_path)
         except Exception as e:
@@ -221,20 +239,20 @@ def get_form_by_token(request, token):
             assignment.save()
             return render(request, 'modules/form_expired.html', {'is_public_form': True})
 
-        if assignment.status == 'submitted':
-            return render(request, 'modules/form_already_submitted.html', {'is_public_form': True})
-
-        # Password Protection Check
-        access_password = assignment.form_data.get('access_password', '') if assignment.form_data else ''
-        if not access_password:
-            access_password = assignment.form_template.access_password or ''
+        if assignment.status in ('submitted', 'in_processing', 'completed'):
+            trans_ctx = get_translation_context(request)
+            return render(request, 'modules/form_already_submitted.html', {
+                'assignment': assignment,
+                'is_public_form': True,
+                **trans_ctx,
+            })
 
         session_key = f'assignment_access_{assignment.id}_{assignment.secure_token}'
 
-        if access_password:
+        if assignment.has_access_password():
             if request.method == 'POST':
                 entered_pwd = request.POST.get('password', '').strip()
-                if entered_pwd == access_password:
+                if assignment.check_access_password(entered_pwd):
                     request.session[session_key] = True
                     request.session[f'assignment_access_{assignment.id}'] = True
                     request.session.modified = True
@@ -247,13 +265,19 @@ def get_form_by_token(request, token):
                     })
 
             if not request.session.get(session_key, False):
-                return render(request, 'modules/form_password.html', {
-                    'assignment': assignment,
-                    'form_title': assignment.form_template.name,
-                })
+                portal_cust_id = request.session.get('customer_id')
+                if portal_cust_id and assignment.customer and str(assignment.customer.id) == str(portal_cust_id):
+                    request.session[session_key] = True
+                    request.session[f'assignment_access_{assignment.id}'] = True
+                    request.session.modified = True
+                else:
+                    return render(request, 'modules/form_password.html', {
+                        'assignment': assignment,
+                        'form_title': assignment.form_template.name,
+                    })
 
         assignment.last_access_date = timezone.now()
-        assignment.save()
+        assignment.save(update_fields=['last_access_date'])
 
         steps = list(assignment.form_template.formstep_set.all().order_by('order'))
         first_step_order = steps[0].order if steps else 0
@@ -290,16 +314,16 @@ def form_step_view(request, assignment_id, step_order):
         return JsonResponse({'error': 'Assignment not found'}, status=404)
 
     # Password check
-    access_password = assignment.form_data.get('access_password', '') if assignment.form_data else ''
-    if not access_password:
-        access_password = assignment.form_template.access_password or ''
     token_key = f'assignment_access_{assignment.id}_{assignment.secure_token}'
     legacy_key = f'assignment_access_{assignment.id}'
     has_access = request.session.get(token_key, False) or request.session.get(legacy_key, False)
-    if access_password and not has_access:
+    if assignment.has_access_password() and not has_access:
         return redirect('get_form_by_token', token=assignment.secure_token)
 
-    steps = list(assignment.form_template.formstep_set.all().order_by('order'))
+    steps = list(assignment.form_template.formstep_set.all().prefetch_related(
+        Prefetch('formelement_set', queryset=FormElement.objects.order_by('order')),
+        Prefetch('documentrequirement_set', queryset=DocumentRequirement.objects.order_by('order'))
+    ).order_by('order'))
     if not steps:
         return render(request, 'modules/form_empty.html', {'assignment': assignment, 'is_public_form': True})
 
@@ -313,12 +337,11 @@ def form_step_view(request, assignment_id, step_order):
         else:
             step = steps[0]
 
-    from itertools import chain
-    elements = list(step.formelement_set.all().order_by('order'))
+    elements = list(step.formelement_set.all())
     for elem in elements:
         elem.is_form_element = True
 
-    documents = list(step.documentrequirement_set.all().order_by('order'))
+    documents = list(step.documentrequirement_set.all())
     for doc in documents:
         doc.is_document_requirement = True
 
@@ -333,7 +356,7 @@ def form_step_view(request, assignment_id, step_order):
     # GET: Prepare context
     current_index = steps.index(step) + 1
     step_count = len(steps)
-    progress_pct = int((current_index / max(step_count, 1)) * 100)
+    progress_pct = int((current_index / max(step_count, 1)) * settings.COMPLETION_PERCENTAGE_MULTIPLIER)
     prev_step = steps[current_index - 2] if current_index > 1 else None
     next_step = steps[current_index] if current_index < step_count else None
 
@@ -363,9 +386,6 @@ def form_step_view(request, assignment_id, step_order):
 @require_http_methods(["POST"])
 def published_form_upload(request, form_id):
     """Upload document to published form (no FormAssignment)."""
-    import hashlib
-    from datetime import datetime
-
     try:
         form = FormTemplate.objects.exclude(status='archived').get(id=form_id)
     except FormTemplate.DoesNotExist:
@@ -410,14 +430,12 @@ def published_form_upload(request, form_id):
         os.makedirs(nas_path, exist_ok=True)
 
         # Generate safe filename with timestamp
-        import secrets
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         ext = file.name.split('.')[-1] if '.' in file.name else ''
         safe_filename = f"{secrets.token_hex(4)}_{timestamp}.{ext}"
         file_path = os.path.join(nas_path, safe_filename)
 
         # Write file atomically
-        import tempfile
         with tempfile.NamedTemporaryFile(delete=False, dir=nas_path) as tmp:
             for chunk in file.chunks():
                 tmp.write(chunk)
@@ -433,7 +451,6 @@ def published_form_upload(request, form_id):
         sha256_hex = sha256.hexdigest()
 
         # Update manifest.json
-        import json
         manifest_path = os.path.join(nas_base, form.customer.nas_folder_name, form.project_name, 'manifest.json')
 
         if os.path.exists(manifest_path):
@@ -443,7 +460,7 @@ def published_form_upload(request, form_id):
             manifest = {
                 'form_id': str(form.id),
                 'form_name': form.name,
-                'customer': form.customer.first_name + ' ' + form.customer.last_name,
+                'customer': f"{form.customer.first_name} {form.customer.last_name or ''}".strip(),
                 'customer_code': form.customer.code,
                 'project': form.project_name,
                 'created_at': timezone.now().isoformat(),
@@ -464,8 +481,7 @@ def published_form_upload(request, form_id):
             'uploaded_from_ip': get_client_ip(request)
         })
 
-        with open(manifest_path, 'w', encoding='utf-8') as f:
-            json.dump(manifest, f, indent=2, ensure_ascii=False)
+        save_manifest_atomic(manifest_path, manifest)
 
         log_action(
             None,
@@ -533,18 +549,11 @@ def upload_document_view(request, assignment_id):
 
     try:
         # Get NAS path from form_data (Step 0)
-        client_name = assignment.form_data.get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
-        project_name = assignment.form_data.get('project_name') or (assignment.form_template.project_name or 'Progetto')
+        client_name = (assignment.form_data or {}).get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+        project_name = (assignment.form_data or {}).get('project_name') or (assignment.form_template.project_name or 'Progetto')
         nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
-        nas_project_path = os.path.join(nas_base, client_name, project_name)
+        nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
         os.makedirs(nas_project_path, exist_ok=True)
-
-        # Mark any previous valid uploads for this requirement as superseded
-        DocumentUpload.objects.filter(
-            form_assignment=assignment,
-            document_requirement=requirement,
-            status='valid'
-        ).update(status='superseded')
 
         # SECURE SAVE: atomic write, safe paths, restrictive permissions
         upload = save_uploaded_file_secure(
@@ -555,16 +564,21 @@ def upload_document_view(request, assignment_id):
             request=request
         )
 
-        # Update tracking info
-        upload.uploaded_by_ip = get_client_ip(request)
-        upload.uploaded_by_user_agent = get_user_agent(request)
-        upload.save()
+        # Mark any previous valid uploads for this requirement as superseded, and update tracking and manifest atomically
+        with transaction.atomic():
+            DocumentUpload.objects.filter(
+                form_assignment=assignment,
+                document_requirement=requirement,
+                status='valid'
+            ).exclude(id=upload.id).update(status='superseded')
 
-        # CREATE / UPDATE MANIFEST.JSON with document metadata
-        try:
-            import json
+            # Update tracking info
+            upload.uploaded_by_ip = get_client_ip(request)
+            upload.uploaded_by_user_agent = get_user_agent(request)
+            upload.save(update_fields=['uploaded_by_ip', 'uploaded_by_user_agent'])
+
+            # CREATE / UPDATE MANIFEST.JSON with document metadata atomically
             manifest_path = os.path.join(nas_project_path, 'manifest.json')
-
             if os.path.exists(manifest_path):
                 with open(manifest_path, 'r', encoding='utf-8') as f:
                     manifest = json.load(f)
@@ -591,18 +605,7 @@ def upload_document_view(request, assignment_id):
                 'availability_status': 'uploaded',
             })
 
-            with open(manifest_path, 'w', encoding='utf-8') as f:
-                json.dump(manifest, f, indent=2, ensure_ascii=False)
-        except Exception as manifest_error:
-            log_action(
-                None,
-                'create',
-                'Manifest',
-                manifest_path,
-                {'error': str(manifest_error)},
-                ip=get_client_ip(request),
-                user_agent=get_user_agent(request)
-            )
+            save_manifest_atomic(manifest_path, manifest)
 
         log_action(
             None,
@@ -618,6 +621,18 @@ def upload_document_view(request, assignment_id):
             ip=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
+
+        # Aggiorna lo stato a in_progress e ricalcola avanzamento parziale (< 50%)
+        try:
+            total_reqs = DocumentRequirement.objects.filter(form_step__form_template=assignment.form_template).count()
+            valid_count = assignment.documentupload_set.filter(status='valid').count()
+            if assignment.status == 'draft':
+                assignment.status = 'in_progress'
+            if assignment.status == 'in_progress':
+                assignment.completion_percentage = min(45, max(10, int((valid_count / total_reqs) * 50))) if total_reqs > 0 else 10
+            assignment.save(update_fields=['status', 'completion_percentage'])
+        except Exception as st_err:
+            logger.warning(f"Could not update assignment progress: {st_err}")
 
         return JsonResponse({
             'status': 'success',
@@ -661,11 +676,13 @@ def skip_optional_document(request, assignment_id, requirement_id):
     except (FormAssignment.DoesNotExist, DocumentRequirement.DoesNotExist):
         return JsonResponse({'error': 'Documento o pratica non trovata.'}, status=404)
 
+    file_obj = request.FILES.get('file') or request.FILES.get('declaration_file')
     justification = (request.POST.get('justification') or request.POST.get('declaration_text') or '').strip()
 
-    if requirement.required and not justification:
+    # Per i documenti obbligatori è richiesta o la dichiarazione formale (file) o motivazione
+    if requirement.required and not file_obj and not justification:
         return JsonResponse({
-            'error': 'Il giustificativo è obbligatorio per i documenti obbligatori non disponibili.'
+            'error': 'Per i documenti obbligatori non disponibili è necessario allegare il giustificativo o una formale dichiarazione su carta intestata timbrata e firmata.'
         }, status=400)
 
     # Supersede any previous uploads for this requirement
@@ -675,44 +692,133 @@ def skip_optional_document(request, assignment_id, requirement_id):
         status='valid'
     ).update(status='superseded')
 
+    # Caso 1: È stato caricato un file di dichiarazione formale (carta intestata timbrata e firmata)
+    if file_obj:
+        validation_errors = validate_absence_declaration_file(file_obj)
+        if validation_errors:
+            return JsonResponse({'error': ' '.join(validation_errors), 'errors': validation_errors}, status=400)
+
+        client_name = (assignment.form_data or {}).get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+        project_name = (assignment.form_data or {}).get('project_name') or (assignment.form_template.project_name or 'Progetto')
+        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+        nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
+        os.makedirs(nas_project_path, exist_ok=True)
+
+        final_motive = justification or 'Dichiarazione formale su carta intestata timbrata e firmata'
+
+        with transaction.atomic():
+            upload = save_uploaded_file_secure(
+                file_obj,
+                assignment,
+                requirement,
+                nas_project_path,
+                request=request,
+                availability_status='not_available',
+                motivazione_indisponibilita=final_motive
+            )
+
+            AwarenessDeclaration.objects.create(
+                form_assignment=assignment,
+                document_requirement=requirement,
+                declaration_text=final_motive,
+                accepted=True,
+                acceptance_ip=get_client_ip(request),
+                acceptance_user_agent=get_user_agent(request),
+                customer_name_declared=request.POST.get('customer_name', '')
+            )
+
+            # Update manifest.json on NAS atomically
+            manifest_path = os.path.join(nas_project_path, 'manifest.json')
+            if os.path.exists(manifest_path):
+                with open(manifest_path, 'r', encoding='utf-8') as f:
+                    manifest = json.load(f)
+            else:
+                manifest = {
+                    'form_name': assignment.form_template.name,
+                    'customer': client_name,
+                    'project': project_name,
+                    'form_assignment_id': str(assignment.id),
+                    'uploads': []
+                }
+            manifest.setdefault('uploads', []).append({
+                'requirement_name': requirement.name,
+                'requirement_description': requirement.description,
+                'original_filename': upload.original_filename,
+                'stored_filename': upload.stored_filename,
+                'file_size': upload.file_size,
+                'sha256': upload.sha256_checksum,
+                'mime_type': upload.mime_type_detected,
+                'status': 'not_available',
+                'availability_status': 'not_available',
+                'is_absence_declaration': True,
+                'motivazione_indisponibilita': final_motive,
+                'upload_datetime': timezone.now().isoformat(),
+                'uploaded_by_ip': get_client_ip(request)
+            })
+            save_manifest_atomic(manifest_path, manifest)
+
+        log_action(
+            None,
+            'upload_absence_declaration',
+            'DocumentUpload',
+            str(upload.id),
+            {
+                'original_filename': upload.original_filename,
+                'size': upload.file_size,
+                'checksum': upload.sha256_checksum,
+                'motive': final_motive
+            },
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        return JsonResponse({
+            'status': 'success',
+            'availability_status': 'not_available',
+            'filename': upload.original_filename,
+            'file_size': upload.file_size,
+            'justification': final_motive,
+            'is_declaration_file': True
+        })
+
+    # Caso 2: Motivazione testuale dichiarativa (retrocompatibilità per documenti opzionali o test)
     final_motive = justification or 'Documento facoltativo non inserito'
 
-    # Create DocumentUpload record for unavailability tracking
-    DocumentUpload.objects.create(
-        form_assignment=assignment,
-        document_requirement=requirement,
-        original_filename="NON_DISPONIBILE",
-        stored_filename="",
-        relative_path="",
-        file_extension="",
-        mime_type_detected="text/plain",
-        file_size=0,
-        sha256_checksum="",
-        status='valid',
-        availability_status='not_available',
-        motivazione_indisponibilita=final_motive,
-        uploaded_by_ip=get_client_ip(request),
-        uploaded_by_user_agent=get_user_agent(request),
-    )
+    with transaction.atomic():
+        # Create DocumentUpload record for unavailability tracking
+        DocumentUpload.objects.create(
+            form_assignment=assignment,
+            document_requirement=requirement,
+            original_filename="NON_DISPONIBILE",
+            stored_filename="",
+            relative_path="",
+            file_extension="",
+            mime_type_detected="text/plain",
+            file_size=0,
+            sha256_checksum="",
+            status='valid',
+            availability_status='not_available',
+            motivazione_indisponibilita=final_motive,
+            uploaded_by_ip=get_client_ip(request),
+            uploaded_by_user_agent=get_user_agent(request),
+        )
 
-    AwarenessDeclaration.objects.create(
-        form_assignment=assignment,
-        document_requirement=requirement,
-        declaration_text=final_motive,
-        accepted=True,
-        acceptance_ip=get_client_ip(request),
-        acceptance_user_agent=get_user_agent(request),
-        customer_name_declared=request.POST.get('customer_name', '')
-    )
+        AwarenessDeclaration.objects.create(
+            form_assignment=assignment,
+            document_requirement=requirement,
+            declaration_text=final_motive,
+            accepted=True,
+            acceptance_ip=get_client_ip(request),
+            acceptance_user_agent=get_user_agent(request),
+            customer_name_declared=request.POST.get('customer_name', '')
+        )
 
-    # Update manifest.json on NAS if it exists
-    try:
-        client_name = assignment.form_data.get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
-        project_name = assignment.form_data.get('project_name') or ''
+        # Update manifest.json on NAS if it exists atomically
+        client_name = (assignment.form_data or {}).get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+        project_name = (assignment.form_data or {}).get('project_name') or ''
         nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
         manifest_path = os.path.join(nas_base, client_name, project_name, 'manifest.json')
         if os.path.exists(manifest_path):
-            import json
             with open(manifest_path, 'r', encoding='utf-8') as f:
                 manifest = json.load(f)
             manifest.setdefault('uploads', []).append({
@@ -725,19 +831,20 @@ def skip_optional_document(request, assignment_id, requirement_id):
                 'mime_type': 'text/plain',
                 'status': 'not_available',
                 'availability_status': 'not_available',
+                'is_absence_declaration': False,
                 'motivazione_indisponibilita': final_motive,
                 'upload_datetime': timezone.now().isoformat(),
                 'uploaded_by_ip': get_client_ip(request)
             })
-            with open(manifest_path, 'w', encoding='utf-8') as f:
-                json.dump(manifest, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        logger.warning(f"Could not update manifest for unavailable document: {e}")
+            save_manifest_atomic(manifest_path, manifest)
 
     return JsonResponse({
         'status': 'success',
         'availability_status': 'not_available',
-        'justification': final_motive
+        'filename': 'NON_DISPONIBILE',
+        'file_size': 0,
+        'justification': final_motive,
+        'is_declaration_file': False
     })
 
 @require_http_methods(["GET"])
@@ -748,23 +855,22 @@ def form_summary_view(request, assignment_id):
         return JsonResponse({'error': 'Assignment not found'}, status=404)
 
     # Password protection check
-    access_password = assignment.form_data.get('access_password', '') if assignment.form_data else ''
-    if not access_password:
-        access_password = assignment.form_template.access_password or ''
     token_key = f'assignment_access_{assignment.id}_{assignment.secure_token}'
     legacy_key = f'assignment_access_{assignment.id}'
     has_access = request.session.get(token_key, False) or request.session.get(legacy_key, False)
-    if access_password and not has_access:
+    if assignment.has_access_password() and not has_access:
         return redirect('get_form_by_token', token=assignment.secure_token)
 
     uploads = assignment.documentupload_set.filter(status='valid')
     declarations = assignment.awarenessdeclaration_set.filter(accepted=True)
+    trans_ctx = get_translation_context(request)
 
     context = {
         'assignment': assignment,
         'uploads': uploads,
         'declarations': declarations,
         'is_public_form': True,
+        **trans_ctx,
     }
 
     return render(request, 'modules/form_summary.html', context)
@@ -777,30 +883,50 @@ def form_submission_view(request, assignment_id):
         return JsonResponse({'error': 'Assignment not found'}, status=404)
 
     # Password protection check
-    access_password = assignment.form_data.get('access_password', '') if assignment.form_data else ''
-    if not access_password:
-        access_password = assignment.form_template.access_password or ''
     token_key = f'assignment_access_{assignment.id}_{assignment.secure_token}'
     legacy_key = f'assignment_access_{assignment.id}'
     has_access = request.session.get(token_key, False) or request.session.get(legacy_key, False)
-    if access_password and not has_access:
+    if assignment.has_access_password() and not has_access:
         return redirect('get_form_by_token', token=assignment.secure_token)
 
     try:
         assignment.status = 'submitted'
         assignment.submission_date = timezone.now()
-        assignment.completion_percentage = 100
+        assignment.completion_percentage = 50
         assignment.save()
+
+        # Registrazione dichiarazione di consapevolezza chiusura documentale (50%)
+        try:
+            AwarenessDeclaration.objects.create(
+                form_assignment=assignment,
+                declaration_text="Dichiarazione di consapevolezza: avvenuta trasmissione di tutti i documenti e le informazioni in possesso per la lavorazione del prodotto da parte di Etichub",
+                accepted=True,
+                acceptance_ip=get_client_ip(request),
+                acceptance_user_agent=get_user_agent(request),
+                customer_name_declared=request.POST.get('customer_name', '')
+            )
+        except Exception as decl_err:
+            logger.warning(f"Could not create awareness declaration on submit: {decl_err}")
+
+        # Registrazione log notifica per l'Ufficio Regolatorio Etichub
+        try:
+            recipient_email = assignment.customer.email if (assignment.customer and assignment.customer.email) else 'regolatorio@etichub.com'
+            NotificationLog.objects.create(
+                notification_type='form_submitted',
+                recipient_email=recipient_email,
+                status='sent'
+            )
+        except Exception as notif_err:
+            logger.warning(f"Could not create notification log on submit: {notif_err}")
 
         # Generate official PDF receipt on submission (non-blocking if NAS or PDF generation has issues)
         try:
-            from .report_generator import generate_form_receipt_pdf
             nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
-            client_name = assignment.form_data.get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
-            project_name = assignment.form_data.get('project_name') or ''
-            nas_project_path = os.path.join(nas_base, client_name, project_name)
+            client_name = (assignment.form_data or {}).get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+            project_name = (assignment.form_data or {}).get('project_name') or ''
+            nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
             os.makedirs(nas_project_path, exist_ok=True)
-            pdf_path = os.path.join(nas_project_path, 'Report_Ricezione_Documenti.pdf')
+            pdf_path = str(safe_join_paths(nas_project_path, 'Report_Ricezione_Documenti.pdf'))
             generate_form_receipt_pdf(assignment.form_template, assignment, pdf_path)
         except Exception as e:
             logger.warning(f"Could not generate PDF receipt on assignment submit: {e}")
@@ -834,11 +960,6 @@ def form_submission_view(request, assignment_id):
 @require_http_methods(["POST"])
 def published_form_submit(request, form_id):
     """Submit a published form with document availability tracking."""
-    import os
-    import json
-    import hashlib
-    from datetime import datetime
-
     try:
         form = FormTemplate.objects.exclude(status='archived').get(id=form_id)
     except FormTemplate.DoesNotExist:
@@ -864,7 +985,7 @@ def published_form_submit(request, form_id):
             with open(manifest_path, 'r', encoding='utf-8') as f:
                 manifest = json.load(f)
         else:
-            customer_display = (form.customer.first_name + ' ' + form.customer.last_name) if form.customer else 'Generic'
+            customer_display = f"{form.customer.first_name} {form.customer.last_name or ''}".strip() if form.customer else 'Generic'
             customer_code = form.customer.code if form.customer else 'GEN'
             manifest = {
                 'form_id': str(form.id),
@@ -877,8 +998,14 @@ def published_form_submit(request, form_id):
             }
 
         # Process each document requirement and doc_upload FormElement across all steps
+        # Prefetched steps, requirements, and elements to avoid N+1 queries (H8-2, H8-3)
+        steps = form.formstep_set.all().prefetch_related(
+            Prefetch('formelement_set', queryset=FormElement.objects.order_by('order')),
+            Prefetch('documentrequirement_set', queryset=DocumentRequirement.objects.order_by('order'))
+        ).order_by('order')
+
         all_requirements = []
-        for step in form.formstep_set.all():
+        for step in steps:
             for doc in step.documentrequirement_set.all():
                 all_requirements.append({
                     'id': str(doc.id),
@@ -886,13 +1013,14 @@ def published_form_submit(request, form_id):
                     'required': doc.required,
                     'destination_subfolder': doc.destination_subfolder or ''
                 })
-            for elem in step.formelement_set.filter(element_type='doc_upload'):
-                all_requirements.append({
-                    'id': str(elem.id),
-                    'name': elem.config.get('label') or 'Documento',
-                    'required': elem.config.get('required', False),
-                    'destination_subfolder': elem.config.get('destination_subfolder', '')
-                })
+            for elem in step.formelement_set.all():
+                if elem.element_type == 'doc_upload':
+                    all_requirements.append({
+                        'id': str(elem.id),
+                        'name': elem.config.get('label') or 'Documento',
+                        'required': elem.config.get('required', False),
+                        'destination_subfolder': elem.config.get('destination_subfolder', '')
+                    })
 
         for requirement in all_requirements:
             requirement_id = requirement['id']
@@ -923,7 +1051,6 @@ def published_form_submit(request, form_id):
                 # Generate safe filename
                 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
                 ext = uploaded_file.name.split('.')[-1] if '.' in uploaded_file.name else ''
-                import secrets
                 safe_filename = f"{secrets.token_hex(4)}_{timestamp}.{ext}"
 
                 # Save file
@@ -933,7 +1060,6 @@ def published_form_submit(request, form_id):
 
                 file_full_path = os.path.join(file_path_dest, safe_filename)
 
-                import tempfile
                 with tempfile.NamedTemporaryFile(delete=False, dir=file_path_dest) as tmp:
                     for chunk in uploaded_file.chunks():
                         tmp.write(chunk)
@@ -956,29 +1082,26 @@ def published_form_submit(request, form_id):
 
             manifest['uploads'].append(doc_record)
 
-        # Collect submitted form element fields (text, email, phone, date, etc.)
+        # Collect submitted form element fields (text, email, phone, date, etc.) using cached steps
         form_fields = []
-        for step in form.formstep_set.all():
-            for elem in step.formelement_set.exclude(element_type__in=['doc_upload', 'separator', 'text_info']):
-                elem_id = str(elem.id)
-                val = request.POST.get(f'element_{elem_id}', '').strip()
-                label = elem.config.get('label') or elem.element_type
-                if val:
-                    form_fields.append({
-                        'label': label,
-                        'value': val,
-                        'type': elem.element_type
-                    })
+        for step in steps:
+            for elem in step.formelement_set.all():
+                if elem.element_type not in ('doc_upload', 'separator', 'text_info'):
+                    elem_id = str(elem.id)
+                    val = request.POST.get(f'element_{elem_id}', '').strip()
+                    label = elem.config.get('label') or elem.element_type
+                    if val:
+                        form_fields.append({
+                            'label': label,
+                            'value': val,
+                            'type': elem.element_type
+                        })
 
-        # Save manifest.json as machine-readable record
-        with open(manifest_path, 'w', encoding='utf-8') as f:
-            json.dump(manifest, f, indent=2, ensure_ascii=False)
+        # Save manifest.json as atomic machine-readable record (H9-4)
+        save_manifest_atomic(manifest_path, manifest)
 
         # Generate Premium PDF Report with Etichub vector logo
         try:
-            from .report_generator import generate_submission_pdf
-            from django.conf import settings
-
             logo_svg = os.path.join(settings.BASE_DIR, 'static', 'images', 'Etichub_Logo_V2_Verticale_Color.svg')
             pdf_report_path = os.path.join(nas_project_path, 'Report_Ricezione_Documenti.pdf')
 
@@ -992,7 +1115,7 @@ def published_form_submit(request, form_id):
             }
 
             customer_info = {
-                'name': (form.customer.first_name + ' ' + form.customer.last_name) if form.customer else 'Non specificato',
+                'name': f"{form.customer.first_name} {form.customer.last_name or ''}".strip() if form.customer else 'Non specificato',
                 'code': form.customer.code if form.customer else '—',
                 'email': form.customer.email if form.customer else '—',
                 'phone': form.customer.phone if form.customer else '—',
@@ -1008,9 +1131,7 @@ def published_form_submit(request, form_id):
                 logo_path=logo_svg
             )
         except Exception as pdf_err:
-            import logging
-            logger = logging.getLogger('modules')
-            logger.error(f"Error generating submission PDF: {pdf_err}\n{traceback.format_exc()}")
+            logger.error(f"Error generating submission PDF: {pdf_err}", exc_info=True)
 
         log_action(
             None,

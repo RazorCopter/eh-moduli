@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import forms_api
+from . import views_client
 
 urlpatterns = [
     # Admin panel
@@ -16,8 +17,10 @@ urlpatterns = [
     path('admin/customers/', views.customer_list, name='customer_list'),
     path('admin/customers/create/', views.customer_create, name='customer_create'),
     path('admin/customers/<uuid:pk>/delete/', views.customer_delete, name='customer_delete'),
+    path('admin/customers/<uuid:pk>/reset-password/', views.customer_reset_password, name='customer_reset_password'),
     path('admin/assign-form/', views.assign_form_to_customer, name='assign_form_to_customer'),
     path('admin/assignments/<uuid:pk>/', views.assignment_detail, name='assignment_detail'),
+    path('admin/assignments/<uuid:pk>/update-status/', views.assignment_update_status, name='assignment_update_status'),
     path('admin/assignments/<uuid:pk>/reopen/', views.reopen_assignment_for_upload, name='reopen_assignment'),
     path('admin/assignments/<uuid:pk>/delete/', views.assignment_delete, name='assignment_delete'),
     path('admin/guide/', views.operational_guide, name='operational_guide'),
@@ -33,6 +36,14 @@ urlpatterns = [
     path('api/v1/forms/<uuid:form_id>/delete/', forms_api.api_form_delete, name='api_form_delete'),
     path('api/v1/customers/create/', forms_api.api_customer_create, name='api_customer_create'),
     path('api/v1/customers/<uuid:customer_id>/delete/', forms_api.api_customer_delete, name='api_customer_delete'),
+
+    # Client Personal Area
+    path('client/login/', views_client.client_login, name='client_login'),
+    path('client/logout/', views_client.client_logout, name='client_logout'),
+    path('client/dashboard/', views_client.client_dashboard, name='client_dashboard'),
+    path('client/product/<uuid:assignment_id>/', views_client.client_product_detail, name='client_product_detail'),
+    path('client/set-language/<str:lang_code>/', views_client.set_client_language, name='set_client_language'),
+    path('client/set-language/', views_client.set_client_language, name='set_client_language_query'),
 
     # Public form views
     path('form/published/<uuid:form_id>/', views.published_form_access, name='published_form_access'),

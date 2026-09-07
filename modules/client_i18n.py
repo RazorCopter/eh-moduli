@@ -1,0 +1,547 @@
+"""
+Client Personal Area Internationalization (i18n)
+Supports Italian (it), English (en), French (fr), German (de).
+Provides translation dictionaries, language resolution, and context injection.
+"""
+
+SUPPORTED_LANGUAGES = [
+    {'code': 'it', 'name': 'Italiano', 'flag': '🇮🇹', 'short': 'IT'},
+    {'code': 'en', 'name': 'English', 'flag': '🇬🇧', 'short': 'EN'},
+    {'code': 'fr', 'name': 'Français', 'flag': '🇫🇷', 'short': 'FR'},
+    {'code': 'de', 'name': 'Deutsch', 'flag': '🇩🇪', 'short': 'DE'},
+]
+
+SUPPORTED_LANGUAGE_CODES = {item['code'] for item in SUPPORTED_LANGUAGES}
+
+TRANSLATIONS = {
+    'it': {
+        'code': 'it',
+        'lang_name': 'Italiano',
+        'dir': 'ltr',
+        
+        # Navbar & Layout
+        'portal_title': 'Area Personale',
+        'logout': 'Esci',
+        'language': 'Lingua',
+        'footer_text': 'Etichub S.r.l. · Spin-off Università di Pavia · Laboratorio di test e regolatorio cosmetico',
+        
+        # Login Page
+        'login_page_title': 'Accedi — Area Personale Etichub',
+        'welcome_back': 'Bentornato',
+        'login_subtitle': 'Accedi con le credenziali fornite da Etichub per visualizzare i tuoi prodotti e caricare la documentazione.',
+        'client_code': 'Codice Cliente',
+        'client_code_placeholder': 'Es. CLI-001',
+        'password': 'Password',
+        'password_placeholder': 'Inserisci la password',
+        'show_password': 'Mostra password',
+        'hide_password': 'Nascondi password',
+        'login_submit': 'Accedi',
+        'need_help': 'Hai bisogno di assistenza?',
+        'contact_us': 'Contattaci',
+        
+        # Login Error Messages
+        'error_missing_fields': 'Inserisci il codice cliente e la password.',
+        'error_account_inactive': 'Il tuo account è stato disattivato. Contatta Etichub per assistenza.',
+        'error_not_configured': 'L\'accesso all\'area personale non è ancora configurato. Contatta Etichub.',
+        'error_invalid_credentials': 'Password errata. Riprova.',
+        'error_customer_not_found': 'Codice cliente non trovato.',
+        'error_forbidden_product': 'Non hai accesso a questo prodotto.',
+        
+        # Dashboard
+        'dashboard_page_title': 'I Miei Prodotti — Area Personale Etichub',
+        'hello_user': 'Ciao, {name}',
+        'dashboard_subtitle': 'Ecco i prodotti attualmente in lavorazione con Etichub. Seleziona un prodotto per gestire la documentazione.',
+        'stat_total_products': 'Prodotti totali',
+        'stat_in_progress': 'In lavorazione',
+        'stat_completed': 'Completati',
+        'section_your_products': 'I Tuoi Prodotti',
+        
+        # Status Badges
+        'status_draft': 'Pratica aperta',
+        'status_in_progress': 'Documentazione parziale',
+        'status_submitted': 'Upload documentale completato',
+        'status_in_processing': 'Lavorazione Etichub in corso',
+        'status_completed': 'Lavorazione completata',
+        'status_expired': 'Scaduto',
+        'status_cancelled': 'Annullato',
+        
+        # Macro Steps & Product Card
+        'macro_step_1_title': 'Fase 1: Acquisizione Documenti (50%)',
+        'macro_step_2_title': 'Fase 2: Lavorazione Etichub (100%)',
+        'macro_step_1_short': '1. Documenti (50%)',
+        'macro_step_2_short': '2. Lavorazione (100%)',
+        'ttl_deadline': 'Termine upload (TTL)',
+        'documents_progress': 'Documenti',
+        'assigned_on': 'Assegnato il',
+        'expires_on': 'Scade il',
+        'btn_upload_docs': 'Carica Documenti',
+        'btn_docs_submitted': 'Documentazione Inviata (50%)',
+        'btn_view_docs': 'Visualizza Documenti Trasmessi',
+        'btn_expired': 'Scaduto — Contatta Etichub',
+        
+        # Notifications & Status Details
+        'notification_etichub_submitted': 'Upload documentale completato (50%). L\'Ufficio Regolatorio di Etichub è stato notificato e avvierà a breve la lavorazione.',
+        'notification_etichub_in_processing': 'Lavorazione Etichub in corso (75%). La documentazione tecnica (PIF) è attualmente in lavorazione presso l\'Ufficio Regolatorio.',
+        'notification_etichub_completed': 'Lavorazione completata con successo (100%). La documentazione certificante (PIF) è stata predisposta e validata.',
+        
+        # Alert Modal & Awareness Declaration (Riepilogo e Invio)
+        'alert_confirm_submission_title': 'Conferma Invio Finale',
+        'alert_confirm_submission_body': 'Confermi di aver caricato tutta la documentazione in tuo possesso? L\'invio notificherà l\'Ufficio Regolatorio di Etichub per l\'avvio della lavorazione. Non sarà più possibile modificare i documenti caricati.',
+        'alert_confirm_btn_cancel': 'Annulla e Ricontrolla',
+        'alert_confirm_btn_submit': 'Sì, Confermo e Invia (50%)',
+        'awareness_declaration_title': 'Dichiarazione di Consapevolezza Documentale',
+        'awareness_declaration_text': 'Dichiaro formalmente di aver trasmesso tutti i documenti e le informazioni in mio possesso necessari per la lavorazione del prodotto da parte dell\'ufficio regolatorio Etichub. Sono consapevole che la conferma attesterà il completamento del 50% del processo e notificherà il team tecnico per l\'avvio della lavorazione.',
+        'awareness_declaration_alert_js': 'Attenzione: è necessario spuntare la dichiarazione formale di consapevolezza prima di procedere con l\'invio.',
+        
+        # Summary View
+        'summary_page_title': 'Riepilogo e Invio',
+        'summary_badge': 'Riepilogo Finale',
+        'summary_title': 'Verifica e Conferma Invio',
+        'summary_case': 'Pratica:',
+        'summary_docs_uploaded': 'Documenti Caricati',
+        'summary_absence_formalized': 'Assenza Formalizzata',
+        'summary_absence_attachment': 'Allegato su carta intestata:',
+        'summary_declaration_acquired': 'Dichiarazione Acquisita',
+        'summary_ready': 'Pronto',
+        'summary_no_files': 'Nessun file caricato per questa pratica.',
+        'summary_security_notice': 'Confermando l\'invio, la documentazione verrà archiviata in sicurezza sul server aziendale. Verrà generata una ricevuta formale di avvenuta consegna.',
+        'btn_back': 'Indietro',
+        'btn_confirm_submit_50': 'Conferma e Invia Documenti (50%)',
+        'submitting_spinner': 'Invio in corso...',
+        
+        # Success View
+        'success_page_title': 'Modulo Inviato — Etichub',
+        'success_title': 'Modulo Inviato!',
+        'success_msg_50': 'Grazie per aver inviato i documenti. L\'Ufficio Regolatorio di Etichub è stato notificato per l\'avvio della lavorazione tecnica (50% completato).',
+        'detail_status': 'Stato',
+        'detail_status_val': '✓ Documentazione Acquisita (50%)',
+        'detail_datetime': 'Data e ora',
+        'detail_customer': 'Cliente',
+        'detail_project': 'Progetto / Prodotto',
+        'success_receipt_hint': 'Puoi scaricare la ricevuta ufficiale o tornare alla tua area personale in sicurezza.',
+        'btn_download_receipt': 'Scarica Ricevuta Ufficiale (PDF)',
+        'btn_home': 'Torna alla Home',
+        
+        # Already Submitted View
+        'already_submitted_title': 'Modulo Già Trasmesso',
+        'already_submitted_subtitle': 'La documentazione per questo prodotto è già stata confermata e inviata all\'Ufficio Regolatorio.',
+        'already_submitted_locked_msg': 'Non è più possibile modificare i documenti caricati in quanto la lavorazione è stata avviata.',
+
+        # Empty State
+        'empty_title': 'Nessun prodotto assegnato',
+        'empty_desc': 'Al momento non ci sono prodotti in lavorazione. Verrai notificato quando Etichub ti assegnerà un nuovo progetto.',
+        
+        # Success page & cross-links
+        'back_to_portal': 'Torna ai Tuoi Prodotti (Area Personale)',
+    },
+
+    'en': {
+        'code': 'en',
+        'lang_name': 'English',
+        'dir': 'ltr',
+        
+        # Navbar & Layout
+        'portal_title': 'Client Portal',
+        'logout': 'Log out',
+        'language': 'Language',
+        'footer_text': 'Etichub S.r.l. · Spin-off University of Pavia · Cosmetic Testing & Regulatory Laboratory',
+        
+        # Login Page
+        'login_page_title': 'Log In — Etichub Client Portal',
+        'welcome_back': 'Welcome Back',
+        'login_subtitle': 'Log in with the credentials provided by Etichub to view your products and upload documentation.',
+        'client_code': 'Client Code',
+        'client_code_placeholder': 'e.g. CLI-001',
+        'password': 'Password',
+        'password_placeholder': 'Enter your password',
+        'show_password': 'Show password',
+        'hide_password': 'Hide password',
+        'login_submit': 'Log In',
+        'need_help': 'Need assistance?',
+        'contact_us': 'Contact us',
+        
+        # Login Error Messages
+        'error_missing_fields': 'Please enter your client code and password.',
+        'error_account_inactive': 'Your account has been deactivated. Please contact Etichub for assistance.',
+        'error_not_configured': 'Client portal access has not been configured yet. Please contact Etichub.',
+        'error_invalid_credentials': 'Incorrect password. Please try again.',
+        'error_customer_not_found': 'Client code not found.',
+        'error_forbidden_product': 'You do not have access to this product.',
+        
+        # Dashboard
+        'dashboard_page_title': 'My Products — Etichub Client Portal',
+        'hello_user': 'Hello, {name}',
+        'dashboard_subtitle': 'Here are your products currently being processed with Etichub. Select a product to manage documentation.',
+        'stat_total_products': 'Total Products',
+        'stat_in_progress': 'In Progress',
+        'stat_completed': 'Completed',
+        'section_your_products': 'Your Products',
+        
+        # Status Badges
+        'status_draft': 'Application Open',
+        'status_in_progress': 'Partial Documentation',
+        'status_submitted': 'Document Upload Completed',
+        'status_in_processing': 'Etichub Processing in Progress',
+        'status_completed': 'Processing Completed',
+        'status_expired': 'Expired',
+        'status_cancelled': 'Cancelled',
+        
+        # Macro Steps & Product Card
+        'macro_step_1_title': 'Phase 1: Document Acquisition (50%)',
+        'macro_step_2_title': 'Phase 2: Etichub Processing (100%)',
+        'macro_step_1_short': '1. Documents (50%)',
+        'macro_step_2_short': '2. Processing (100%)',
+        'ttl_deadline': 'Upload Deadline (TTL)',
+        'documents_progress': 'Documents',
+        'assigned_on': 'Assigned on',
+        'expires_on': 'Expires on',
+        'btn_upload_docs': 'Upload Documents',
+        'btn_docs_submitted': 'Documentation Submitted (50%)',
+        'btn_view_docs': 'View Submitted Documents',
+        'btn_expired': 'Expired — Contact Etichub',
+        
+        # Notifications & Status Details
+        'notification_etichub_submitted': 'Document upload completed (50%). The Etichub Regulatory Office has been notified and will start technical processing shortly.',
+        'notification_etichub_in_processing': 'Etichub processing in progress (75%). Technical documentation (PIF) is currently being processed by the Regulatory Office.',
+        'notification_etichub_completed': 'Processing successfully completed (100%). Certification documentation (PIF) has been prepared and validated.',
+        
+        # Alert Modal & Awareness Declaration (Summary and Submit)
+        'alert_confirm_submission_title': 'Final Submission Confirmation',
+        'alert_confirm_submission_body': 'Do you confirm that you have uploaded all documentation in your possession? Submitting will notify the Etichub Regulatory Office to start processing. It will no longer be possible to modify uploaded documents.',
+        'alert_confirm_btn_cancel': 'Cancel and Review',
+        'alert_confirm_btn_submit': 'Yes, Confirm and Submit (50%)',
+        'awareness_declaration_title': 'Documentary Awareness Declaration',
+        'awareness_declaration_text': 'I formally declare that I have submitted all documents and information in my possession necessary for product processing by the Etichub regulatory office. I understand that confirmation will attest to the completion of 50% of the process and will notify the technical team to start processing.',
+        'awareness_declaration_alert_js': 'Attention: you must check the formal awareness declaration before proceeding with submission.',
+        
+        # Summary View
+        'summary_page_title': 'Summary and Submission',
+        'summary_badge': 'Final Summary',
+        'summary_title': 'Verify and Confirm Submission',
+        'summary_case': 'Case:',
+        'summary_docs_uploaded': 'Uploaded Documents',
+        'summary_absence_formalized': 'Formalized Absence',
+        'summary_absence_attachment': 'Letterhead attachment:',
+        'summary_declaration_acquired': 'Declaration Acquired',
+        'summary_ready': 'Ready',
+        'summary_no_files': 'No files uploaded for this case.',
+        'summary_security_notice': 'By confirming submission, documentation will be securely stored on company servers. An official receipt will be generated.',
+        'btn_back': 'Back',
+        'btn_confirm_submit_50': 'Confirm and Submit Documents (50%)',
+        'submitting_spinner': 'Submitting...',
+        
+        # Success View
+        'success_page_title': 'Form Submitted — Etichub',
+        'success_title': 'Form Submitted!',
+        'success_msg_50': 'Thank you for submitting the documents. The Etichub Regulatory Office has been notified to begin technical processing (50% completed).',
+        'detail_status': 'Status',
+        'detail_status_val': '✓ Documentation Acquired (50%)',
+        'detail_datetime': 'Date and time',
+        'detail_customer': 'Client',
+        'detail_project': 'Project / Product',
+        'success_receipt_hint': 'You can download the official receipt or safely return to your client portal.',
+        'btn_download_receipt': 'Download Official Receipt (PDF)',
+        'btn_home': 'Back to Home',
+        
+        # Already Submitted View
+        'already_submitted_title': 'Form Already Submitted',
+        'already_submitted_subtitle': 'Documentation for this product has already been confirmed and sent to the Regulatory Office.',
+        'already_submitted_locked_msg': 'It is no longer possible to modify uploaded documents as processing has begun.',
+
+        # Empty State
+        'empty_title': 'No products assigned',
+        'empty_desc': 'There are currently no products in progress. You will be notified when Etichub assigns a new project to your account.',
+        
+        # Success page & cross-links
+        'back_to_portal': 'Back to Your Products (Client Portal)',
+    },
+
+    'fr': {
+        'code': 'fr',
+        'lang_name': 'Français',
+        'dir': 'ltr',
+        
+        # Navbar & Layout
+        'portal_title': 'Espace Client',
+        'logout': 'Déconnexion',
+        'language': 'Langue',
+        'footer_text': 'Etichub S.r.l. · Spin-off Université de Pavie · Laboratoire de tests et réglementaire cosmétique',
+        
+        # Login Page
+        'login_page_title': 'Connexion — Espace Client Etichub',
+        'welcome_back': 'Bienvenue',
+        'login_subtitle': 'Connectez-vous avec les identifiants fournis par Etichub pour consulter vos produits et déposer vos documents.',
+        'client_code': 'Code Client',
+        'client_code_placeholder': 'ex. CLI-001',
+        'password': 'Mot de passe',
+        'password_placeholder': 'Entrez votre mot de passe',
+        'show_password': 'Afficher le mot de passe',
+        'hide_password': 'Masquer le mot de passe',
+        'login_submit': 'Se connecter',
+        'need_help': 'Besoin d\'aide ?',
+        'contact_us': 'Contactez-nous',
+        
+        # Login Error Messages
+        'error_missing_fields': 'Veuillez saisir votre code client et votre mot de passe.',
+        'error_account_inactive': 'Votre compte a été désactivé. Veuillez contacter Etichub pour assistance.',
+        'error_not_configured': 'L\'accès à l\'espace client n\'est pas encore configuré. Veuillez contacter Etichub.',
+        'error_invalid_credentials': 'Mot de passe incorrect. Veuillez réessayer.',
+        'error_customer_not_found': 'Code client introuvable.',
+        'error_forbidden_product': 'Vous n\'avez pas accès à ce produit.',
+        
+        # Dashboard
+        'dashboard_page_title': 'Mes Produits — Espace Client Etichub',
+        'hello_user': 'Bonjour, {name}',
+        'dashboard_subtitle': 'Voici les produits actuellement traités avec Etichub. Sélectionnez un produit pour gérer les documents requis.',
+        'stat_total_products': 'Total des produits',
+        'stat_in_progress': 'En cours',
+        'stat_completed': 'Terminés',
+        'section_your_products': 'Vos Produits',
+        
+        # Status Badges
+        'status_draft': 'Dossier ouvert',
+        'status_in_progress': 'Documentation partielle',
+        'status_submitted': 'Dépôt documentaire terminé',
+        'status_in_processing': 'Traitement Etichub en cours',
+        'status_completed': 'Traitement terminé',
+        'status_expired': 'Expiré',
+        'status_cancelled': 'Annulé',
+        
+        # Macro Steps & Product Card
+        'macro_step_1_title': 'Phase 1 : Collecte documentaire (50%)',
+        'macro_step_2_title': 'Phase 2 : Traitement Etichub (100%)',
+        'macro_step_1_short': '1. Documents (50%)',
+        'macro_step_2_short': '2. Traitement (100%)',
+        'ttl_deadline': 'Délai de dépôt (TTL)',
+        'documents_progress': 'Documents',
+        'assigned_on': 'Assigné le',
+        'expires_on': 'Expire le',
+        'btn_upload_docs': 'Déposer des documents',
+        'btn_docs_submitted': 'Documents transmis (50%)',
+        'btn_view_docs': 'Voir les documents transmis',
+        'btn_expired': 'Expiré — Contactez Etichub',
+        
+        # Notifications & Status Details
+        'notification_etichub_submitted': 'Dépôt documentaire terminé (50%). Le service réglementaire d\'Etichub a été notifié et débutera prochainement le traitement.',
+        'notification_etichub_in_processing': 'Traitement Etichub en cours (75%). Le dossier technique (DIP) est actuellement en cours d\'élaboration par le service réglementaire.',
+        'notification_etichub_completed': 'Traitement terminé avec succès (100%). Le dossier de certification (DIP) a été finalisé et validé.',
+        
+        # Alert Modal & Awareness Declaration (Récapitulatif et envoi)
+        'alert_confirm_submission_title': 'Confirmation d\'envoi final',
+        'alert_confirm_submission_body': 'Confirmez-vous avoir téléchargé tous les documents en votre possession ? L\'envoi notifiera le service réglementaire d\'Etichub pour démarrer le traitement. Il ne sera plus possible de modifier les documents téléchargés.',
+        'alert_confirm_btn_cancel': 'Annuler et revérifier',
+        'alert_confirm_btn_submit': 'Oui, confirmer et envoyer (50%)',
+        'awareness_declaration_title': 'Déclaration de conformité documentaire',
+        'awareness_declaration_text': 'Je déclare formellement avoir transmis tous les documents et informations en ma possession nécessaires au traitement du produit par le bureau réglementaire d\'Etichub. J\'ai conscience que cette validation atteste de la réalisation de 50% du processus et notifiera l\'équipe technique pour le démarrage du traitement.',
+        'awareness_declaration_alert_js': 'Attention : vous devez cocher la déclaration formelle de conformité avant de procéder à l\'envoi.',
+        
+        # Summary View
+        'summary_page_title': 'Récapitulatif et envoi',
+        'summary_badge': 'Récapitulatif final',
+        'summary_title': 'Vérifier et confirmer l\'envoi',
+        'summary_case': 'Dossier :',
+        'summary_docs_uploaded': 'Documents déposés',
+        'summary_absence_formalized': 'Absence formalisée',
+        'summary_absence_attachment': 'Pièce jointe sur papier à en-tête :',
+        'summary_declaration_acquired': 'Déclaration enregistrée',
+        'summary_ready': 'Prêt',
+        'summary_no_files': 'Aucun fichier déposé pour ce dossier.',
+        'summary_security_notice': 'En confirmant l\'envoi, les documents seront archivés en toute sécurité sur les serveurs de l\'entreprise. Un reçu officiel sera généré.',
+        'btn_back': 'Retour',
+        'btn_confirm_submit_50': 'Confirmer et envoyer les documents (50%)',
+        'submitting_spinner': 'Envoi en cours...',
+        
+        # Success View
+        'success_page_title': 'Formulaire envoyé — Etichub',
+        'success_title': 'Formulaire envoyé !',
+        'success_msg_50': 'Merci d\'avoir transmis vos documents. Le service réglementaire d\'Etichub a été notifié pour débuter le traitement technique (50% complété).',
+        'detail_status': 'Statut',
+        'detail_status_val': '✓ Documents collectés (50%)',
+        'detail_datetime': 'Date et heure',
+        'detail_customer': 'Client',
+        'detail_project': 'Projet / Produit',
+        'success_receipt_hint': 'Vous pouvez télécharger le reçu officiel ou retourner à votre espace client en toute sécurité.',
+        'btn_download_receipt': 'Télécharger le reçu officiel (PDF)',
+        'btn_home': 'Retour à l\'accueil',
+        
+        # Already Submitted View
+        'already_submitted_title': 'Formulaire déjà transmis',
+        'already_submitted_subtitle': 'La documentation pour ce produit a déjà été confirmée et envoyée au service réglementaire.',
+        'already_submitted_locked_msg': 'Il n\'est plus possible de modifier les documents déposés car le traitement a commencé.',
+
+        # Empty State
+        'empty_title': 'Aucun produit assigné',
+        'empty_desc': 'Il n\'y a actuellement aucun produit en cours de traitement. Vous serez notifié dès qu\'Etichub vous assignera un nouveau projet.',
+        
+        # Success page & cross-links
+        'back_to_portal': 'Retour à Vos Produits (Espace Client)',
+    },
+
+    'de': {
+        'code': 'de',
+        'lang_name': 'Deutsch',
+        'dir': 'ltr',
+        
+        # Navbar & Layout
+        'portal_title': 'Kundenportal',
+        'logout': 'Abmelden',
+        'language': 'Sprache',
+        'footer_text': 'Etichub S.r.l. · Spin-off Universität Pavia · Labor für Kosmetikprüfung und Regulatorik',
+        
+        # Login Page
+        'login_page_title': 'Anmelden — Etichub Kundenportal',
+        'welcome_back': 'Willkommen zurück',
+        'login_subtitle': 'Melden Sie sich mit den von Etichub bereitgestellten Zugangsdaten an, um Ihre Produkte einzusehen und Dokumente hochzuladen.',
+        'client_code': 'Kundennummer',
+        'client_code_placeholder': 'z. B. CLI-001',
+        'password': 'Passwort',
+        'password_placeholder': 'Passwort eingeben',
+        'show_password': 'Passwort anzeigen',
+        'hide_password': 'Passwort verbergen',
+        'login_submit': 'Anmelden',
+        'need_help': 'Benötigen Sie Hilfe?',
+        'contact_us': 'Kontaktieren Sie uns',
+        
+        # Login Error Messages
+        'error_missing_fields': 'Bitte geben Sie Ihre Kundennummer und Ihr Passwort ein.',
+        'error_account_inactive': 'Ihr Konto wurde deaktiviert. Bitte kontaktieren Sie Etichub für Unterstützung.',
+        'error_not_configured': 'Der Zugang zum Kundenportal ist noch nicht eingerichtet. Bitte kontaktieren Sie Etichub.',
+        'error_invalid_credentials': 'Falsches Passwort. Bitte versuchen Sie es erneut.',
+        'error_customer_not_found': 'Kundennummer nicht gefunden.',
+        'error_forbidden_product': 'Sie haben keinen Zugriff auf dieses Produkt.',
+        
+        # Dashboard
+        'dashboard_page_title': 'Meine Produkte — Etichub Kundenportal',
+        'hello_user': 'Hallo, {name}',
+        'dashboard_subtitle': 'Hier finden Sie die Produkte, die derzeit von Etichub bearbeitet werden. Wählen Sie ein Produkt aus, um Dokumente zu verwalten.',
+        'stat_total_products': 'Produkte insgesamt',
+        'stat_in_progress': 'In Bearbeitung',
+        'stat_completed': 'Abgeschlossen',
+        'section_your_products': 'Ihre Produkte',
+        
+        # Status Badges
+        'status_draft': 'Vorgang eröffnet',
+        'status_in_progress': 'Unvollständige Unterlagen',
+        'status_submitted': 'Dokumenten-Upload abgeschlossen',
+        'status_in_processing': 'Etichub-Bearbeitung läuft',
+        'status_completed': 'Bearbeitung abgeschlossen',
+        'status_expired': 'Abgelaufen',
+        'status_cancelled': 'Storniert',
+        
+        # Macro Steps & Product Card
+        'macro_step_1_title': 'Phase 1: Dokumentenerfassung (50%)',
+        'macro_step_2_title': 'Phase 2: Etichub-Bearbeitung (100%)',
+        'macro_step_1_short': '1. Dokumente (50%)',
+        'macro_step_2_short': '2. Bearbeitung (100%)',
+        'ttl_deadline': 'Upload-Frist (TTL)',
+        'documents_progress': 'Dokumente',
+        'assigned_on': 'Zugewiesen am',
+        'expires_on': 'Gültig bis',
+        'btn_upload_docs': 'Dokumente hochladen',
+        'btn_docs_submitted': 'Unterlagen eingereicht (50%)',
+        'btn_view_docs': 'Eingereichte Dokumente ansehen',
+        'btn_expired': 'Abgelaufen — Kontaktieren Sie Etichub',
+        
+        # Notifications & Status Details
+        'notification_etichub_submitted': 'Dokumenten-Upload abgeschlossen (50%). Die regulatorische Abteilung von Etichub wurde benachrichtigt und beginnt in Kürze mit der Bearbeitung.',
+        'notification_etichub_in_processing': 'Etichub-Bearbeitung läuft (75%). Die technische Dokumentation (PID) wird derzeit von der regulatorischen Abteilung bearbeitet.',
+        'notification_etichub_completed': 'Bearbeitung erfolgreich abgeschlossen (100%). Die Zertifizierungsdokumentation (PID) wurde fertiggestellt und validiert.',
+        
+        # Alert Modal & Awareness Declaration (Übersicht und Übermittlung)
+        'alert_confirm_submission_title': 'Bestätigung der endgültigen Übermittlung',
+        'alert_confirm_submission_body': 'Bestätigen Sie, dass Sie alle in Ihrem Besitz befindlichen Unterlagen hochgeladen haben? Durch das Absenden wird die regulatorische Abteilung von Etichub benachrichtigt, um mit der Bearbeitung zu beginnen. Die hochgeladenen Dokumente können danach nicht mehr geändert werden.',
+        'alert_confirm_btn_cancel': 'Abbrechen und prüfen',
+        'alert_confirm_btn_submit': 'Ja, bestätigen und senden (50%)',
+        'awareness_declaration_title': 'Erklärung zur Vollständigkeit der Unterlagen',
+        'awareness_declaration_text': 'Ich erkläre hiermit formell, alle in meinem Besitz befindlichen Dokumente und Informationen übermittelt zu haben, die für die Bearbeitung des Produkts durch die regulatorische Abteilung von Etichub erforderlich sind. Mir ist bewusst, dass die Bestätigung den Abschluss von 50% des Prozesses bescheinigt und das technische Team zum Beginn der Bearbeitung benachrichtigt.',
+        'awareness_declaration_alert_js': 'Achtung: Sie müssen die formelle Erklärung zur Vollständigkeit ankreuzen, bevor Sie fortfahren.',
+        
+        # Summary View
+        'summary_page_title': 'Übersicht und Übermittlung',
+        'summary_badge': 'Abschließende Übersicht',
+        'summary_title': 'Prüfen und Übermittlung bestätigen',
+        'summary_case': 'Vorgang:',
+        'summary_docs_uploaded': 'Hochgeladene Dokumente',
+        'summary_absence_formalized': 'Formalisiertes Fehlen',
+        'summary_absence_attachment': 'Anhang auf Briefbogen:',
+        'summary_declaration_acquired': 'Erklärung erfasst',
+        'summary_ready': 'Bereit',
+        'summary_no_files': 'Keine Dateien für diesen Vorgang hochgeladen.',
+        'summary_security_notice': 'Mit der Bestätigung werden die Unterlagen sicher auf dem Unternehmensserver archiviert. Eine offizielle Empfangsbestätigung wird erstellt.',
+        'btn_back': 'Zurück',
+        'btn_confirm_submit_50': 'Dokumente bestätigen und einreichen (50%)',
+        'submitting_spinner': 'Wird gesendet...',
+        
+        # Success View
+        'success_page_title': 'Formular gesendet — Etichub',
+        'success_title': 'Formular eingereicht!',
+        'success_msg_50': 'Vielen Dank für das Einreichen der Dokumente. Die regulatorische Abteilung von Etichub wurde benachrichtigt, um mit der technischen Bearbeitung zu beginnen (50% abgeschlossen).',
+        'detail_status': 'Status',
+        'detail_status_val': '✓ Dokumente erfasst (50%)',
+        'detail_datetime': 'Datum und Uhrzeit',
+        'detail_customer': 'Kunde',
+        'detail_project': 'Projekt / Produkt',
+        'success_receipt_hint': 'Sie können die offizielle Quittung herunterladen oder sicher zu Ihrem Kundenportal zurückkehren.',
+        'btn_download_receipt': 'Offizielle Quittung herunterladen (PDF)',
+        'btn_home': 'Zur Startseite',
+        
+        # Already Submitted View
+        'already_submitted_title': 'Formular bereits eingereicht',
+        'already_submitted_subtitle': 'Die Dokumentation für dieses Produkt wurde bereits bestätigt und an die regulatorische Abteilung gesendet.',
+        'already_submitted_locked_msg': 'Die hochgeladenen Dokumente können nicht mehr geändert werden, da die Bearbeitung begonnen hat.',
+
+        # Empty State
+        'empty_title': 'Keine Produkte zugewiesen',
+        'empty_desc': 'Derzeit befinden sich keine Produkte in Bearbeitung. Sie werden benachrichtigt, sobald Etichub Ihnen ein neues Projekt zuweist.',
+        
+        # Success page & cross-links
+        'back_to_portal': 'Zurück zu Ihren Produkten (Kundenportal)',
+    },
+}
+
+
+def get_client_language(request):
+    """
+    Determines active language for the client portal.
+    Priority:
+    1. Query param ?lang=<code> (if valid)
+    2. Session 'client_language'
+    3. Cookie 'client_language'
+    4. Default: 'it'
+    """
+    lang = request.GET.get('lang')
+    if lang and lang.lower() in SUPPORTED_LANGUAGE_CODES:
+        lang = lang.lower()
+        request.session['client_language'] = lang
+        request.session.modified = True
+        return lang
+
+    session_lang = request.session.get('client_language')
+    if session_lang and session_lang in SUPPORTED_LANGUAGE_CODES:
+        return session_lang
+
+    cookie_lang = request.COOKIES.get('client_language')
+    if cookie_lang and cookie_lang in SUPPORTED_LANGUAGE_CODES:
+        request.session['client_language'] = cookie_lang
+        request.session.modified = True
+        return cookie_lang
+
+    return 'it'
+
+
+def get_translation_context(request):
+    """
+    Returns context dictionary containing active language,
+    translations dictionary, and list of supported languages.
+    """
+    lang = get_client_language(request)
+    t = TRANSLATIONS.get(lang, TRANSLATIONS['it'])
+    
+    current_lang_obj = next((item for item in SUPPORTED_LANGUAGES if item['code'] == lang), SUPPORTED_LANGUAGES[0])
+    
+    return {
+        'client_lang': lang,
+        'current_lang_obj': current_lang_obj,
+        'supported_languages': SUPPORTED_LANGUAGES,
+        't': t,
+    }

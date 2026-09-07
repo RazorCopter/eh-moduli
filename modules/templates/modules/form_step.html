@@ -77,8 +77,18 @@
                                     {% if upload %}
                                         {% if upload.availability_status == 'not_available' %}
                                         <div class="alert alert-warning py-2 px-3 mb-2 d-flex align-items-center justify-content-between rounded-3">
-                                            <span class="small"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> <strong>Non disponibile:</strong> <em>{{ upload.motivazione_indisponibilita }}</em></span>
-                                            <span class="badge bg-warning text-dark">Giustificato</span>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <i class="bi bi-file-earmark-check-fill text-warning fs-5"></i>
+                                                <div>
+                                                    {% if upload.stored_filename and upload.original_filename != 'NON_DISPONIBILE' %}
+                                                    <span class="small"><strong>Dichiarazione formale acquisita:</strong> {{ upload.original_filename }} ({{ upload.file_size|filesizeformat }})</span>
+                                                    <div class="text-muted" style="font-size: 0.72rem;">Carta intestata timbrata e firmata{% if upload.motivazione_indisponibilita and upload.motivazione_indisponibilita != 'Dichiarazione formale su carta intestata timbrata e firmata' %} · <em>{{ upload.motivazione_indisponibilita }}</em>{% endif %}</div>
+                                                    {% else %}
+                                                    <span class="small"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> <strong>Non disponibile:</strong> <em>{{ upload.motivazione_indisponibilita }}</em></span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <span class="badge bg-warning text-dark">Dichiarazione Acquisita</span>
                                         </div>
                                         {% else %}
                                         <div class="alert alert-success py-2 px-3 mb-2 d-flex align-items-center justify-content-between rounded-3">
@@ -92,35 +102,9 @@
 
                                 <!-- Unavailability trigger -->
                                 <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
-                                    <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-secondary" onclick="toggleUnavailablePanel('{{ item.id }}')">
-                                        <i class="bi bi-question-circle me-1"></i> Non hai questo documento? Giustifica assenza
+                                    <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-secondary" onclick="openAbsenceDeclarationModal('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.required|yesno:'true,false' }})">
+                                        <i class="bi bi-file-earmark-medical me-1 text-warning"></i> Non hai questo documento? <strong class="text-decoration-underline">Carica dichiarazione formale (timbrata e firmata)</strong>
                                     </button>
-                                </div>
-
-                                <!-- Panel for Unavailability / Mandatory Justification -->
-                                <div id="unavail-panel-{{ item.id }}" class="mt-3 p-3 rounded-3 border bg-light d-none" style="border-left: 4px solid #ffc107 !important;">
-                                    <div class="d-flex align-items-center gap-2 mb-2">
-                                        <i class="bi bi-exclamation-triangle-fill text-warning"></i>
-                                        <strong class="text-dark small">Dichiarazione di Indisponibilità Documento</strong>
-                                    </div>
-                                    <p class="text-muted small mb-2">
-                                        {% if item.required %}
-                                        Questo documento è <span class="text-danger fw-semibold">obbligatorio</span>. Per procedere senza caricarlo, devi inserire una motivazione o un giustificativo valido (obbligatorio).
-                                        {% else %}
-                                        Se non intendi caricare questo documento facoltativo, puoi indicarne il motivo.
-                                        {% endif %}
-                                    </p>
-                                    <div class="mb-2">
-                                        <textarea id="justification-{{ item.id }}" class="form-control form-control-sm" rows="2" placeholder="Inserisci il motivo di indisponibilità del documento (obbligatorio)..."></textarea>
-                                    </div>
-                                    <div class="d-flex gap-2">
-                                        <button type="button" class="btn btn-sm btn-warning fw-semibold px-3" onclick="submitUnavailable('{{ item.id }}', {{ item.required|yesno:'true,false' }})">
-                                            <i class="bi bi-shield-check me-1"></i> Salva Giustificativo
-                                        </button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary px-2" onclick="toggleUnavailablePanel('{{ item.id }}')">
-                                            Annulla
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -219,6 +203,82 @@
     </div>
 </div>
 
+<!-- Modal per Upload Dichiarazione Formale di Assenza Documento -->
+<div class="modal fade" id="absenceDeclarationModal" tabindex="-1" aria-labelledby="absenceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header bg-light border-bottom py-3 px-4">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-warning bg-opacity-25 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="bi bi-file-earmark-medical text-warning-emphasis fs-5"></i>
+                    </div>
+                    <div>
+                        <h6 class="modal-title fw-bold text-dark mb-0" id="absenceModalLabel">Dichiarazione Formale di Assenza</h6>
+                        <small class="text-muted" id="absenceModalReqName">Documento</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Info notice -->
+                <div class="alert alert-warning border-0 rounded-3 p-3 mb-3" style="background-color: #fff9e6; color: #856404; font-size: 0.84rem;">
+                    <div class="d-flex gap-2">
+                        <i class="bi bi-info-circle-fill flex-shrink-0 mt-0 fs-6"></i>
+                        <div>
+                            Per procedere in assenza di un documento obbligatorio è <strong>tassativo allegare una dichiarazione formale redatta su carta intestata aziendale</strong>, debitamente <strong>timbrata e firmata</strong> dal legale rappresentante o referente tecnico autorizzato.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden IDs -->
+                <input type="hidden" id="absenceReqId" value="">
+                <input type="hidden" id="absenceIsRequired" value="false">
+
+                <!-- File Upload Area -->
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-dark">File della Dichiarazione (Carta intestata timbrata e firmata) <span class="text-danger" id="absenceFileRequiredAsterisk">*</span></label>
+                    <div class="border rounded-3 p-3 text-center bg-light" id="absenceDropArea" style="border: 2px dashed #cbd5e1 !important; cursor: pointer;" onclick="document.getElementById('absenceFileInput').click()">
+                        <i class="bi bi-cloud-arrow-up text-secondary fs-2 mb-1 d-block"></i>
+                        <span class="small fw-semibold text-dark d-block" id="absenceFilePrompt">Clicca qui o trascina la dichiarazione firmata</span>
+                        <span class="text-muted d-block" style="font-size: 0.75rem;">Formati ammessi: PDF, DOCX, DOC, JPG, PNG (max 10MB)</span>
+                        <div id="absenceFileSelected" class="mt-2 d-none">
+                            <span class="badge bg-white text-dark border p-2 text-start d-inline-flex align-items-center gap-2 shadow-xs">
+                                <i class="bi bi-file-earmark-check text-success fs-6"></i>
+                                <span id="absenceFileName" class="text-truncate" style="max-width: 250px;"></span>
+                                <span id="absenceFileSize" class="text-muted small"></span>
+                            </span>
+                        </div>
+                    </div>
+                    <input type="file" id="absenceFileInput" class="d-none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="handleAbsenceFileSelected(this)">
+                </div>
+
+                <!-- Motivazione / Note aggiuntive -->
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-dark">Motivazione o Note Aggiuntive <span class="text-muted fw-normal">(opzionale)</span></label>
+                    <textarea id="absenceNotesInput" class="form-control form-control-sm rounded-3" rows="2" placeholder="Es. Documento non applicabile per specifica formulazione / estremi della dichiarazione..." oninput="validateAbsenceForm()"></textarea>
+                </div>
+
+                <!-- Checkbox attestazione legale -->
+                <div class="form-check p-3 rounded-3 mb-2" id="absenceCheckContainer" style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
+                    <input class="form-check-input" type="checkbox" id="absenceLegalCheck" onchange="validateAbsenceForm()">
+                    <label class="form-check-label small text-dark" for="absenceLegalCheck">
+                        <strong>Dichiaro e attesto</strong> che il documento allegato costituisce formalizzazione su <strong>carta intestata aziendale</strong>, provvisto di <strong>timbro e firma</strong> valida del referente autorizzato.
+                    </label>
+                </div>
+
+                <!-- Status alert for errors / upload -->
+                <div id="absenceStatusAlert" class="mt-3 d-none"></div>
+            </div>
+            <div class="modal-footer bg-light border-top py-3 px-4 d-flex justify-content-between">
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3 rounded-3" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-sm btn-warning px-4 fw-bold rounded-3 shadow-sm" id="btnSubmitAbsence" onclick="submitAbsenceDeclaration()" disabled>
+                    <i class="bi bi-upload me-1"></i> Salva Dichiarazione Formale
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // Prevent default drag and drop behavior across window
 window.addEventListener('dragover', function(e) {
@@ -268,82 +328,157 @@ function handleFileUpload(reqId, inputElement) {
     }
 }
 
-function toggleUnavailablePanel(reqId) {
-    const panel = document.getElementById('unavail-panel-' + reqId);
-    if (panel) {
-        panel.classList.toggle('d-none');
-        if (!panel.classList.contains('d-none')) {
-            const textarea = document.getElementById('justification-' + reqId);
-            if (textarea) textarea.focus();
-        }
-    }
+// Helpers per formattazione e modale dichiarazione assenza
+function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
-async function uploadSingleFile(reqId, file) {
-    if (!file) return;
+let absenceModalInstance = null;
 
-    // Close unavailability panel if open
-    const panel = document.getElementById('unavail-panel-' + reqId);
-    if (panel && !panel.classList.contains('d-none')) {
-        panel.classList.add('d-none');
+function getAbsenceModal() {
+    const el = document.getElementById('absenceDeclarationModal');
+    if (!absenceModalInstance && el) {
+        absenceModalInstance = new bootstrap.Modal(el);
     }
+    return absenceModalInstance;
+}
 
-    const targetDiv = document.getElementById('uploads-' + reqId);
-    targetDiv.innerHTML = '<div class="alert alert-info py-2 px-3 mb-0 d-flex align-items-center rounded-3"><div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div> <span class="small">Caricamento sicuro di <strong>' + file.name + '</strong> in corso...</span></div>';
+function openAbsenceDeclarationModal(reqId, reqName, isRequired) {
+    document.getElementById('absenceReqId').value = reqId;
+    document.getElementById('absenceIsRequired').value = isRequired ? 'true' : 'false';
+    document.getElementById('absenceModalReqName').innerText = reqName + (isRequired ? ' · Obbligatorio' : ' · Facoltativo');
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('requirement_id', reqId);
+    // Reset input fields
+    const fileInput = document.getElementById('absenceFileInput');
+    fileInput.value = '';
+    document.getElementById('absenceFilePrompt').innerText = 'Clicca qui o trascina la dichiarazione firmata';
+    document.getElementById('absenceFileSelected').classList.add('d-none');
+    document.getElementById('absenceNotesInput').value = '';
+    const legalCheck = document.getElementById('absenceLegalCheck');
+    legalCheck.checked = false;
 
-    try {
-        const response = await fetch("{% url 'upload_document_view' assignment.id %}", {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: formData
-        });
+    // Reset alert & button
+    const alertDiv = document.getElementById('absenceStatusAlert');
+    alertDiv.className = 'mt-3 d-none';
+    alertDiv.innerHTML = '';
+    document.getElementById('btnSubmitAbsence').disabled = true;
 
-        const data = await response.json();
-        if (response.ok && data.status === 'success') {
-            targetDiv.innerHTML = `
-                <div class="alert alert-success py-2 px-3 mb-0 d-flex align-items-center justify-content-between rounded-3">
-                    <span class="small"><i class="bi bi-check-circle-fill text-success me-2"></i> <strong>${data.filename}</strong> (${(data.size / 1024).toFixed(1)} KB)</span>
-                    <span class="badge bg-success">Caricato con successo</span>
-                </div>
-            `;
+    // Show modal
+    getAbsenceModal().show();
+}
+
+function handleAbsenceFileSelected(input) {
+    const file = input.files && input.files[0];
+    const promptEl = document.getElementById('absenceFilePrompt');
+    const selectedDiv = document.getElementById('absenceFileSelected');
+    const nameEl = document.getElementById('absenceFileName');
+    const sizeEl = document.getElementById('absenceFileSize');
+
+    if (file) {
+        promptEl.innerText = 'File selezionato:';
+        nameEl.innerText = file.name;
+        sizeEl.innerText = '(' + formatBytes(file.size) + ')';
+        selectedDiv.classList.remove('d-none');
+    } else {
+        promptEl.innerText = 'Clicca qui o trascina la dichiarazione firmata';
+        selectedDiv.classList.add('d-none');
+    }
+    validateAbsenceForm();
+}
+
+// Drag and drop for absence modal
+const absenceDropArea = document.getElementById('absenceDropArea');
+if (absenceDropArea) {
+    absenceDropArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        absenceDropArea.style.borderColor = '#E8847D';
+        absenceDropArea.style.backgroundColor = '#fff5f5';
+    });
+    absenceDropArea.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        absenceDropArea.style.borderColor = '#cbd5e1';
+        absenceDropArea.style.backgroundColor = '#f8fafc';
+    });
+    absenceDropArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        absenceDropArea.style.borderColor = '#cbd5e1';
+        absenceDropArea.style.backgroundColor = '#f8fafc';
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const fileInput = document.getElementById('absenceFileInput');
+            fileInput.files = e.dataTransfer.files;
+            handleAbsenceFileSelected(fileInput);
+        }
+    });
+}
+
+function validateAbsenceForm() {
+    const fileInput = document.getElementById('absenceFileInput');
+    const legalCheck = document.getElementById('absenceLegalCheck');
+    const isRequired = document.getElementById('absenceIsRequired').value === 'true';
+    const notes = document.getElementById('absenceNotesInput').value.trim();
+    const btn = document.getElementById('btnSubmitAbsence');
+
+    const hasFile = fileInput.files && fileInput.files.length > 0;
+
+    if (isRequired) {
+        // Obbligatorio: deve avere file E checkbox spuntata
+        btn.disabled = !(hasFile && legalCheck.checked);
+    } else {
+        // Facoltativo: se ha file deve spuntare checkbox, oppure se non ha file può indicare le note
+        if (hasFile) {
+            btn.disabled = !legalCheck.checked;
         } else {
-            targetDiv.innerHTML = `
-                <div class="alert alert-danger py-2 px-3 mb-0 rounded-3 small">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Errore: ${data.error || (data.errors && data.errors.join(', ')) || 'Caricamento fallito'}
-                </div>
-            `;
+            btn.disabled = (notes.length === 0);
         }
-    } catch (err) {
-        targetDiv.innerHTML = `
-            <div class="alert alert-danger py-2 px-3 mb-0 rounded-3 small">
-                <i class="bi bi-wifi-off me-2"></i> Errore di rete: ${err.message}
-            </div>
-        `;
     }
 }
 
-async function submitUnavailable(reqId, isRequired) {
-    const textarea = document.getElementById('justification-' + reqId);
-    const justification = textarea ? textarea.value.trim() : '';
+async function submitAbsenceDeclaration() {
+    const reqId = document.getElementById('absenceReqId').value;
+    const isRequired = document.getElementById('absenceIsRequired').value === 'true';
+    const fileInput = document.getElementById('absenceFileInput');
+    const notes = document.getElementById('absenceNotesInput').value.trim();
+    const legalCheck = document.getElementById('absenceLegalCheck');
+    const alertDiv = document.getElementById('absenceStatusAlert');
+    const btn = document.getElementById('btnSubmitAbsence');
 
-    if (isRequired && !justification) {
-        alert('Attenzione: Per i documenti obbligatori è necessario indicare una motivazione/giustificativo valido.');
-        if (textarea) textarea.focus();
+    const hasFile = fileInput.files && fileInput.files.length > 0;
+    const file = hasFile ? fileInput.files[0] : null;
+
+    if (isRequired && !file) {
+        alertDiv.className = 'alert alert-danger py-2 px-3 mt-3 rounded-3 small';
+        alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> È obbligatorio selezionare il file della dichiarazione su carta intestata timbrata e firmata.';
         return;
     }
 
-    const targetDiv = document.getElementById('uploads-' + reqId);
-    targetDiv.innerHTML = '<div class="alert alert-info py-2 px-3 mb-0 d-flex align-items-center rounded-3"><div class="spinner-border spinner-border-sm text-warning me-2" role="status"></div> <span class="small">Registrazione giustificativo in corso...</span></div>';
+    if (file && !legalCheck.checked) {
+        alertDiv.className = 'alert alert-danger py-2 px-3 mt-3 rounded-3 small';
+        alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> È necessario spuntare la casella di attestazione di carta intestata timbrata e firmata.';
+        return;
+    }
 
+    // Prepare FormData
     const formData = new FormData();
-    formData.append('justification', justification);
-    formData.append('declaration_text', justification);
+    if (file) {
+        formData.append('file', file);
+    }
+    formData.append('justification', notes);
+    formData.append('declaration_text', notes);
+
+    // Show loading state in modal
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Salvataggio in corso...';
+    alertDiv.className = 'alert alert-info py-2 px-3 mt-3 rounded-3 small d-flex align-items-center';
+    alertDiv.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Caricamento e archiviazione sicura della dichiarazione in corso...';
+
+    const targetDiv = document.getElementById('uploads-' + reqId);
+    if (targetDiv) {
+        targetDiv.innerHTML = '<div class="alert alert-info py-2 px-3 mb-0 d-flex align-items-center rounded-3"><div class="spinner-border spinner-border-sm text-warning me-2" role="status"></div> <span class="small">Salvataggio dichiarazione formale in corso...</span></div>';
+    }
 
     try {
         const res = await fetch(`/modules/form/{{ assignment.id }}/skip-document/${reqId}/`, {
@@ -356,26 +491,44 @@ async function submitUnavailable(reqId, isRequired) {
 
         const data = await res.json();
         if (res.ok && data.status === 'success') {
-            toggleUnavailablePanel(reqId);
-            targetDiv.innerHTML = `
-                <div class="alert alert-warning py-2 px-3 mb-0 d-flex align-items-center justify-content-between rounded-3">
-                    <span class="small"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> <strong>Documento dichiarato non disponibile:</strong> <em>${data.justification}</em></span>
-                    <span class="badge bg-warning text-dark">Giustificato</span>
-                </div>
-            `;
+            // Close modal
+            getAbsenceModal().hide();
+
+            // Update UI card feedback
+            if (targetDiv) {
+                if (data.is_declaration_file && data.filename && data.filename !== 'NON_DISPONIBILE') {
+                    targetDiv.innerHTML = `
+                        <div class="alert alert-warning py-2 px-3 mb-0 d-flex align-items-center justify-content-between rounded-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-file-earmark-check-fill text-warning fs-5"></i>
+                                <div>
+                                    <span class="small"><strong>Dichiarazione formale acquisita:</strong> ${data.filename} (${formatBytes(data.file_size)})</span>
+                                    <div class="text-muted" style="font-size: 0.72rem;">Carta intestata timbrata e firmata ${data.justification && data.justification !== 'Dichiarazione formale su carta intestata timbrata e firmata' ? '· <em>' + data.justification + '</em>' : ''}</div>
+                                </div>
+                            </div>
+                            <span class="badge bg-warning text-dark">Dichiarazione Acquisita</span>
+                        </div>
+                    `;
+                } else {
+                    targetDiv.innerHTML = `
+                        <div class="alert alert-warning py-2 px-3 mb-0 d-flex align-items-center justify-content-between rounded-3">
+                            <span class="small"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> <strong>Documento dichiarato non disponibile:</strong> <em>${data.justification}</em></span>
+                            <span class="badge bg-warning text-dark">Giustificato</span>
+                        </div>
+                    `;
+                }
+            }
         } else {
-            targetDiv.innerHTML = `
-                <div class="alert alert-danger py-2 px-3 mb-0 rounded-3 small">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Errore: ${data.error || 'Operazione fallita'}
-                </div>
-            `;
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-upload me-1"></i> Salva Dichiarazione Formale';
+            alertDiv.className = 'alert alert-danger py-2 px-3 mt-3 rounded-3 small';
+            alertDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> Errore: ${data.error || 'Operazione non riuscita.'}`;
         }
     } catch (e) {
-        targetDiv.innerHTML = `
-            <div class="alert alert-danger py-2 px-3 mb-0 rounded-3 small">
-                <i class="bi bi-wifi-off me-2"></i> Errore di rete: ${e.message}
-            </div>
-        `;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-upload me-1"></i> Salva Dichiarazione Formale';
+        alertDiv.className = 'alert alert-danger py-2 px-3 mt-3 rounded-3 small';
+        alertDiv.innerHTML = `<i class="bi bi-wifi-off me-1"></i> Errore di connessione: ${e.message}`;
     }
 }
 </script>

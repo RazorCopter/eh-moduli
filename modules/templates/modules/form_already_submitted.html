@@ -1,14 +1,65 @@
 {% extends "accounts/base.html" %}
+{% load static %}
 
-{% block title %}Modulo Inviato{% endblock %}
+{% block title %}{{ t.already_submitted_title|default:"Modulo Già Trasmesso" }} — Etichub{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-6">
-        <div class="alert alert-info mt-5">
-            <h4>✓ Modulo Già Inviato</h4>
-            <p>Questo modulo è già stato completato e inviato.</p>
-            <p>Non è possibile modificarlo.</p>
+<div class="row justify-content-center my-5">
+    <div class="col-lg-7 col-xl-6">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div style="height: 6px; background: linear-gradient(90deg, #2563EB 0%, #10B981 100%);"></div>
+            <div class="card-body p-4 p-md-5 text-center">
+                
+                <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 64px; height: 64px; background: #EFF6FF; color: #2563EB; font-size: 2rem;">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+
+                <h2 class="h4 fw-bold text-dark mb-2">
+                    {{ t.already_submitted_title|default:"Modulo Già Trasmesso" }}
+                </h2>
+
+                <p class="text-secondary mb-4" style="font-size: 0.95rem; line-height: 1.6;">
+                    {{ t.already_submitted_subtitle|default:"La documentazione per questo prodotto è già stata confermata e inviata all'Ufficio Regolatorio." }}
+                </p>
+
+                <div class="alert alert-light border rounded-3 p-3 text-start small text-dark mb-4" style="background: #F9FAFB;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <i class="bi bi-info-circle-fill text-primary"></i>
+                        <strong>{{ t.already_submitted_locked_msg|default:"Non è più possibile modificare i documenti caricati in quanto la lavorazione è stata avviata." }}</strong>
+                    </div>
+                    {% if assignment %}
+                    <div class="d-flex justify-content-between text-muted mt-2 pt-2 border-top">
+                        <span>{{ t.detail_status|default:"Stato" }}:</span>
+                        <span class="fw-semibold text-primary">
+                            {% if assignment.status == 'submitted' %}
+                                {{ t.status_submitted|default:"Upload documentale completato (50%)" }}
+                            {% elif assignment.status == 'in_processing' %}
+                                {{ t.status_in_processing|default:"Lavorazione Etichub in corso (75%)" }}
+                            {% elif assignment.status == 'completed' %}
+                                {{ t.status_completed|default:"Lavorazione completata (100%)" }}
+                            {% else %}
+                                {{ assignment.status }}
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+                    {% if assignment %}
+                    <a href="{% url 'assignment_receipt' assignment.id %}" class="btn btn-outline-primary py-2 rounded-3 fw-semibold">
+                        <i class="bi bi-file-earmark-pdf-fill me-1"></i> {{ t.btn_download_receipt|default:"Scarica Ricevuta Ufficiale (PDF)" }}
+                    </a>
+                    {% endif %}
+
+                    {% if request.session.customer_id %}
+                    <a href="{% url 'client_dashboard' %}" class="btn btn-primary py-2 rounded-3 fw-semibold">
+                        <i class="bi bi-grid-fill me-1"></i> {{ t.back_to_portal|default:"Torna ai Tuoi Prodotti (Area Personale)" }}
+                    </a>
+                    {% endif %}
+                </div>
+
+            </div>
         </div>
     </div>
 </div>

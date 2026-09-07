@@ -125,18 +125,24 @@
     /* Side-by-side KPI Indicator Cards */
     .kpi-row {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 1.25rem;
         margin-bottom: 2rem;
     }
 
-    @media (max-width: 1100px) {
+    @media (max-width: 1200px) {
+        .kpi-row {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
         .kpi-row {
             grid-template-columns: repeat(2, 1fr);
         }
     }
 
-    @media (max-width: 600px) {
+    @media (max-width: 500px) {
         .kpi-row {
             grid-template-columns: 1fr;
         }
@@ -182,6 +188,8 @@
     .kpi-card-pink::before { background: linear-gradient(90deg, #E89BA7, #F5BAC5); }
     .kpi-card-blue::before { background: linear-gradient(90deg, #2A79BA, #67AEE6); }
     .kpi-card-purple::before { background: linear-gradient(90deg, #7B44CC, #AB7CF4); }
+    .kpi-card-amber::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .kpi-card-cyan::before { background: linear-gradient(90deg, #0284c7, #38bdf8); }
     .kpi-card-green::before { background: linear-gradient(90deg, #2D8A4E, #57C77E); }
 
     .kpi-card:hover {
@@ -229,6 +237,14 @@
     .icon-box-purple {
         background: #F4EFFF;
         color: #7B44CC;
+    }
+    .icon-box-amber {
+        background: #FEF3C7;
+        color: #D97706;
+    }
+    .icon-box-cyan {
+        background: #E0F2FE;
+        color: #0284C7;
     }
     .icon-box-green {
         background: #EDF8EE;
@@ -492,7 +508,7 @@
     </div>
 </div>
 
-<!-- 4 Side-by-Side KPI Indicators with Informative Tooltips -->
+<!-- Side-by-Side KPI Indicators with Informative Tooltips -->
 <div class="kpi-row">
     <!-- 1. Moduli Pubblicati -->
     <div class="kpi-card kpi-card-pink">
@@ -505,7 +521,7 @@
                         class="kpi-info-btn"
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top" 
-                        data-bs-title="Numero totale di moduli di raccolta documenti attualmente attivi e pubblicati, pronti per essere compilati dai clienti.">
+                        data-bs-title="Numero totale di modelli di moduli di raccolta documenti attualmente attivi e pubblicati.">
                     <i class="bi bi-info-circle-fill"></i>
                 </button>
             </div>
@@ -528,7 +544,7 @@
                         class="kpi-info-btn"
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top" 
-                        data-bs-title="Clienti censiti a sistema abilitati alla ricezione dei moduli e dotati di cartella NAS dedicata (/storage/clienti/[cliente]/).">
+                        data-bs-title="Clienti con anagrafica attiva e accesso permanente all'Area Riservata (/modules/client/login/).">
                     <i class="bi bi-info-circle-fill"></i>
                 </button>
             </div>
@@ -551,7 +567,7 @@
                         class="kpi-info-btn"
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top" 
-                        data-bs-title="Volume complessivo di pratiche e inviti alla compilazione creati ed erogati verso i clienti nel tempo.">
+                        data-bs-title="Volume complessivo di pratiche create ed erogate verso i clienti nel tempo.">
                     <i class="bi bi-info-circle-fill"></i>
                 </button>
             </div>
@@ -563,26 +579,72 @@
         </a>
     </div>
 
-    <!-- 4. Pratiche Completate -->
-    <div class="kpi-card kpi-card-green">
+    <!-- 4. Da Lavorare (50%) -->
+    <div class="kpi-card kpi-card-amber">
         <div>
             <div class="kpi-card-header">
-                <div class="kpi-icon-box icon-box-green">
-                    <i class="bi bi-check2-circle"></i>
+                <div class="kpi-icon-box icon-box-amber">
+                    <i class="bi bi-bell-fill"></i>
                 </div>
                 <button type="button" 
                         class="kpi-info-btn"
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top" 
-                        data-bs-title="Pratiche trasmesse con successo dal cliente con tutti i documenti caricati, verificate e archiviate sul NAS.">
+                        data-bs-title="Pratiche con upload documentale completato e dichiarazione di consapevolezza confermata dal cliente (50%). Pronte per essere prese in carico da Etichub.">
                     <i class="bi bi-info-circle-fill"></i>
                 </button>
             </div>
-            <div class="kpi-metric counter-val" data-target="{{ submitted_count }}" style="color: #2D8A4E;">{{ submitted_count }}</div>
+            <div class="kpi-metric counter-val" data-target="{{ submitted_count }}" style="color: #d97706;">{{ submitted_count }}</div>
+            <h6 class="kpi-title">Da Lavorare (50%)</h6>
+        </div>
+        <span class="kpi-footer-link" style="color: #b45309; cursor: default;">
+            <i class="bi bi-patch-exclamation"></i> Upload Cliente Concluso
+        </span>
+    </div>
+
+    <!-- 4. In Lavorazione Etichub (75%) -->
+    <div class="kpi-card kpi-card-cyan">
+        <div>
+            <div class="kpi-card-header">
+                <div class="kpi-icon-box icon-box-cyan">
+                    <i class="bi bi-gear-wide-connected"></i>
+                </div>
+                <button type="button" 
+                        class="kpi-info-btn"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        data-bs-title="Pratiche prese in carico dall'Ufficio Regolatorio di Etichub (75%) per verifica tecnica e redazione PIF.">
+                    <i class="bi bi-info-circle-fill"></i>
+                </button>
+            </div>
+            <div class="kpi-metric counter-val" data-target="{{ in_processing_count }}" style="color: #0284c7;">{{ in_processing_count }}</div>
+            <h6 class="kpi-title">In Lavorazione (75%)</h6>
+        </div>
+        <span class="kpi-footer-link" style="color: #0369a1; cursor: default;">
+            <i class="bi bi-hourglass-split"></i> Ufficio Regolatorio
+        </span>
+    </div>
+
+    <!-- 5. Pratiche Lavorate (100%) -->
+    <div class="kpi-card kpi-card-green">
+        <div>
+            <div class="kpi-card-header">
+                <div class="kpi-icon-box icon-box-green">
+                    <i class="bi bi-check2-all"></i>
+                </div>
+                <button type="button" 
+                        class="kpi-info-btn"
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        data-bs-title="Pratiche interamente lavorate da Etichub (100%) con fascicolo regolatorio evaso e archiviato.">
+                    <i class="bi bi-info-circle-fill"></i>
+                </button>
+            </div>
+            <div class="kpi-metric counter-val" data-target="{{ completed_count }}" style="color: #2D8A4E;">{{ completed_count }}</div>
             <h6 class="kpi-title">Pratiche Completate</h6>
         </div>
-        <span class="kpi-footer-link" style="color: #6C757D; cursor: default;">
-            <i class="bi bi-patch-check"></i> Archiviate su NAS
+        <span class="kpi-footer-link" style="color: #2D8A4E; cursor: default;">
+            <i class="bi bi-patch-check"></i> Lavorate (100%)
         </span>
     </div>
 </div>
@@ -607,9 +669,9 @@
                 <thead>
                     <tr>
                         <th>Cliente</th>
-                        <th>Modulo</th>
+                        <th>Modulo / Prodotto</th>
                         <th>Avanzamento</th>
-                        <th>Stato</th>
+                        <th>Stato Macchina</th>
                         <th>Data Assegnazione</th>
                         <th style="text-align: right;">Dettagli</th>
                     </tr>
@@ -642,13 +704,21 @@
                             </span>
                         </td>
                         <td>
-                            {% if assignment.status == 'submitted' %}
-                            <span class="badge-status badge-status-submitted">
-                                <i class="bi bi-check-circle-fill"></i> Completato
+                            {% if assignment.status == 'completed' %}
+                            <span class="badge-status badge-status-submitted" style="background: #e8f5e9; color: #1b5e20;">
+                                <i class="bi bi-check2-all"></i> Lavorata (100%)
+                            </span>
+                            {% elif assignment.status == 'in_processing' %}
+                            <span class="badge-status badge-status-in-progress" style="background: #e0f2fe; color: #0369a1;">
+                                <i class="bi bi-gear-wide-connected"></i> In Lavorazione (75%)
+                            </span>
+                            {% elif assignment.status == 'submitted' %}
+                            <span class="badge-status" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">
+                                <i class="bi bi-bell-fill"></i> Da Lavorare (50%)
                             </span>
                             {% elif assignment.status == 'in_progress' %}
                             <span class="badge-status badge-status-in-progress">
-                                <i class="bi bi-hourglass-split"></i> In Corso
+                                <i class="bi bi-hourglass-split"></i> Doc Parziale
                             </span>
                             {% elif assignment.status == 'expired' %}
                             <span class="badge-status badge-status-expired">
@@ -656,7 +726,7 @@
                             </span>
                             {% else %}
                             <span class="badge-status badge-status-draft">
-                                <i class="bi bi-pencil"></i> Bozza
+                                <i class="bi bi-pencil"></i> Pratica Aperta
                             </span>
                             {% endif %}
                         </td>

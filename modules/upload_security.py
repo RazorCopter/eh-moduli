@@ -13,13 +13,21 @@ Addresses:
 import os
 import re
 import stat
+import time
+import mimetypes
 import secrets
 import hashlib
+import json
+import logging
 import tempfile
 import unicodedata
 from pathlib import Path
 from contextlib import contextmanager
 from typing import Tuple, List
+from .models import DocumentUpload
+from .utils import get_client_ip, get_user_agent
+
+logger = logging.getLogger(__name__)
 
 try:
     import magic
@@ -239,10 +247,11 @@ def get_mime_type_from_content(file_obj, max_bytes: int = 8192) -> str:
             detected = mime.from_buffer(header)
             if detected:
                 return detected
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"python-magic failed to detect MIME type: {e}; falling back to extension-based guessing.")
+    else:
+        logger.warning("python-magic is not installed or available; falling back to extension-based MIME guessing.")
 
-    import mimetypes
     name = getattr(file_obj, 'name', '')
     guessed, _ = mimetypes.guess_type(name)
     return guessed or 'application/octet-stream'
@@ -426,14 +435,48 @@ def generate_secure_filename(file_extension: str) -> str:
     Returns:
         Safe filename
     """
-    import time
     random_part = secrets.token_urlsafe(16)
     micro_ts = int(time.time() * 1_000_000) % (10 ** 9)
     return f"{random_part}_{micro_ts}.{file_extension}"
 
 
+def validate_absence_declaration_file(file_obj, max_size_bytes: int = 10 * 1024 * 1024) -> List[str]:
+    """
+    Validate uploaded absence declaration file (formal letter on company letterhead, stamped & signed).
+    Permitted formats: PDF, DOC, DOCX, JPG, JPEG, PNG. Max 10MB.
+    """
+    errors = []
+    if file_obj.size > max_size_bytes:
+        errors.append(f"Il file supera la dimensione massima consentita di {max_size_bytes // (1024*1024)}MB.")
+        return errors
+
+    filename = getattr(file_obj, 'name', '')
+    if '.' not in filename:
+        errors.append("Il file della dichiarazione deve avere un'estensione valida (es. .pdf, .jpg, .docx).")
+        return errors
+
+    file_ext = filename.rsplit('.', 1)[-1].lower()
+    allowed_exts = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png']
+    if file_ext not in allowed_exts:
+        errors.append(f"Formato .{file_ext} non consentito per la dichiarazione di assenza. Formati accettati: PDF, DOCX, DOC, JPG, PNG.")
+        return errors
+
+    if not validate_double_extensions(filename):
+        errors.append("Nome file non consentito per motivi di sicurezza (estensione doppia o sospetta).")
+        return errors
+
+    detected_mime = get_mime_type_from_content(file_obj)
+    content_errors = validate_file_content(file_obj, file_ext, detected_mime)
+    if content_errors:
+        errors.extend(content_errors)
+
+    return errors
+
+
 def save_uploaded_file_secure(file_obj, form_assignment, document_requirement,
-                              storage_base_path: str, request=None):
+                              storage_base_path: str, request=None,
+                              availability_status: str = 'uploaded',
+                              motivazione_indisponibilita: str = ''):
     """
     Securely save uploaded file with comprehensive validation.
 
@@ -443,6 +486,8 @@ def save_uploaded_file_secure(file_obj, form_assignment, document_requirement,
         document_requirement: DocumentRequirement instance
         storage_base_path: Base storage path (e.g., /storage/clienti or dedicated project path)
         request: HttpRequest object (optional)
+        availability_status: Status ('uploaded' or 'not_available' for absence declaration)
+        motivazione_indisponibilita: Optional motive/notes
 
     Returns:
         DocumentUpload instance
@@ -450,9 +495,6 @@ def save_uploaded_file_secure(file_obj, form_assignment, document_requirement,
     Raises:
         ValueError: If validation fails
     """
-    from .models import DocumentUpload
-    from .utils import get_client_ip, get_user_agent
-
     customer = form_assignment.customer
     assignment_id = str(form_assignment.id)
     cust_folder_name = customer.nas_folder_name if customer else '_generic'
@@ -467,7 +509,17 @@ def save_uploaded_file_secure(file_obj, form_assignment, document_requirement,
         subfolder = ''
 
     # Check if storage_base already points to project folder (contains customer NAS folder)
-    if cust_folder_name in storage_base.parts:
+    nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+    try:
+        rel = storage_base.relative_to(Path(nas_base).resolve())
+        is_project_folder = cust_folder_name in rel.parts
+    except (ValueError, Exception):
+        trailing_parts = [storage_base.name]
+        if storage_base.parent:
+            trailing_parts.append(storage_base.parent.name)
+        is_project_folder = cust_folder_name in trailing_parts
+
+    if is_project_folder:
         if subfolder:
             final_dir = safe_join_paths(str(storage_base), subfolder)
         else:
@@ -528,7 +580,8 @@ def save_uploaded_file_secure(file_obj, form_assignment, document_requirement,
         uploaded_by_ip=client_ip,
         uploaded_by_user_agent=client_ua,
         status='valid',
-        availability_status='uploaded',
+        availability_status=availability_status,
+        motivazione_indisponibilita=motivazione_indisponibilita,
     )
 
     return upload
@@ -561,5 +614,35 @@ def delete_document_secure(upload_obj, storage_base_path: str) -> bool:
         upload_obj.delete()
         return True
     except Exception as e:
-        print(f"Failed to securely delete document: {e}")
+        logger.error(f"Failed to securely delete document: {e}", exc_info=True)
         return False
+
+
+def save_manifest_atomic(manifest_path: str, manifest_data: dict) -> None:
+    """
+    Atomically write manifest.json using tempfile and os.replace.
+    Guarantees no partial writes and prevents data corruption on unexpected failures.
+
+    Args:
+        manifest_path: Destination path for manifest.json
+        manifest_data: Dictionary content to serialize
+    """
+    manifest_dest = Path(manifest_path).resolve()
+    manifest_dir = manifest_dest.parent
+    manifest_dir.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.NamedTemporaryFile('w', encoding='utf-8', dir=str(manifest_dir), delete=False) as tmp:
+        tmp_name = tmp.name
+
+    try:
+        with open(tmp_name, 'w', encoding='utf-8') as f:
+            json.dump(manifest_data, f, indent=2, ensure_ascii=False)
+        os.replace(tmp_name, str(manifest_dest))
+    except Exception:
+        if os.path.exists(tmp_name):
+            try:
+                os.remove(tmp_name)
+            except OSError:
+                pass
+        raise
+

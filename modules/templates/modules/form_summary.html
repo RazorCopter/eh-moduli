@@ -1,7 +1,7 @@
 {% extends "accounts/base.html" %}
 {% load static %}
 
-{% block title %}Riepilogo e Invio — {{ assignment.form_template.name }}{% endblock %}
+{% block title %}{{ t.summary_page_title|default:"Riepilogo e Invio" }} — {{ assignment.form_template.name }}{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -13,17 +13,17 @@
 
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                     <span class="badge" style="background: rgba(45, 138, 78, 0.12); color: #2D8A4E; font-size: 0.85rem; padding: 6px 14px; border-radius: 20px; font-weight: 600;">
-                        <i class="bi bi-clipboard-check me-1"></i> Riepilogo Finale
+                        <i class="bi bi-clipboard-check me-1"></i> {{ t.summary_badge|default:"Riepilogo Finale" }}
                     </span>
                     <span class="text-muted small">
-                        Pratica: <strong class="text-dark">{{ assignment.customer.first_name }} {{ assignment.customer.last_name }}</strong>
+                        {{ t.summary_case|default:"Pratica:" }} <strong class="text-dark">{{ assignment.customer.first_name }} {{ assignment.customer.last_name }}</strong>
                     </span>
                 </div>
 
-                <h2 class="h3 fw-bold text-dark mb-4">Verifica e Conferma Invio</h2>
+                <h2 class="h3 fw-bold text-dark mb-4">{{ t.summary_title|default:"Verifica e Conferma Invio" }}</h2>
 
                 <div class="mb-4">
-                    <h5 class="fw-bold text-dark mb-3">Documenti Caricati ({{ uploads|length }})</h5>
+                    <h5 class="fw-bold text-dark mb-3">{{ t.summary_docs_uploaded|default:"Documenti Caricati" }} ({{ uploads|length }})</h5>
                     {% if uploads %}
                         <div class="d-flex flex-column gap-2">
                             {% for upload in uploads %}
@@ -31,13 +31,24 @@
                                 <div class="d-flex align-items-center gap-3">
                                     {% if upload.availability_status == 'not_available' %}
                                     <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; background: #fff3cd; color: #856404;">
-                                        <i class="bi bi-exclamation-triangle fs-5"></i>
+                                        <i class="bi bi-file-earmark-medical fs-5"></i>
                                     </div>
                                     <div>
-                                        <div class="fw-semibold text-dark">{{ upload.document_requirement.name }} <span class="badge bg-warning text-dark ms-1" style="font-size: 0.72rem;">Non disponibile</span></div>
+                                        <div class="fw-semibold text-dark">{{ upload.document_requirement.name }} <span class="badge bg-warning text-dark ms-1" style="font-size: 0.72rem;">{{ t.summary_absence_formalized|default:"Assenza Formalizzata" }}</span></div>
+                                        {% if upload.stored_filename and upload.original_filename != 'NON_DISPONIBILE' %}
+                                        <div class="text-muted small">
+                                            {{ t.summary_absence_attachment|default:"Allegato su carta intestata:" }} <strong>{{ upload.original_filename }}</strong> ({{ upload.file_size|filesizeformat }})
+                                        </div>
+                                        {% if upload.motivazione_indisponibilita and upload.motivazione_indisponibilita != 'Dichiarazione formale su carta intestata timbrata e firmata' %}
+                                        <div class="text-muted small">
+                                            Note: <em>{{ upload.motivazione_indisponibilita }}</em>
+                                        </div>
+                                        {% endif %}
+                                        {% else %}
                                         <div class="text-muted small">
                                             Giustificativo: <em>{{ upload.motivazione_indisponibilita }}</em>
                                         </div>
+                                        {% endif %}
                                     </div>
                                     {% else %}
                                     <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; background: #e8f5e9; color: #2e7d32;">
@@ -52,16 +63,16 @@
                                     {% endif %}
                                 </div>
                                 {% if upload.availability_status == 'not_available' %}
-                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 rounded-pill">Giustificato</span>
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 rounded-pill">{{ t.summary_declaration_acquired|default:"Dichiarazione Acquisita" }}</span>
                                 {% else %}
-                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">Pronto</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">{{ t.summary_ready|default:"Pronto" }}</span>
                                 {% endif %}
                             </div>
                             {% endfor %}
                         </div>
                     {% else %}
                         <div class="alert alert-warning py-3 rounded-3 small">
-                            <i class="bi bi-exclamation-triangle-fill me-2"></i> Nessun file caricato per questa pratica.
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ t.summary_no_files|default:"Nessun file caricato per questa pratica." }}
                         </div>
                     {% endif %}
                 </div>
@@ -70,25 +81,113 @@
                     <div class="d-flex gap-2">
                         <i class="bi bi-shield-check fs-5 flex-shrink-0 mt-0"></i>
                         <div class="small" style="line-height: 1.5;">
-                            Confermando l'invio, la documentazione verrà archiviata in sicurezza sul server aziendale. Verrà generata una ricevuta formale di avvenuta consegna.
+                            {{ t.summary_security_notice|default:"Confermando l'invio, la documentazione verrà archiviata in sicurezza sul server aziendale. Verrà generata una ricevuta formale di avvenuta consegna." }}
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-4 pt-2">
-                    <form method="post" action="{% url 'form_submission_view' assignment.id %}">
-                        {% csrf_token %}
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                            <a href="javascript:history.back()" class="btn btn-outline-secondary px-3 py-2 rounded-3">
-                                <i class="bi bi-arrow-left me-1"></i> Indietro
-                            </a>
+                <form method="post" id="finalSubmissionForm" action="{% url 'form_submission_view' assignment.id %}">
+                    {% csrf_token %}
 
-                            <button type="submit" class="btn btn-success btn-lg px-4 py-2 rounded-3 fw-semibold" style="box-shadow: 0 4px 14px rgba(45, 138, 78, 0.3);">
-                                <i class="bi bi-send-check me-2"></i> Conferma e Invia Documenti
-                            </button>
+                    <!-- Dichiarazione di Consapevolezza -->
+                    <div class="card border-warning-subtle bg-light-subtle rounded-3 p-3 mb-4" style="border: 1px solid #ffc107 !important;">
+                        <div class="form-check d-flex align-items-start gap-3">
+                            <input class="form-check-input mt-1" type="checkbox" id="awareness_declaration" name="awareness_declaration" value="true" required style="width: 22px; height: 22px; cursor: pointer;">
+                            <label class="form-check-label text-dark" for="awareness_declaration" style="cursor: pointer; font-size: 0.95rem; line-height: 1.5;">
+                                <strong class="d-block mb-1 text-dark">
+                                    <i class="bi bi-patch-check-fill text-warning me-1"></i> {{ t.awareness_declaration_title|default:"Dichiarazione di Consapevolezza Documentale" }}
+                                </strong>
+                                {{ t.awareness_declaration_text|default:"Dichiaro formalmente di aver trasmesso tutti i documenti e le informazioni in mio possesso necessari per la lavorazione del prodotto da parte dell'ufficio regolatorio Etichub. Sono consapevole che la conferma attesterà il completamento del 50% del processo e notificherà il team tecnico per l'avvio della lavorazione." }}
+                            </label>
                         </div>
-                    </form>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <a href="javascript:history.back()" class="btn btn-outline-secondary px-3 py-2 rounded-3">
+                            <i class="bi bi-arrow-left me-1"></i> {{ t.btn_back|default:"Indietro" }}
+                        </a>
+
+                        <button type="button" id="btnOpenConfirmModal" class="btn btn-success btn-lg px-4 py-2 rounded-3 fw-semibold" style="box-shadow: 0 4px 14px rgba(45, 138, 78, 0.3);">
+                            <i class="bi bi-send-check me-2"></i> {{ t.btn_confirm_submit_50|default:"Conferma e Invia Documenti (50%)" }}
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Modal di Conferma Alert -->
+                <div class="modal fade" id="confirmFinalSubmissionModal" tabindex="-1" aria-labelledby="confirmFinalSubmissionModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content rounded-4 border-0 shadow-lg">
+                            <div class="modal-header border-bottom-0 pb-0">
+                                <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="confirmFinalSubmissionModalLabel">
+                                    <span class="rounded-circle p-2 bg-warning-subtle text-warning d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                                    </span>
+                                    {{ t.alert_confirm_submission_title|default:"Conferma Invio Finale" }}
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                            </div>
+                            <div class="modal-body py-3">
+                                <div class="alert alert-warning border-0 rounded-3 p-3 text-dark mb-0" style="background: #fff8e6; border: 1px solid #ffeeba !important;">
+                                    <p class="mb-0 fw-semibold" style="font-size: 0.95rem; line-height: 1.55;">
+                                        {{ t.alert_confirm_submission_body|default:"Confermi di aver caricato tutta la documentazione in tuo possesso? L'invio notificherà l'Ufficio Regolatorio di Etichub per l'avvio della lavorazione. Non sarà più possibile modificare i documenti caricati." }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="modal-footer border-top-0 pt-0">
+                                <button type="button" class="btn btn-outline-secondary px-3 rounded-3" data-bs-dismiss="modal">
+                                    {{ t.alert_confirm_btn_cancel|default:"Annulla e Ricontrolla" }}
+                                </button>
+                                <button type="button" id="btnConfirmSubmit" class="btn btn-success px-4 rounded-3 fw-semibold">
+                                    <i class="bi bi-check2-circle me-1"></i> {{ t.alert_confirm_btn_submit|default:"Sì, Confermo e Invia (50%)" }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const btnOpenModal = document.getElementById('btnOpenConfirmModal');
+                        const btnConfirmSubmit = document.getElementById('btnConfirmSubmit');
+                        const awarenessCheckbox = document.getElementById('awareness_declaration');
+                        const form = document.getElementById('finalSubmissionForm');
+                        const modalEl = document.getElementById('confirmFinalSubmissionModal');
+                        let bsModal = null;
+
+                        const awarenessAlertText = "{{ t.awareness_declaration_alert_js|default:'Attenzione: è necessario spuntare la dichiarazione formale di consapevolezza prima di procedere con l\'invio.'|escapejs }}";
+                        const confirmPromptText = "{{ t.alert_confirm_submission_body|default:'Confermi di aver caricato tutta la documentazione in tuo possesso? L\'invio notificherà l\'Ufficio Regolatorio di Etichub per l\'avvio della lavorazione. Non sarà più possibile modificare i documenti caricati.'|escapejs }}";
+                        const submittingText = "{{ t.submitting_spinner|default:'Invio in corso...'|escapejs }}";
+
+                        if (typeof bootstrap !== 'undefined' && modalEl) {
+                            bsModal = new bootstrap.Modal(modalEl);
+                        }
+
+                        if (btnOpenModal) {
+                            btnOpenModal.addEventListener('click', function(e) {
+                                if (!awarenessCheckbox.checked) {
+                                    awarenessCheckbox.focus();
+                                    alert(awarenessAlertText);
+                                    return;
+                                }
+                                if (bsModal) {
+                                    bsModal.show();
+                                } else {
+                                    if (confirm(confirmPromptText)) {
+                                        form.submit();
+                                    }
+                                }
+                            });
+                        }
+
+                        if (btnConfirmSubmit) {
+                            btnConfirmSubmit.addEventListener('click', function() {
+                                btnConfirmSubmit.disabled = true;
+                                btnConfirmSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + submittingText;
+                                form.submit();
+                            });
+                        }
+                    });
+                </script>
 
             </div>
         </div>

@@ -3,11 +3,20 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.views.decorators.csrf import csrf_protect
 from django.db import transaction
+from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.conf import settings
+import os
 import json
+import secrets
+import string
 from .models import FormTemplate, FormStep, FormElement, DocumentRequirement, FormAssignment, Customer
 from .utils import log_action, get_client_ip, get_user_agent
+from .validators import validate_folder_name
+from .upload_security import safe_join_paths, save_manifest_atomic
 
 
 def is_admin(user):
@@ -39,11 +48,20 @@ def api_form_create(request):
     try:
         data = json.loads(request.body)
 
+        default_days = data.get('default_expiry_days')
+        try:
+            default_days = int(default_days) if default_days is not None else getattr(settings, 'FORM_ASSIGNMENT_EXPIRY_DAYS', 30)
+            if default_days <= 0:
+                default_days = getattr(settings, 'FORM_ASSIGNMENT_EXPIRY_DAYS', 30)
+        except (ValueError, TypeError):
+            default_days = getattr(settings, 'FORM_ASSIGNMENT_EXPIRY_DAYS', 30)
+
         form = FormTemplate.objects.create(
             name=data.get('name', 'Untitled Form'),
             description=data.get('description', ''),
             intro_text=data.get('intro_text', ''),
             privacy_text=data.get('privacy_text', ''),
+            default_expiry_days=default_days,
             author=request.user,
             status='draft'
         )
@@ -81,14 +99,19 @@ def api_form_detail(request, form_id):
     form = get_object_or_404(FormTemplate, id=form_id)
 
     steps_data = []
-    for step in form.formstep_set.all().order_by('order'):
+    steps = form.formstep_set.all().prefetch_related(
+        Prefetch('formelement_set', queryset=FormElement.objects.order_by('order')),
+        Prefetch('documentrequirement_set', queryset=DocumentRequirement.objects.order_by('order'))
+    ).order_by('order')
+
+    for step in steps:
         elements_data = []
 
         # Combine FormElement and DocumentRequirement in unified order
         combined_items = []
 
-        # Add FormElements
-        for elem in step.formelement_set.all().order_by('order'):
+        # Add FormElements using cached prefetched set
+        for elem in step.formelement_set.all():
             combined_items.append({
                 'id': str(elem.id),
                 'type': 'element',
@@ -97,8 +120,8 @@ def api_form_detail(request, form_id):
                 'config': elem.config
             })
 
-        # Add DocumentRequirements
-        for doc_req in step.documentrequirement_set.all().order_by('order'):
+        # Add DocumentRequirements using cached prefetched set
+        for doc_req in step.documentrequirement_set.all():
             combined_items.append({
                 'id': str(doc_req.id),
                 'type': 'document',
@@ -139,6 +162,7 @@ def api_form_detail(request, form_id):
             'version': form.version,
             'status': form.status,
             'privacy_text': form.privacy_text,
+            'default_expiry_days': form.default_expiry_days,
             'steps': steps_data
         }
     })
@@ -165,6 +189,13 @@ def api_form_save(request, form_id):
             form.description = data.get('description', form.description)
             form.intro_text = data.get('intro_text', form.intro_text)
             form.privacy_text = data.get('privacy_text', form.privacy_text)
+            if 'default_expiry_days' in data:
+                try:
+                    val = int(data['default_expiry_days'])
+                    if val > 0:
+                        form.default_expiry_days = val
+                except (ValueError, TypeError):
+                    pass
             form.updated_at = timezone.now()
             form.save()
 
@@ -232,9 +263,6 @@ def api_form_save(request, form_id):
 @require_http_methods(['POST'])
 def api_form_publish(request, form_id):
     """Publish form and create NAS folder structure."""
-    import os
-    import json
-
     form = get_object_or_404(FormTemplate, id=form_id)
 
     try:
@@ -243,22 +271,21 @@ def api_form_publish(request, form_id):
             if form.customer and form.project_name:
                 # If specific customer and project are defined, create NAS folder structure
                 nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
-                nas_path = os.path.join(nas_base, form.customer.nas_folder_name, form.project_name)
+                nas_path = str(safe_join_paths(nas_base, form.customer.nas_folder_name, form.project_name))
                 os.makedirs(nas_path, exist_ok=True)
 
-                # Create initial manifest.json
+                # Create initial manifest.json atomically
                 manifest = {
                     'form_id': str(form.id),
                     'form_name': form.name,
-                    'customer': form.customer.first_name + ' ' + form.customer.last_name,
+                    'customer': f"{form.customer.first_name} {form.customer.last_name or ''}".strip(),
                     'customer_code': form.customer.code,
                     'project': form.project_name,
                     'created_at': timezone.now().isoformat(),
                     'uploads': []
                 }
-                manifest_path = os.path.join(nas_path, 'manifest.json')
-                with open(manifest_path, 'w', encoding='utf-8') as f:
-                    json.dump(manifest, f, indent=2, ensure_ascii=False)
+                manifest_path = str(safe_join_paths(nas_path, 'manifest.json'))
+                save_manifest_atomic(manifest_path, manifest)
 
             form.status = 'published'
             form.save()
@@ -286,7 +313,7 @@ def api_form_publish(request, form_id):
                 'form_name': form.name,
                 'customer': form.customer.code if form.customer else 'Multi-cliente',
                 'project': form.project_name or 'Definito in fase di assegnazione',
-                'access_password': form.access_password or '',
+                'has_password': form.has_access_password(),
                 'public_url': f'/modules/form/published/{form.id}/',
                 'assign_url': f'/modules/admin/assign-form/?template_id={form.id}',
                 'note': 'Modulo pubblicato e pronto per essere assegnato ai clienti'
@@ -379,20 +406,29 @@ def api_form_delete(request, form_id):
         form_name = form.name
         form_status = form.status
 
-        # Delete the form and all related data
-        form.delete()
+        # Protect against cascading delete: archive if assignments exist (M2)
+        has_assignments = form.formassignment_set.exists()
+        if has_assignments:
+            form.status = 'archived'
+            form.save(update_fields=['status', 'updated_at'])
+            action_name = 'archive'
+            message = f'Modulo "{form_name}" archiviato con successo (le pratiche e i file dei clienti sono stati protetti).'
+        else:
+            form.delete()
+            action_name = 'delete'
+            message = f'Modulo "{form_name}" eliminato'
 
         log_action(
             request.user,
-            'delete',
+            action_name,
             'FormTemplate',
             form_id,
-            {'name': form_name, 'status': form_status, 'via': 'api'},
+            {'name': form_name, 'status': form_status, 'via': 'api', 'archived': has_assignments},
             ip=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
 
-        return JsonResponse({'success': True, 'message': f'Modulo "{form_name}" eliminato'})
+        return JsonResponse({'success': True, 'message': message, 'archived': has_assignments})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
@@ -418,6 +454,25 @@ def api_customer_create(request):
                 'error': 'Campi obbligatori: code, first_name, email, nas_folder_name'
             }, status=400)
 
+        # Validate email format
+        try:
+            validate_email(email)
+        except ValidationError:
+            return JsonResponse({
+                'success': False,
+                'error': f'Indirizzo email non valido: "{email}"'
+            }, status=400)
+
+        # Validate NAS folder name format and path safety
+        try:
+            validate_folder_name(nas_folder_name)
+        except ValidationError as e:
+            err_msg = e.message if hasattr(e, 'message') else str(e)
+            return JsonResponse({
+                'success': False,
+                'error': f'Nome cartella NAS non valido: {err_msg}'
+            }, status=400)
+
         # Check if code already exists
         if Customer.objects.filter(code=code).exists():
             return JsonResponse({
@@ -432,7 +487,11 @@ def api_customer_create(request):
                 'error': f'Cartella NAS "{nas_folder_name}" è già in uso'
             }, status=400)
 
-        customer = Customer.objects.create(
+        portal_password = request.POST.get('portal_password', '').strip()
+        if not portal_password:
+            portal_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(10))
+
+        customer = Customer(
             code=code,
             first_name=first_name,
             last_name=last_name,
@@ -441,6 +500,16 @@ def api_customer_create(request):
             nas_folder_name=nas_folder_name,
             active=True
         )
+        try:
+            customer.full_clean()
+        except ValidationError as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'Dati cliente non validi: {e.message_dict if hasattr(e, "message_dict") else str(e)}'
+            }, status=400)
+
+        customer.set_portal_password(portal_password)
+        customer.save()
 
         log_action(
             request.user,
@@ -460,7 +529,8 @@ def api_customer_create(request):
                 'first_name': customer.first_name,
                 'last_name': customer.last_name,
                 'email': customer.email,
-                'nas_folder_name': customer.nas_folder_name
+                'nas_folder_name': customer.nas_folder_name,
+                'portal_password': portal_password
             }
         })
 

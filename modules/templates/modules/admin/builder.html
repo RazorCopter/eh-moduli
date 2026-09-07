@@ -679,6 +679,12 @@
                     <i :class="form.status === 'published' ? 'bi-check-circle' : 'bi-pencil'"></i>
                     <span x-text="form.status === 'published' ? 'Published' : 'Draft'"></span>
                 </span>
+                <div class="d-inline-flex align-items-center gap-1 px-2 py-1 rounded ms-2" style="background: #F8F7F5; border: 1px solid #EAE6E1; font-size: 0.85rem;" title="Validità predefinita della pratica (giorni) proposta quando si assegna il modulo a un cliente">
+                    <i class="bi bi-clock-history" style="color: #E8847D;"></i>
+                    <span style="color: #6c757d; font-size: 0.78rem; font-weight: 500;">TTL Pratica:</span>
+                    <input type="number" min="1" max="365" style="width: 52px; height: 26px; padding: 2px 4px; border: 1px solid #D0D5DD; border-radius: 6px; font-weight: 600; text-align: center; font-size: 0.82rem;" x-model.number="form.default_expiry_days" placeholder="30">
+                    <span style="color: #6c757d; font-size: 0.78rem; font-weight: 500;">gg</span>
+                </div>
             </div>
             <div class="builder-header-right">
                 <button class="btn-preview" @click="preview()">
@@ -1062,6 +1068,7 @@
                     description: '{{ template.description|escapejs }}',
                     intro_text: '{{ template.intro_text|escapejs }}',
                     privacy_text: '{{ template.privacy_text|escapejs }}',
+                    default_expiry_days: {{ template.default_expiry_days|default:30 }},
                     status: '{{ template.status|escapejs }}',
                     steps: []
                 },
@@ -1081,7 +1088,7 @@
                 },
                 shareData: {
                     url: `${window.location.origin}/modules/form/published/{{ template.id|escapejs }}/`,
-                    password: '{{ template.access_password|escapejs }}',
+                    password: '{% if template.access_password %}********{% else %}{% endif %}',
                     customer: '{% if template.customer %}{{ template.customer.first_name|escapejs }} {{ template.customer.last_name|escapejs }} ({{ template.customer.code|escapejs }}){% else %}Non assegnato{% endif %}',
                     project: '{{ template.project_name|default:"—"|escapejs }}'
                 },
@@ -1097,6 +1104,9 @@
                         const result = await response.json();
                         if (result.success) {
                             this.form = result.data;
+                            if (!this.form.default_expiry_days) {
+                                this.form.default_expiry_days = {{ template.default_expiry_days|default:30 }};
+                            }
                         }
                     } catch (e) {
                         console.error('Error loading form:', e);

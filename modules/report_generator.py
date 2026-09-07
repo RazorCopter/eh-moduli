@@ -374,6 +374,16 @@ def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, 
             sha = doc_item.get('sha256', '—')
             sha_cell = Paragraph(sha[:32] + "<br/>" + sha[32:] if len(sha) == 64 else sha, s_tb_mono)
             table_styles.append(('BACKGROUND', (1, idx), (1, idx), c_success_bg))
+        elif is_unavail and doc_item.get('stored_filename') and doc_item.get('original_filename') not in ['—', 'NON_DISPONIBILE']:
+            total_unavail += 1
+            badge_cell = Paragraph("<b>⚠️ DICHIARAZIONE<br/>CARTA INTESTATA</b>", s_badge_unavail)
+            orig_name = doc_item.get('original_filename', '—')
+            reason = doc_item.get('motivazione_indisponibilita') or "Dichiarazione formale timbrata e firmata"
+            details_cell = Paragraph(f"<b>Dichiarazione:</b> {orig_name}<br/><b>Note:</b> {reason}", s_tb_muted)
+            size_cell = Paragraph(format_file_size(doc_item.get('file_size', 0)), s_tb)
+            sha = doc_item.get('sha256', '—')
+            sha_cell = Paragraph(sha[:32] + "<br/>" + sha[32:] if len(sha) == 64 else sha, s_tb_mono)
+            table_styles.append(('BACKGROUND', (1, idx), (1, idx), c_warn_bg))
         else:
             total_unavail += 1
             badge_cell = Paragraph("<b>⚠️ NON DISPONIBILE</b>", s_badge_unavail)
@@ -394,8 +404,8 @@ def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, 
     # 5. Summary & Verification Statement
     # ==========================================================
     summary_html = f"""
-    <b>Riepilogo:</b> {total_uploaded} documento/i acquisito/i con successo · {total_unavail} documento/i contrassegnato/i come non disponibile/i.<br/>
-    <b>Verifica Integrità:</b> I file contrassegnati come <i>CARICATO</i> sono stati memorizzati nell'archivio protetto sul NAS aziendale Etichub. I digest crittografici SHA-256 sopra riportati garantiscono la non alterabilità dei documenti ricevuti rispetto allo stato originale inviato dal mittente.
+    <b>Riepilogo:</b> {total_uploaded} documento/i acquisito/i con successo · {total_unavail} documento/i contrassegnato/i con dichiarazione di assenza o non disponibile/i.<br/>
+    <b>Verifica Integrità:</b> I file contrassegnati come <i>CARICATO</i> e le relative <i>DICHIARAZIONI SU CARTA INTESTATA</i> sono stati memorizzati nell'archivio protetto sul NAS aziendale Etichub. I digest crittografici SHA-256 sopra riportati garantiscono la non alterabilità dei documenti ricevuti rispetto allo stato originale inviato dal mittente.
     """
     summary_box = Table(
         [[Paragraph(summary_html, s_tb_muted)]],
@@ -445,14 +455,16 @@ def generate_form_receipt_pdf(form_template, assignment, pdf_path):
             up = assignment.documentupload_set.filter(document_requirement=req, status='valid').first()
             if up:
                 is_unavail = (up.availability_status == 'not_available')
+                has_file = bool(up.stored_filename and up.original_filename not in ['NON_DISPONIBILE', '—'])
                 uploads_data.append({
                     'document_name': req.name,
                     'required': req.required,
                     'availability_status': up.availability_status,
                     'indisponibile': is_unavail,
+                    'has_declaration_file': is_unavail and has_file,
                     'motivazione_indisponibilita': up.motivazione_indisponibilita if is_unavail else '',
-                    'original_filename': up.original_filename if not is_unavail else '—',
-                    'stored_filename': up.stored_filename if not is_unavail else '',
+                    'original_filename': up.original_filename if (not is_unavail or has_file) else '—',
+                    'stored_filename': up.stored_filename or '',
                     'file_size': up.file_size or 0,
                     'sha256': up.sha256_checksum or '—',
                 })

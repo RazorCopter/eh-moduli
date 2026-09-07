@@ -165,7 +165,7 @@
                 <select name="template_id" id="template_id" required>
                     <option value="">-- Seleziona il modulo --</option>
                     {% for template in templates %}
-                    <option value="{{ template.id }}" {% if selected_template_id == template.id|stringformat:"s" %}selected{% endif %}>
+                    <option value="{{ template.id }}" data-expiry="{{ template.default_expiry_days|default:30 }}" {% if selected_template_id == template.id|stringformat:"s" %}selected{% endif %}>
                         {{ template.name }} (v{{ template.version }})
                     </option>
                     {% endfor %}
@@ -207,7 +207,7 @@
             <div class="form-group">
                 <label for="expiry_days">Validità Pratica (giorni)</label>
                 <input type="number" id="expiry_days" name="expiry_days" value="{{ expiry_days|default:'30' }}" min="1" max="365" required>
-                <small class="helper-text">Dopo tale periodo il link scadrà automaticamente.</small>
+                <small class="helper-text">Dopo tale periodo il link scadrà automaticamente. Si aggiorna col valore predefinito del modulo.</small>
             </div>
 
             <!-- 6. Note Interne -->
@@ -227,4 +227,22 @@
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const templateSelect = document.getElementById('template_id');
+    const expiryInput = document.getElementById('expiry_days');
+    if (templateSelect && expiryInput) {
+        templateSelect.addEventListener('change', function() {
+            const selectedOpt = this.options[this.selectedIndex];
+            if (selectedOpt) {
+                const expiry = selectedOpt.getAttribute('data-expiry');
+                if (expiry) {
+                    expiryInput.value = expiry;
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

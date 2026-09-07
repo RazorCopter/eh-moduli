@@ -268,12 +268,27 @@
         gap: 0.35rem;
         transition: all 0.2s ease;
     }
-    .btn-action-delete:hover {
-        background: #D32F2F;
+    .btn-action-key {
+        background: #F0F7FF;
+        color: #0284C7;
+        border: 1px solid #BAE6FD;
+        padding: 0.45rem 0.85rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: all 0.2s ease;
+        margin-right: 6px;
+    }
+    .btn-action-key:hover {
+        background: #0284C7;
         color: white;
-        border-color: #D32F2F;
+        border-color: #0284C7;
         transform: translateY(-1px);
-        box-shadow: 0 3px 8px rgba(211, 47, 47, 0.25);
+        box-shadow: 0 3px 8px rgba(2, 132, 199, 0.25);
     }
     .empty-state {
         text-align: center;
@@ -488,10 +503,13 @@
                     </td>
                     <td>
                         <div style="font-weight: 600; color: #2C2C2C;">
-                            {{ customer.first_name }} {{ customer.last_name }}
+                            {{ customer.first_name }}
                         </div>
+                        {% if customer.last_name %}
+                        <small style="color: #666;"><i class="bi bi-person"></i> {{ customer.last_name }}</small>
+                        {% endif %}
                         {% if customer.phone %}
-                        <small style="color: #8C8C8C;"><i class="bi bi-telephone"></i> {{ customer.phone }}</small>
+                        <small style="color: #8C8C8C; margin-left: 4px;"><i class="bi bi-telephone"></i> {{ customer.phone }}</small>
                         {% endif %}
                     </td>
                     <td>
@@ -517,7 +535,13 @@
                         <span class="badge-status-inactive"><i class="bi bi-dot"></i> Inattivo</span>
                         {% endif %}
                     </td>
-                    <td style="text-align: right;">
+                    <td style="text-align: right; white-space: nowrap;">
+                        <button type="button" 
+                                class="btn-action-key"
+                                title="Reimposta password area personale per {{ customer.code }}"
+                                onclick="openResetPasswordModal('{{ customer.id }}', '{{ customer.first_name|escapejs }} {{ customer.last_name|escapejs }}', '{{ customer.code|escapejs }}')">
+                            <i class="bi bi-key-fill"></i> Password
+                        </button>
                         <button type="button" 
                                 class="btn-action-delete"
                                 onclick="openDeleteModal('{{ customer.id }}', '{{ customer.first_name|escapejs }} {{ customer.last_name|escapejs }}', '{{ customer.code|escapejs }}', '{{ customer.nas_folder_name|escapejs }}')">
@@ -581,6 +605,84 @@
     </div>
 </div>
 
+<!-- Modal Reset Password Area Personale -->
+<div class="modal-overlay" id="resetPasswordModal" onclick="handleResetOverlayClick(event)">
+    <div class="modal-card">
+        <div class="modal-header-delete" style="border-bottom-color: #E0F2FE;">
+            <div class="modal-icon-danger" style="background: #E0F2FE; color: #0284C7;">
+                <i class="bi bi-key-fill"></i>
+            </div>
+            <div>
+                <h3 style="color: #0F172A;">Reimposta Password Portale</h3>
+                <small style="color: #64748B;">Imposta una nuova password per l'Area Personale del cliente</small>
+            </div>
+        </div>
+        <div class="modal-body">
+            <p style="margin-top: 0; margin-bottom: 1.25rem;">
+                Stai reimpostando la password per <strong id="resetCustName"></strong> (<code id="resetCustCode"></code>).
+            </p>
+
+            <form id="resetPasswordForm" onsubmit="submitResetPassword(event)">
+                <input type="hidden" id="resetCustomerId" value="">
+
+                <div class="field-group" style="margin-bottom: 1rem;">
+                    <label for="new_password_input" style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.35rem; display: block;">
+                        Nuova Password <span style="color: #D32F2F;">*</span>
+                    </label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" 
+                               id="new_password_input" 
+                               name="new_password" 
+                               class="form-control" 
+                               placeholder="Inserisci o genera una password..." 
+                               required 
+                               minlength="6"
+                               style="font-family: 'Courier New', monospace; font-size: 1rem; letter-spacing: 0.5px;">
+                        <button type="button" 
+                                class="btn btn-outline-secondary" 
+                                onclick="generateModalPassword()" 
+                                style="white-space: nowrap; border-color: #CBD5E1; color: #475467;">
+                            <i class="bi bi-magic"></i> Genera
+                        </button>
+                    </div>
+                    <small style="color: #64748B; font-size: 0.8rem; margin-top: 4px; display: block;">
+                        La password deve contenere almeno 6 caratteri.
+                    </small>
+                </div>
+
+                <div id="resetSuccessBox" style="display: none; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; padding: 1rem; margin-top: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 8px; color: #065F46; font-weight: 600; margin-bottom: 6px;">
+                        <i class="bi bi-check-circle-fill"></i> Password Aggiornata con Successo!
+                    </div>
+                    <div style="font-size: 0.88rem; color: #047857; margin-bottom: 8px;">
+                        Comunica questa password al cliente insieme al Codice Cliente:
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid #6EE7B7; border-radius: 6px; padding: 6px 12px;">
+                        <code id="confirmedPasswordText" style="font-size: 1.05rem; font-weight: 700; color: #065F46;"></code>
+                        <button type="button" 
+                                id="btnCopyConfirmed" 
+                                onclick="copyConfirmedPassword()" 
+                                class="btn btn-sm btn-outline-success" 
+                                style="padding: 2px 10px; font-size: 0.82rem;">
+                            <i class="bi bi-clipboard"></i> <span id="copyConfirmedText">Copia</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="resetErrorBox" style="display: none; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 0.75rem 1rem; color: #991B1B; font-size: 0.88rem; margin-top: 1rem;">
+                </div>
+
+                <div class="modal-footer" style="padding: 1.25rem 0 0 0; margin-top: 1.5rem; border-top: 1px solid #F1F5F9; display: flex; justify-content: flex-end; gap: 8px;">
+                    <button type="button" class="btn-modal-cancel" onclick="closeResetPasswordModal()">Chiudi</button>
+                    <button type="submit" id="btnSubmitReset" class="btn-modal-confirm-delete" style="background: #0284C7; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);">
+                        <i class="bi bi-check-lg"></i> Salva Nuova Password
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function filterCustomers() {
     const input = document.getElementById('customerSearch');
@@ -626,10 +728,122 @@ function handleOverlayClick(event) {
     }
 }
 
+// Reset Password Modal Logic
+function openResetPasswordModal(customerId, customerName, customerCode) {
+    document.getElementById('resetCustName').textContent = customerName.trim() || customerCode;
+    document.getElementById('resetCustCode').textContent = customerCode;
+    document.getElementById('resetCustomerId').value = customerId;
+    document.getElementById('resetSuccessBox').style.display = 'none';
+    document.getElementById('resetErrorBox').style.display = 'none';
+    document.getElementById('btnSubmitReset').style.display = 'inline-flex';
+    document.getElementById('btnSubmitReset').disabled = false;
+    document.getElementById('btnSubmitReset').innerHTML = '<i class="bi bi-check-lg"></i> Salva Nuova Password';
+    
+    generateModalPassword();
+    document.getElementById('resetPasswordModal').classList.add('active');
+}
+
+function closeResetPasswordModal() {
+    document.getElementById('resetPasswordModal').classList.remove('active');
+}
+
+function handleResetOverlayClick(event) {
+    if (event.target === document.getElementById('resetPasswordModal')) {
+        closeResetPasswordModal();
+    }
+}
+
+function generateModalPassword(length = 10) {
+    const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    let pwd = '';
+    const cryptoObj = window.crypto || window.msCrypto;
+    if (cryptoObj) {
+        const values = new Uint32Array(length);
+        cryptoObj.getRandomValues(values);
+        for (let i = 0; i < length; i++) {
+            pwd += charset[values[i] % charset.length];
+        }
+    } else {
+        for (let i = 0; i < length; i++) {
+            pwd += charset.charAt(Math.floor(Math.random() * charset.length));
+        }
+    }
+    const pwdInput = document.getElementById('new_password_input');
+    pwdInput.value = pwd;
+    pwdInput.style.transition = 'background-color 0.3s';
+    pwdInput.style.backgroundColor = '#E0F2FE';
+    setTimeout(() => { pwdInput.style.backgroundColor = 'white'; }, 350);
+}
+
+function submitResetPassword(event) {
+    event.preventDefault();
+    const customerId = document.getElementById('resetCustomerId').value;
+    const newPassword = document.getElementById('new_password_input').value.trim();
+    const errorBox = document.getElementById('resetErrorBox');
+    const successBox = document.getElementById('resetSuccessBox');
+    const submitBtn = document.getElementById('btnSubmitReset');
+    
+    errorBox.style.display = 'none';
+    successBox.style.display = 'none';
+
+    if (!newPassword || newPassword.length < 6) {
+        errorBox.textContent = 'La password deve avere almeno 6 caratteri.';
+        errorBox.style.display = 'block';
+        return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Salvataggio...';
+
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    const formData = new FormData();
+    formData.append('new_password', newPassword);
+
+    fetch(`/modules/admin/customers/${customerId}/reset-password/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => response.json().then(data => ({ status: response.status, body: data })))
+    .then(({ status, body }) => {
+        submitBtn.disabled = false;
+        if (body.success) {
+            document.getElementById('confirmedPasswordText').textContent = body.new_password;
+            successBox.style.display = 'block';
+            submitBtn.style.display = 'none';
+        } else {
+            errorBox.textContent = body.error || 'Errore durante il salvataggio della password.';
+            errorBox.style.display = 'block';
+            submitBtn.innerHTML = '<i class="bi bi-check-lg"></i> Salva Nuova Password';
+        }
+    })
+    .catch(err => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check-lg"></i> Salva Nuova Password';
+        errorBox.textContent = 'Errore di comunicazione col server. Riprova.';
+        errorBox.style.display = 'block';
+    });
+}
+
+function copyConfirmedPassword() {
+    const text = document.getElementById('confirmedPasswordText').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        const textSpan = document.getElementById('copyConfirmedText');
+        textSpan.textContent = 'Copiato!';
+        setTimeout(() => { textSpan.textContent = 'Copia'; }, 2000);
+    });
+}
+
 // Close on Escape key
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         closeDeleteModal();
+        closeResetPasswordModal();
     }
 });
 </script>

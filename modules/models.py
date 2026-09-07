@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
 import uuid
 import secrets
@@ -49,6 +50,11 @@ class Customer(models.Model):
     )
     notes = models.TextField(blank=True)
     active = models.BooleanField(default=True)
+    # Client Portal credentials
+    portal_password = models.CharField(
+        max_length=128, blank=True, default='',
+        help_text="Hashed password for client portal login"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -60,8 +66,43 @@ class Customer(models.Model):
             models.Index(fields=['active']),
         ]
 
+    def set_portal_password(self, raw_password):
+        """Hash and store a raw password for the client portal."""
+        self.portal_password = make_password(raw_password)
+
+    def check_portal_password(self, raw_password):
+        """Verify a raw password against the stored hash."""
+        if not self.portal_password:
+            return False
+        return check_password(raw_password, self.portal_password)
+
+    def save(self, *args, **kwargs):
+        if self.fiscal_code:
+            self.fiscal_code = self.fiscal_code.strip() or None
+        else:
+            self.fiscal_code = None
+
+        if self.vat_number:
+            self.vat_number = self.vat_number.strip() or None
+        else:
+            self.vat_number = None
+
+        if self.phone:
+            self.phone = self.phone.strip() or None
+        else:
+            self.phone = None
+
+        if self.code:
+            self.code = self.code.strip()
+
+        if self.nas_folder_name:
+            self.nas_folder_name = self.nas_folder_name.strip()
+
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.code} - {self.first_name} {self.last_name}"
+
 
 class FormTemplate(models.Model):
     STATUS_CHOICES = [
@@ -86,6 +127,7 @@ class FormTemplate(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True, help_text="Specific customer this form is for (optional)")
     project_name = models.CharField(max_length=255, blank=True, help_text="Project name for NAS folder structure")
     access_password = models.CharField(max_length=255, blank=True, help_text="Password to access this form (auto-generated if empty)")
+    default_expiry_days = models.PositiveIntegerField(default=30, help_text="Default validity duration in days when assigning this form to a customer")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -101,6 +143,21 @@ class FormTemplate(models.Model):
     def __str__(self):
         return f"{self.name} (v{self.version})"
 
+    def set_access_password(self, raw_password):
+        """Hash and store access password for the form template."""
+        if raw_password:
+            self.access_password = make_password(raw_password)
+        else:
+            self.access_password = ''
+
+    def check_access_password(self, raw_password):
+        """Verify raw password against stored hash or legacy plain text."""
+        if not self.access_password or not raw_password:
+            return False
+        if self.access_password.startswith(('pbkdf2_', 'argon2', 'bcrypt')):
+            return check_password(raw_password, self.access_password)
+        return secrets.compare_digest(raw_password, self.access_password)
+
     def duplicate(self):
         new_form = FormTemplate.objects.create(
             family_id=self.family_id,
@@ -113,7 +170,8 @@ class FormTemplate(models.Model):
             privacy_text=self.privacy_text,
             customer=self.customer,
             project_name=self.project_name,
-            access_password=self.access_password
+            access_password=self.access_password,
+            default_expiry_days=self.default_expiry_days
         )
         for step in self.formstep_set.all():
             new_step = FormStep.objects.create(
@@ -236,11 +294,13 @@ class FormElement(models.Model):
 
 class FormAssignment(models.Model):
     STATUS_CHOICES = [
-        ('draft', 'Draft'),
-        ('in_progress', 'In Progress'),
-        ('submitted', 'Submitted'),
-        ('expired', 'Expired'),
-        ('cancelled', 'Cancelled'),
+        ('draft', 'Pratica Aperta'),
+        ('in_progress', 'Documentazione Parziale'),
+        ('submitted', 'Upload Documentale Completato'),
+        ('in_processing', 'Lavorazione Etichub in Corso'),
+        ('completed', 'Lavorazione Completata'),
+        ('expired', 'Scaduto'),
+        ('cancelled', 'Annullato'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -270,7 +330,36 @@ class FormAssignment(models.Model):
         return f"{self.customer.code} - {self.form_template.name}"
 
     def is_expired(self):
+        if self.status in ('submitted', 'in_processing', 'completed', 'cancelled'):
+            return False
         return timezone.now() > self.expiry_date
+
+    def set_access_password(self, raw_password):
+        """Hash and store access password in assignment form_data."""
+        if self.form_data is None:
+            self.form_data = {}
+        if raw_password:
+            self.form_data['access_password'] = make_password(raw_password)
+        else:
+            self.form_data['access_password'] = ''
+
+    def check_access_password(self, raw_password):
+        """Verify raw password against assignment hash (or template fallback) or legacy plain text."""
+        pwd = (self.form_data or {}).get('access_password', '')
+        if not pwd and self.form_template:
+            pwd = self.form_template.access_password or ''
+        if not pwd or not raw_password:
+            return False
+        if pwd.startswith(('pbkdf2_', 'argon2', 'bcrypt')):
+            return check_password(raw_password, pwd)
+        return secrets.compare_digest(raw_password, pwd)
+
+    def has_access_password(self):
+        """Check if this assignment or its template has an access password configured."""
+        pwd = (self.form_data or {}).get('access_password', '')
+        if not pwd and self.form_template:
+            pwd = self.form_template.access_password or ''
+        return bool(pwd)
 
 class DocumentUpload(models.Model):
     STATUS_CHOICES = [
@@ -320,7 +409,7 @@ class DocumentUpload(models.Model):
 class AwarenessDeclaration(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     form_assignment = models.ForeignKey(FormAssignment, on_delete=models.CASCADE)
-    document_requirement = models.ForeignKey(DocumentRequirement, on_delete=models.CASCADE)
+    document_requirement = models.ForeignKey(DocumentRequirement, on_delete=models.CASCADE, null=True, blank=True)
     declaration_text = models.TextField()
     accepted = models.BooleanField(default=False)
     acceptance_datetime = models.DateTimeField(auto_now_add=True)

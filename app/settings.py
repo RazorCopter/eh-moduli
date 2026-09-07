@@ -155,6 +155,13 @@ AUTH_USER_MODEL = 'modules.User'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ==========================================================
+# Document Management Configuration
+# ==========================================================
+
+FORM_ASSIGNMENT_EXPIRY_DAYS = 30
+COMPLETION_PERCENTAGE_MULTIPLIER = 100
+
+# ==========================================================
 # CSRF, Hosts, and Security for Reverse Proxy
 # ==========================================================
 

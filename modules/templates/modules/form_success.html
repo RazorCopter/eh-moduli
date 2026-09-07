@@ -245,53 +245,60 @@
             <i class="bi bi-check-lg"></i>
         </div>
 
-        <h1 class="success-title">Modulo Inviato!</h1>
+        <h1 class="success-title">{{ t.success_title|default:"Modulo Inviato!" }}</h1>
         <p class="success-message">
-            Grazie per aver inviato i documenti. Abbiamo ricevuto tutto correttamente e i file sono in fase di elaborazione.
+            {{ t.success_msg_50|default:"Grazie per aver inviato i documenti. L'Ufficio Regolatorio di Etichub è stato notificato per l'avvio della lavorazione tecnica (50% completato)." }}
         </p>
 
         <div class="details-card">
             <div class="detail-row">
-                <span class="detail-label">Stato</span>
-                <span class="detail-value">✓ Completato</span>
+                <span class="detail-label">{{ t.detail_status|default:"Stato" }}</span>
+                <span class="detail-value">{{ t.detail_status_val|default:"✓ Documentazione Acquisita (50%)" }}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">Data e ora</span>
+                <span class="detail-label">{{ t.detail_datetime|default:"Data e ora" }}</span>
                 <span class="detail-value">{{ timestamp }}</span>
             </div>
             {% if customer %}
             <div class="detail-row">
-                <span class="detail-label">Cliente</span>
+                <span class="detail-label">{{ t.detail_customer|default:"Cliente" }}</span>
                 <span class="detail-value">{{ customer }}</span>
             </div>
             {% endif %}
             {% if project %}
             <div class="detail-row">
-                <span class="detail-label">Progetto</span>
+                <span class="detail-label">{{ t.detail_project|default:"Progetto / Prodotto" }}</span>
                 <span class="detail-value">{{ project }}</span>
             </div>
             {% endif %}
         </div>
 
         <p class="close-hint">
-            Puoi scaricare la ricevuta ufficiale o chiudere questa finestra in sicurezza.
+            {{ t.success_receipt_hint|default:"Puoi scaricare la ricevuta ufficiale o tornare alla tua area personale in sicurezza." }}
         </p>
 
         {% if assignment_id %}
         <a href="{% url 'assignment_receipt' assignment_id %}" class="btn-receipt">
             <i class="bi bi-file-earmark-pdf-fill"></i>
-            Scarica Ricevuta Ufficiale (PDF)
+            {{ t.btn_download_receipt|default:"Scarica Ricevuta Ufficiale (PDF)" }}
         </a>
         {% elif form_id %}
         <a href="{% url 'published_form_receipt' form_id %}" class="btn-receipt">
             <i class="bi bi-file-earmark-pdf-fill"></i>
-            Scarica Ricevuta Ufficiale (PDF)
+            {{ t.btn_download_receipt|default:"Scarica Ricevuta Ufficiale (PDF)" }}
+        </a>
+        {% endif %}
+
+        {% if request.session.customer_id %}
+        <a href="{% url 'client_dashboard' %}" class="btn-receipt" style="background: white; color: var(--gray-800); border: 1px solid var(--gray-300); margin-bottom: 0.75rem;">
+            <i class="bi bi-grid-fill" style="color: var(--brand-500);"></i>
+            {{ t.back_to_portal|default:"Torna ai Tuoi Prodotti (Area Personale)" }}
         </a>
         {% endif %}
 
         <a href="/" class="btn-home">
             <i class="bi bi-house"></i>
-            Torna alla Home
+            {{ t.btn_home|default:"Torna alla Home" }}
         </a>
 
         <div class="powered-by">

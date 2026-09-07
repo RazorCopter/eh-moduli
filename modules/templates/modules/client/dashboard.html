@@ -1,0 +1,614 @@
+{% extends "modules/client/base_client.html" %}
+{% load static %}
+
+{% block title %}{{ t.dashboard_page_title|default:'I Miei Prodotti — Area Personale Etichub' }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ─── Page Header ─── */
+    .dash-header {
+        margin-bottom: 2rem;
+    }
+
+    .dash-welcome {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        margin-bottom: 0.25rem;
+    }
+
+    .dash-welcome-sub {
+        font-size: 0.9375rem;
+        color: #9A9A9A;
+        line-height: 1.5;
+    }
+
+    /* ─── Stats Row ─── */
+    .dash-stats {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .dash-stat-card {
+        flex: 1;
+        min-width: 160px;
+        background: white;
+        border: 1px solid #EAE6E1;
+        border-radius: 14px;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        transition: all 0.25s ease;
+    }
+
+    .dash-stat-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        transform: translateY(-1px);
+    }
+
+    .dash-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .dash-stat-icon.total {
+        background: linear-gradient(135deg, rgba(232, 132, 125, 0.15), rgba(217, 116, 104, 0.2));
+        color: #D97468;
+    }
+
+    .dash-stat-icon.active {
+        background: rgba(16, 185, 129, 0.12);
+        color: #10B981;
+    }
+
+    .dash-stat-icon.done {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3B82F6;
+    }
+
+    .dash-stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        line-height: 1;
+    }
+
+    .dash-stat-label {
+        font-size: 0.75rem;
+        color: #9A9A9A;
+        font-weight: 500;
+        margin-top: 2px;
+    }
+
+    /* ─── Products Grid ─── */
+    .products-section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #2C2C2C;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .products-section-title i {
+        color: #E8847D;
+    }
+
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 20px;
+    }
+
+    /* ─── Product Card ─── */
+    .product-card {
+        background: white;
+        border: 1px solid #EAE6E1;
+        border-radius: 16px;
+        padding: 1.5rem;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .product-card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        transform: translateY(-2px);
+        border-color: #E8847D;
+    }
+
+    .product-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        border-radius: 4px 0 0 4px;
+    }
+
+    .product-card.status-draft::before { background: #9A9A9A; }
+    .product-card.status-in_progress::before { background: #F59E0B; }
+    .product-card.status-submitted::before { background: #3B82F6; }
+    .product-card.status-in_processing::before { background: #8B5CF6; }
+    .product-card.status-completed::before { background: #10B981; }
+    .product-card.status-expired::before { background: #EF4444; }
+
+    .product-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+
+    .product-name {
+        font-size: 1.0625rem;
+        font-weight: 600;
+        color: #2C2C2C;
+        line-height: 1.3;
+        flex: 1;
+        margin-right: 12px;
+    }
+
+    .product-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .product-badge.draft {
+        background: #F3F4F6;
+        color: #6B7280;
+    }
+
+    .product-badge.in_progress {
+        background: #FEF3C7;
+        color: #D97706;
+    }
+
+    .product-badge.submitted {
+        background: #DBEAFE;
+        color: #1D4ED8;
+    }
+
+    .product-badge.in_processing {
+        background: #EDE9FE;
+        color: #6D28D9;
+    }
+
+    .product-badge.completed {
+        background: #D1FAE5;
+        color: #065F46;
+    }
+
+    .product-badge.expired {
+        background: #FEE2E2;
+        color: #DC2626;
+    }
+
+    .product-module {
+        font-size: 0.8125rem;
+        color: #9A9A9A;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .product-module i {
+        font-size: 0.875rem;
+    }
+
+    /* ─── Macro-Progress Stepper ─── */
+    .product-progress {
+        margin-bottom: 1.15rem;
+    }
+
+    .macro-progress-container {
+        position: relative;
+        padding-top: 2px;
+        padding-bottom: 14px;
+    }
+
+    .macro-progress-bar {
+        position: relative;
+        height: 8px;
+        background: #F0EDE8;
+        border-radius: 999px;
+        overflow: visible;
+    }
+
+    .macro-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #E8847D 0%, #3B82F6 50%, #10B981 100%);
+        border-radius: 999px;
+        transition: width 0.4s ease;
+    }
+
+    .macro-step-marker {
+        position: absolute;
+        top: 4px;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+    }
+
+    .macro-step-marker.step-50 { left: 50%; }
+    .macro-step-marker.step-100 { left: 100%; }
+
+    .macro-step-marker .marker-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid #cbd5e1;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        transition: all 0.25s ease;
+    }
+
+    .macro-step-marker.achieved .marker-dot {
+        border-color: #10B981;
+        background: #10B981;
+    }
+
+    .macro-step-marker .marker-label {
+        font-size: 0.62rem;
+        font-weight: 700;
+        color: #94a3b8;
+        margin-top: 3px;
+        white-space: nowrap;
+    }
+
+    .macro-step-marker.achieved .marker-label {
+        color: #10B981;
+    }
+
+
+    /* ─── Product Meta ─── */
+    .product-meta {
+        display: flex;
+        gap: 16px;
+        font-size: 0.75rem;
+        color: #B0ADA8;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .product-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .product-meta-item i {
+        font-size: 0.8125rem;
+    }
+
+    /* ─── Product Action ─── */
+    .product-action {
+        margin-top: auto;
+        padding-top: 1rem;
+        border-top: 1px solid #F0EDEA;
+    }
+
+    .product-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 10px;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        text-decoration: none;
+    }
+
+    .product-action-btn.primary {
+        background: linear-gradient(135deg, #E8847D 0%, #D97468 100%);
+        color: white;
+    }
+
+    .product-action-btn.primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 16px rgba(232, 132, 125, 0.35);
+    }
+
+    .product-action-btn.completed {
+        background: #F0FAF5;
+        color: #059669;
+        cursor: default;
+    }
+
+    .product-action-btn.expired-btn {
+        background: #FEF2F2;
+        color: #DC2626;
+        cursor: default;
+    }
+
+    .product-action-btn.view-btn {
+        background: #F5F3F0;
+        color: #6B6B6B;
+    }
+
+    .product-action-btn.view-btn:hover {
+        background: #EAE6E1;
+    }
+
+    /* ─── Empty State ─── */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border: 1px dashed #E5E5E5;
+        border-radius: 16px;
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        color: #E5E5E5;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #2C2C2C;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state-text {
+        font-size: 0.875rem;
+        color: #9A9A9A;
+        max-width: 380px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+        .products-grid {
+            grid-template-columns: 1fr;
+        }
+        .dash-stats {
+            flex-direction: column;
+        }
+        .dash-welcome {
+            font-size: 1.25rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="dash-header">
+    <h1 class="dash-welcome">
+        {{ welcome_msg }}
+    </h1>
+    <p class="dash-welcome-sub">
+        {{ t.dashboard_subtitle }}
+    </p>
+</div>
+
+<!-- Stats -->
+{% with active_count=0 submitted_count=0 %}
+<div class="dash-stats">
+    <div class="dash-stat-card">
+        <div class="dash-stat-icon total">
+            <i class="bi bi-box-seam"></i>
+        </div>
+        <div>
+            <div class="dash-stat-number">{{ products_count }}</div>
+            <div class="dash-stat-label">{{ t.stat_total_products }}</div>
+        </div>
+    </div>
+
+    <div class="dash-stat-card">
+        <div class="dash-stat-icon active">
+            <i class="bi bi-arrow-repeat"></i>
+        </div>
+        <div>
+            {% with active=products|dictsort:"status" %}
+            <div class="dash-stat-number" id="stat-active">0</div>
+            {% endwith %}
+            <div class="dash-stat-label">{{ t.stat_in_progress }}</div>
+        </div>
+    </div>
+
+    <div class="dash-stat-card">
+        <div class="dash-stat-icon done">
+            <i class="bi bi-check-circle"></i>
+        </div>
+        <div>
+            <div class="dash-stat-number" id="stat-submitted">0</div>
+            <div class="dash-stat-label">{{ t.stat_completed }}</div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+
+<!-- Products -->
+<div class="products-section-title">
+    <i class="bi bi-grid-3x3-gap-fill"></i>
+    {{ t.section_your_products }}
+</div>
+
+{% if products %}
+<div class="products-grid">
+    {% for p in products %}
+    <div class="product-card status-{{ p.status }}">
+        <div class="product-card-header">
+            <div class="product-name">{{ p.project_name }}</div>
+            <span class="product-badge {{ p.status }}">
+                {% if p.status == 'draft' %}
+                    <i class="bi bi-pencil"></i> {{ p.status_label }}
+                {% elif p.status == 'in_progress' %}
+                    <i class="bi bi-arrow-repeat"></i> {{ p.status_label }}
+                {% elif p.status == 'submitted' %}
+                    <i class="bi bi-check-circle"></i> {{ p.status_label }}
+                {% elif p.status == 'expired' %}
+                    <i class="bi bi-clock-history"></i> {{ p.status_label }}
+                {% else %}
+                    {{ p.status_label }}
+                {% endif %}
+            </span>
+        </div>
+
+        <div class="product-module">
+            <i class="bi bi-file-earmark-text"></i>
+            {{ p.module_name }}
+        </div>
+
+        <!-- Macro Progress Stepper (50% Acquisizione Doc, 100% Lavorazione Etichub) -->
+        <div class="product-progress">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="small fw-bold text-dark">{{ p.status_label }}</span>
+                <span class="small fw-bold {% if p.completion_pct == 100 %}text-success{% elif p.completion_pct >= 50 %}text-primary{% else %}text-secondary{% endif %}">{{ p.completion_pct }}%</span>
+            </div>
+
+            <div class="macro-progress-container">
+                <div class="macro-progress-bar">
+                    <div class="macro-progress-fill" style="width: {{ p.completion_pct }}%;"></div>
+                    <div class="macro-step-marker step-50 {% if p.completion_pct >= 50 %}achieved{% endif %}" title="{{ t.macro_step_1_title }}">
+                        <span class="marker-dot"></span>
+                        <span class="marker-label">50%</span>
+                    </div>
+                    <div class="macro-step-marker step-100 {% if p.completion_pct == 100 %}achieved{% endif %}" title="{{ t.macro_step_2_title }}">
+                        <span class="marker-dot"></span>
+                        <span class="marker-label">100%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between text-muted mt-1" style="font-size: 0.72rem;">
+                <span class="{% if p.completion_pct >= 50 %}fw-bold text-primary{% endif %}">
+                    <i class="bi {% if p.completion_pct >= 50 %}bi-check-circle-fill text-success{% else %}bi-circle{% endif %} me-1"></i>
+                    {{ t.macro_step_1_short }}
+                </span>
+                <span class="{% if p.completion_pct == 100 %}fw-bold text-success{% endif %}">
+                    <i class="bi {% if p.completion_pct == 100 %}bi-check-circle-fill text-success{% else %}bi-circle{% endif %} me-1"></i>
+                    {{ t.macro_step_2_short }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Notification / Status Banner -->
+        {% if p.status == 'submitted' %}
+        <div class="mt-2 p-2 rounded-3" style="background: #eff6ff; border-left: 3px solid #3b82f6; font-size: 0.76rem; color: #1e40af; line-height: 1.4;">
+            <i class="bi bi-bell-fill me-1 text-primary"></i>
+            {{ t.notification_etichub_submitted }}
+        </div>
+        {% elif p.status == 'in_processing' %}
+        <div class="mt-2 p-2 rounded-3" style="background: #f5f3ff; border-left: 3px solid #8b5cf6; font-size: 0.76rem; color: #5b21b6; line-height: 1.4;">
+            <i class="bi bi-gear-wide-connected me-1" style="color: #8b5cf6;"></i>
+            {{ t.notification_etichub_in_processing }}
+        </div>
+        {% elif p.status == 'completed' %}
+        <div class="mt-2 p-2 rounded-3" style="background: #f0fdf4; border-left: 3px solid #10b981; font-size: 0.76rem; color: #166534; line-height: 1.4;">
+            <i class="bi bi-check-circle-fill me-1 text-success"></i>
+            {{ t.notification_etichub_completed }}
+        </div>
+        {% endif %}
+
+        <!-- Meta -->
+        <div class="product-meta">
+            <div class="product-meta-item">
+                <i class="bi bi-files"></i>
+                {{ t.documents_progress }}: {{ p.uploaded_count }} / {{ p.total_requirements }}
+            </div>
+            {% if p.status in 'draft,in_progress' and not p.is_expired %}
+            <div class="product-meta-item">
+                <i class="bi bi-clock-history text-warning"></i>
+                {{ t.ttl_deadline }}: {{ p.expiry_date|date:"d/m/Y" }}
+            </div>
+            {% else %}
+            <div class="product-meta-item">
+                <i class="bi bi-calendar3"></i>
+                {{ t.assigned_on }}: {{ p.assignment_date|date:"d/m/Y" }}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Action -->
+        <div class="product-action">
+            {% if p.can_upload %}
+                <a href="{% url 'client_product_detail' assignment_id=p.assignment.id %}" class="product-action-btn primary">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                    {{ t.btn_upload_docs }}
+                </a>
+            {% elif p.status in 'submitted,in_processing,completed' %}
+                <a href="{% url 'client_product_detail' assignment_id=p.assignment.id %}" class="product-action-btn primary" style="background: #2563EB;">
+                    <i class="bi bi-folder2-open"></i>
+                    {{ t.btn_view_docs }}
+                </a>
+            {% elif p.is_expired %}
+                <div class="product-action-btn expired-btn">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    {{ t.btn_expired }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">
+        <i class="bi bi-inbox"></i>
+    </div>
+    <div class="empty-state-title">{{ t.empty_title }}</div>
+    <div class="empty-state-text">
+        {{ t.empty_desc }}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Calculate live stats from product data
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.product-card');
+        let activeCount = 0;
+        let submittedCount = 0;
+        cards.forEach(card => {
+            if (card.classList.contains('status-in_progress') || card.classList.contains('status-draft')) {
+                activeCount++;
+            } else if (card.classList.contains('status-submitted') || card.classList.contains('status-in_processing') || card.classList.contains('status-completed')) {
+                submittedCount++;
+            }
+        });
+        const statActive = document.getElementById('stat-active');
+        const statSubmitted = document.getElementById('stat-submitted');
+        if (statActive) statActive.textContent = activeCount;
+        if (statSubmitted) statSubmitted.textContent = submittedCount;
+    });
+</script>
+{% endblock %}

@@ -3,15 +3,26 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Prefetch
+from django.db import IntegrityError, transaction
+from django.core.exceptions import ValidationError
+from django.contrib.auth.hashers import make_password
 from django.utils import timezone
+from django.conf import settings
+from django.urls import reverse
+import os
+import json
+import secrets
+import string
 import logging
 import traceback
+from itertools import chain
 from .models import (
     FormTemplate, FormStep, DocumentRequirement, Customer,
     FormAssignment, DocumentUpload, FormElement
 )
 from .utils import log_action, get_client_ip, get_user_agent, generate_secure_token
+from .upload_security import safe_join_paths, save_manifest_atomic
 
 logger = logging.getLogger('modules')
 
@@ -25,6 +36,8 @@ def admin_dashboard(request):
     customers_count = Customer.objects.filter(active=True).count()
     assignments_count = FormAssignment.objects.count()
     submitted_count = FormAssignment.objects.filter(status='submitted').count()
+    in_processing_count = FormAssignment.objects.filter(status='in_processing').count()
+    completed_count = FormAssignment.objects.filter(status='completed').count()
 
     recent_assignments = FormAssignment.objects.select_related(
         'customer', 'form_template'
@@ -35,6 +48,8 @@ def admin_dashboard(request):
         'customers_count': customers_count,
         'assignments_count': assignments_count,
         'submitted_count': submitted_count,
+        'in_processing_count': in_processing_count,
+        'completed_count': completed_count,
         'recent_assignments': recent_assignments,
     }
 
@@ -48,6 +63,28 @@ def admin_dashboard(request):
     )
 
     return render(request, 'modules/admin/dashboard.html', context)
+
+@login_required
+@user_passes_test(is_admin)
+def assignment_detail(request, pk):
+    assignment = get_object_or_404(FormAssignment, id=pk)
+    uploads = assignment.documentupload_set.all()
+    declarations = assignment.awarenessdeclaration_set.all()
+    form_url = request.build_absolute_uri(f"/modules/form/{assignment.secure_token}/")
+    portal_url = request.build_absolute_uri(reverse('client_login'))
+    ttl_days_remaining = max(0, (assignment.expiry_date - timezone.now()).days) if assignment.expiry_date else 0
+
+    context = {
+        'assignment': assignment,
+        'uploads': uploads,
+        'declarations': declarations,
+        'form_url': form_url,
+        'portal_url': portal_url,
+        'ttl_days_remaining': ttl_days_remaining,
+        'is_customer_active': assignment.customer.active if assignment.customer else False,
+    }
+
+    return render(request, 'modules/admin/assignment_detail.html', context)
 
 @login_required
 @user_passes_test(is_admin)
@@ -67,12 +104,20 @@ def form_template_create(request):
         description = request.POST.get('description')
         intro_text = request.POST.get('intro_text')
         privacy_text = request.POST.get('privacy_text')
+        raw_expiry = request.POST.get('default_expiry_days')
+        try:
+            default_days = int(raw_expiry) if raw_expiry else getattr(settings, 'FORM_ASSIGNMENT_EXPIRY_DAYS', 30)
+            if default_days <= 0:
+                default_days = getattr(settings, 'FORM_ASSIGNMENT_EXPIRY_DAYS', 30)
+        except (ValueError, TypeError):
+            default_days = getattr(settings, 'FORM_ASSIGNMENT_EXPIRY_DAYS', 30)
 
         template = FormTemplate.objects.create(
             name=name,
             description=description,
             intro_text=intro_text,
             privacy_text=privacy_text,
+            default_expiry_days=default_days,
             author=request.user,
             status='draft'
         )
@@ -101,6 +146,13 @@ def form_template_edit(request, pk):
         template.intro_text = request.POST.get('intro_text', template.intro_text)
         template.privacy_text = request.POST.get('privacy_text', template.privacy_text)
         template.status = request.POST.get('status', template.status)
+        if 'default_expiry_days' in request.POST:
+            try:
+                val = int(request.POST.get('default_expiry_days'))
+                if val > 0:
+                    template.default_expiry_days = val
+            except (ValueError, TypeError):
+                pass
         template.save()
 
         log_action(
@@ -150,31 +202,120 @@ def customer_list(request):
 @user_passes_test(is_admin)
 def customer_create(request):
     if request.method == 'POST':
-        customer = Customer.objects.create(
-            code=request.POST.get('code'),
-            first_name=request.POST.get('first_name'),
-            last_name=request.POST.get('last_name'),
-            email=request.POST.get('email'),
-            phone=request.POST.get('phone', ''),
-            fiscal_code=request.POST.get('fiscal_code', ''),
-            vat_number=request.POST.get('vat_number', ''),
-            nas_folder_name=request.POST.get('nas_folder_name'),
-            notes=request.POST.get('notes', ''),
-            active=request.POST.get('active') == 'on'
-        )
+        code = (request.POST.get('code') or '').strip()
+        first_name = (request.POST.get('first_name') or '').strip()
+        last_name = (request.POST.get('last_name') or '').strip()
+        email = (request.POST.get('email') or '').strip()
+        phone = (request.POST.get('phone') or '').strip() or None
+        nas_folder_name = (request.POST.get('nas_folder_name') or '').strip()
+        notes = (request.POST.get('notes') or '').strip()
+        active = request.POST.get('active') == 'on' or 'active' in request.POST
+        portal_password_raw = (request.POST.get('portal_password') or '').strip()
 
-        log_action(
-            request.user,
-            'create',
-            'Customer',
-            str(customer.id),
-            ip=get_client_ip(request),
-            user_agent=get_user_agent(request)
-        )
+        form_data = {
+            'code': code,
+            'first_name': first_name,
+            'last_name': last_name,
+            'email': email,
+            'phone': phone or '',
+            'nas_folder_name': nas_folder_name,
+            'notes': notes,
+            'active': active,
+            'portal_password': portal_password_raw,
+        }
 
-        return redirect('customer_list')
+        # Basic validations
+        if not code:
+            messages.error(request, "Il codice cliente è obbligatorio.")
+            return render(request, 'modules/admin/customer_form.html', {'form_data': form_data})
 
-    return render(request, 'modules/admin/customer_form.html')
+        if not first_name:
+            messages.error(request, "Il nome/ragione sociale dell'azienda è obbligatorio.")
+            return render(request, 'modules/admin/customer_form.html', {'form_data': form_data})
+
+        if not email:
+            messages.error(request, "L'indirizzo email è obbligatorio.")
+            return render(request, 'modules/admin/customer_form.html', {'form_data': form_data})
+
+        if not nas_folder_name:
+            messages.error(request, "Il nome della cartella NAS è obbligatorio.")
+            return render(request, 'modules/admin/customer_form.html', {'form_data': form_data})
+
+        if not portal_password_raw:
+            portal_password_raw = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(10))
+        elif len(portal_password_raw) < 6:
+            messages.error(request, "La password dell'area personale deve avere almeno 6 caratteri.")
+            return render(request, 'modules/admin/customer_form.html', {'form_data': form_data})
+
+        # Check unique code
+        if Customer.objects.filter(code__iexact=code).exists():
+            messages.error(request, f"Un cliente con codice '{code}' esiste già.")
+            return render(request, 'modules/admin/customer_form.html', {'form_data': form_data})
+
+        # Check unique nas_folder_name
+        if Customer.objects.filter(nas_folder_name__iexact=nas_folder_name).exists():
+            messages.error(request, f"La cartella NAS '{nas_folder_name}' è già utilizzata da un altro cliente.")
+            return render(request, 'modules/admin/customer_form.html', {'form_data': form_data})
+
+        try:
+            customer = Customer(
+                code=code,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                phone=phone,
+                fiscal_code=None,
+                vat_number=None,
+                nas_folder_name=nas_folder_name,
+                notes=notes,
+                active=active
+            )
+            # Set portal password
+            customer.set_portal_password(portal_password_raw)
+            # Run model full_clean (checks validators like validate_folder_name)
+            customer.full_clean()
+            customer.save()
+
+            log_action(
+                request.user,
+                'create',
+                'Customer',
+                str(customer.id),
+                {
+                    'code': customer.code,
+                    'name': f"{customer.first_name} {customer.last_name}".strip(),
+                    'nas_folder_name': customer.nas_folder_name,
+                },
+                ip=get_client_ip(request),
+                user_agent=get_user_agent(request)
+            )
+
+            client_full_name = f"{customer.first_name} {customer.last_name}".strip()
+            messages.success(request, f"Cliente '{client_full_name}' ({customer.code}) creato con successo!")
+            return redirect('customer_list')
+
+        except ValidationError as ve:
+            err_list = []
+            if hasattr(ve, 'message_dict'):
+                for field_name, errs in ve.message_dict.items():
+                    err_list.append(f"{field_name}: {', '.join(errs)}")
+            else:
+                err_list = list(ve.messages)
+            messages.error(request, f"Errore di convalida: {'; '.join(err_list)}")
+            return render(request, 'modules/admin/customer_form.html', {'form_data': form_data})
+
+        except IntegrityError as ie:
+            logger.error(f"Errore di integrità creazione cliente: {str(ie)}")
+            messages.error(request, "Impossibile salvare il cliente: un valore inserito è duplicato o viola i vincoli del database.")
+            return render(request, 'modules/admin/customer_form.html', {'form_data': form_data})
+
+        except Exception as e:
+            logger.error(f"Errore imprevisto durante la creazione del cliente: {str(e)}")
+            messages.error(request, f"Si è verificato un errore durante la creazione del cliente: {str(e)}")
+            return render(request, 'modules/admin/customer_form.html', {'form_data': form_data})
+
+    return render(request, 'modules/admin/customer_form.html', {'form_data': {'active': True}})
+
 
 @login_required
 @user_passes_test(is_admin)
@@ -227,35 +368,75 @@ def customer_delete(request, pk):
 
 @login_required
 @user_passes_test(is_admin)
-def assignment_detail(request, pk):
-    assignment = get_object_or_404(FormAssignment, id=pk)
-    uploads = assignment.documentupload_set.all()
-    declarations = assignment.awarenessdeclaration_set.all()
-    form_url = request.build_absolute_uri(f"/modules/form/{assignment.secure_token}/")
+@require_http_methods(["POST"])
+def customer_reset_password(request, pk):
+    """Reset portal password for a customer."""
+    customer = get_object_or_404(Customer, id=pk)
+    customer_name = f"{customer.first_name} {customer.last_name}".strip()
 
-    context = {
-        'assignment': assignment,
-        'uploads': uploads,
-        'declarations': declarations,
-        'form_url': form_url,
-    }
+    new_password = (request.POST.get('new_password') or '').strip()
+    if not new_password:
+        # Generate secure random alphanumeric password
+        chars = string.ascii_letters + string.digits
+        new_password = ''.join(secrets.choice(chars) for _ in range(10))
 
-    return render(request, 'modules/admin/assignment_detail.html', context)
+    if len(new_password) < 6:
+        err_msg = "La nuova password deve contenere almeno 6 caratteri."
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({'success': False, 'error': err_msg}, status=400)
+        messages.error(request, err_msg)
+        return redirect('customer_list')
+
+    try:
+        customer.set_portal_password(new_password)
+        customer.save(update_fields=['portal_password', 'updated_at'])
+
+        log_action(
+            request.user,
+            'update',
+            'Customer',
+            str(pk),
+            {
+                'action': 'reset_portal_password',
+                'customer_code': customer.code,
+            },
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+
+        success_msg = f"Password per '{customer_name}' ({customer.code}) aggiornata con successo: {new_password}"
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({
+                'success': True,
+                'message': success_msg,
+                'customer_code': customer.code,
+                'customer_name': customer_name,
+                'new_password': new_password
+            })
+
+        messages.success(request, success_msg)
+        return redirect('customer_list')
+
+    except Exception as e:
+        logger.error(f"Errore reset password cliente {pk}: {str(e)}")
+        err_msg = f"Errore durante il reset della password: {str(e)}"
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({'success': False, 'error': err_msg}, status=500)
+        messages.error(request, err_msg)
+        return redirect('customer_list')
+
+
 
 @login_required
 @user_passes_test(is_admin)
 def assign_form_to_customer(request):
-    import os
-    import json
-    import secrets
-    import string
-
     if request.method == 'POST':
         customer_id = request.POST.get('customer_id', '').strip()
         template_id = request.POST.get('template_id', '').strip()
         project_name = request.POST.get('project_name', '').strip()
         access_password = request.POST.get('access_password', '').strip()
-        expiry_days = request.POST.get('expiry_days', '30').strip()
+        expiry_days = request.POST.get('expiry_days', str(getattr(settings, 'FORM_ASSIGNMENT_EXPIRY_DAYS', 30))).strip()
         internal_notes = request.POST.get('internal_notes', '').strip()
 
         errors = []
@@ -291,15 +472,15 @@ def assign_form_to_customer(request):
         try:
             days = int(expiry_days)
             if days <= 0:
-                days = 30
+                days = settings.FORM_ASSIGNMENT_EXPIRY_DAYS
         except ValueError:
-            days = 30
+            days = settings.FORM_ASSIGNMENT_EXPIRY_DAYS
 
         expiry_date = timezone.now() + timezone.timedelta(days=days)
 
         # Pre-create dedicated NAS folder structure: /storage/clienti/{customer.nas_folder_name}/{project_name}/
         nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
-        nas_project_path = os.path.join(nas_base, customer.nas_folder_name, project_name)
+        nas_project_path = str(safe_join_paths(nas_base, customer.nas_folder_name, project_name))
         try:
             os.makedirs(nas_project_path, exist_ok=True)
         except Exception as e:
@@ -309,39 +490,45 @@ def assign_form_to_customer(request):
             alphabet = string.ascii_letters + string.digits
             access_password = ''.join(secrets.choice(alphabet) for _ in range(8))
 
-        assignment = FormAssignment.objects.create(
-            customer=customer,
-            form_template=template,
-            expiry_date=expiry_date,
-            operator=request.user,
-            status='draft',
-            internal_notes=internal_notes,
-            form_data={
-                'client_name': customer.nas_folder_name,
-                'project_name': project_name,
-                'access_password': access_password,
-                'created_at': timezone.now().isoformat()
-            }
-        )
-
-        # Create initial manifest.json in the NAS folder
         try:
-            manifest_path = os.path.join(nas_project_path, 'manifest.json')
-            if not os.path.exists(manifest_path):
-                manifest = {
-                    'assignment_id': str(assignment.id),
-                    'form_name': template.name,
-                    'customer': f"{customer.first_name} {customer.last_name}",
-                    'customer_code': customer.code,
-                    'nas_client_folder': customer.nas_folder_name,
-                    'project': project_name,
-                    'created_at': timezone.now().isoformat(),
-                    'uploads': []
-                }
-                with open(manifest_path, 'w', encoding='utf-8') as f:
-                    json.dump(manifest, f, indent=2, ensure_ascii=False)
+            with transaction.atomic():
+                os.makedirs(nas_project_path, exist_ok=True)
+                assignment = FormAssignment.objects.create(
+                    customer=customer,
+                    form_template=template,
+                    expiry_date=expiry_date,
+                    operator=request.user,
+                    status='draft',
+                    internal_notes=internal_notes,
+                    form_data={
+                        'client_name': customer.nas_folder_name,
+                        'project_name': project_name,
+                        'access_password': make_password(access_password) if access_password else '',
+                        'created_at': timezone.now().isoformat()
+                    }
+                )
+
+                # Create initial manifest.json in the NAS folder atomically
+                manifest_path = str(safe_join_paths(nas_project_path, 'manifest.json'))
+                if not os.path.exists(manifest_path):
+                    manifest = {
+                        'assignment_id': str(assignment.id),
+                        'form_name': template.name,
+                        'customer': f"{customer.first_name} {customer.last_name}",
+                        'customer_code': customer.code,
+                        'nas_client_folder': customer.nas_folder_name,
+                        'project': project_name,
+                        'created_at': timezone.now().isoformat(),
+                        'uploads': []
+                    }
+                    save_manifest_atomic(manifest_path, manifest)
         except Exception as e:
-            logger.warning(f"Could not create initial manifest.json in {nas_project_path}: {e}")
+            logger.error(f"Could not create assignment and manifest: {e}", exc_info=True)
+            err_msg = f"Errore durante l'assegnazione del modulo o creazione su NAS: {e}"
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+                return JsonResponse({'status': 'error', 'error': err_msg}, status=500)
+            messages.error(request, err_msg)
+            return redirect('assign_form_to_customer')
 
         log_action(
             request.user,
@@ -376,11 +563,21 @@ def assign_form_to_customer(request):
     customers = Customer.objects.filter(active=True).order_by('first_name')
     templates = FormTemplate.objects.filter(status='published').order_by('name')
 
+    default_expiry = getattr(settings, 'FORM_ASSIGNMENT_EXPIRY_DAYS', 30)
+    if selected_template_id:
+        try:
+            sel_tmpl = FormTemplate.objects.filter(id=selected_template_id).first()
+            if sel_tmpl and hasattr(sel_tmpl, 'default_expiry_days') and sel_tmpl.default_expiry_days:
+                default_expiry = sel_tmpl.default_expiry_days
+        except Exception:
+            pass
+
     context = {
         'customers': customers,
         'templates': templates,
         'selected_template_id': selected_template_id,
         'selected_customer_id': selected_customer_id,
+        'expiry_days': default_expiry,
     }
 
     return render(request, 'modules/admin/assign_form.html', context)
@@ -487,15 +684,18 @@ def builder_edit(request, pk):
 @user_passes_test(is_admin)
 def builder_preview(request, pk):
     """Preview form as client would see it (read-only)."""
-    from itertools import chain
     template = get_object_or_404(FormTemplate, id=pk)
-    steps = template.formstep_set.all().order_by('order')
+    steps = template.formstep_set.all().prefetch_related(
+        Prefetch('formelement_set', queryset=FormElement.objects.order_by('order')),
+        Prefetch('documentrequirement_set', queryset=DocumentRequirement.objects.order_by('order'))
+    ).order_by('order')
 
-    # Combine FormElement and DocumentRequirement for each step, ordered by order field
+    # Combine FormElement and DocumentRequirement for each step using cached prefetched sets
     for step in steps:
-        elements = step.formelement_set.all().order_by('order')
-        documents = step.documentrequirement_set.all().order_by('order')
-        step.combined_items = sorted(chain(elements, documents), key=lambda x: x.order)
+        step.combined_items = sorted(
+            chain(step.formelement_set.all(), step.documentrequirement_set.all()),
+            key=lambda x: x.order
+        )
 
     context = {
         'form': template,
@@ -536,8 +736,8 @@ def reopen_assignment_for_upload(request, pk):
     assignment.status = 'in_progress'
     assignment.submission_date = None
 
-    # Extend validity (30 days from now)
-    assignment.expiry_date = timezone.now() + timezone.timedelta(days=30)
+    # Extend validity
+    assignment.expiry_date = timezone.now() + timezone.timedelta(days=settings.FORM_ASSIGNMENT_EXPIRY_DAYS)
 
     # Recalculate completion percentage based on valid uploaded files vs total requirements
     total_reqs = DocumentRequirement.objects.filter(form_step__form_template=assignment.form_template).count()
@@ -546,7 +746,7 @@ def reopen_assignment_for_upload(request, pk):
             status='valid',
             availability_status='uploaded'
         ).count()
-        assignment.completion_percentage = int((valid_uploaded_count / total_reqs) * 100)
+        assignment.completion_percentage = int((valid_uploaded_count / total_reqs) * settings.COMPLETION_PERCENTAGE_MULTIPLIER)
     else:
         assignment.completion_percentage = 0
 
@@ -655,3 +855,56 @@ def assignment_delete(request, pk):
         messages.error(request, err_msg)
         return redirect('admin_dashboard')
 
+
+@login_required
+@user_passes_test(is_admin)
+@require_http_methods(["POST"])
+def assignment_update_status(request, pk):
+    """
+    Operator state machine transition for FormAssignment:
+    - 'in_processing': Etichub regulatory office takes charge of practice -> 75%
+    - 'completed': Etichub finishes analysis & PIF dossier -> 100% ('Lavorata')
+    """
+    assignment = get_object_or_404(FormAssignment, id=pk)
+    new_status = request.POST.get('status', '').strip()
+
+    valid_transitions = {
+        'submitted': 50,
+        'in_processing': 75,
+        'completed': settings.COMPLETION_PERCENTAGE_MULTIPLIER,
+        'in_progress': 25,
+    }
+
+    if new_status not in valid_transitions:
+        messages.error(request, f"Stato non valido: {new_status}")
+        return redirect('assignment_detail', pk=assignment.id)
+
+    old_status = assignment.status
+    assignment.status = new_status
+    assignment.completion_percentage = valid_transitions[new_status]
+    assignment.save(update_fields=['status', 'completion_percentage'])
+
+    status_labels = {
+        'submitted': 'Upload Documentale Completato (50%)',
+        'in_processing': 'In Lavorazione Etichub (75%)',
+        'completed': 'Lavorata e Completata (100%)',
+        'in_progress': 'In Corso / Integrazioni Documentali',
+    }
+
+    log_action(
+        request.user,
+        'update',
+        'FormAssignment',
+        str(assignment.id),
+        {
+            'action': 'status_updated_by_operator',
+            'previous_status': old_status,
+            'new_status': new_status,
+            'completion_percentage': assignment.completion_percentage
+        },
+        ip=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+
+    messages.success(request, f"Stato della pratica aggiornato con successo: {status_labels.get(new_status, new_status)}.")
+    return redirect('assignment_detail', pk=assignment.id)

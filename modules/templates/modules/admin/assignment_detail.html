@@ -264,66 +264,155 @@
     </div>
 </div>
 
-<!-- Link Riservato per il Cliente -->
-<div class="link-share-card">
-    <h3><i class="bi bi-link-45deg" style="color: #E89BA7; font-size: 1.4rem;"></i> Link Riservato di Accesso Cliente</h3>
-    <p>Condividi o invia questo link univoco al cliente per permettergli di accedere al modulo e caricare i documenti richiesti:</p>
-    <div class="link-copy-group">
-        <div class="link-input-wrapper">
-            <input type="text" id="formUrlInput" class="link-input" value="{{ form_url }}" readonly>
+<!-- Banner Notifica Avanzamento Stato Etichub -->
+{% if assignment.status == 'submitted' %}
+<div class="alert alert-success border-0 shadow-sm rounded-4 p-4 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3" style="background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border-left: 6px solid #2e7d32 !important;">
+    <div class="d-flex align-items-center gap-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm flex-shrink-0" style="width: 52px; height: 52px; color: #2e7d32; font-size: 1.6rem;">
+            <i class="bi bi-bell-fill"></i>
         </div>
-        <button type="button" class="btn-copy-link" id="btnCopy" onclick="copyFormLink()">
-            <i class="bi bi-clipboard"></i> Copia Link
+        <div>
+            <h5 class="fw-bold text-dark mb-1">🔔 Notifica Etichub: Upload Documentale Completato (50%)</h5>
+            <p class="mb-0 text-secondary" style="font-size: 0.95rem;">
+                Il cliente ha confermato la trasmissione di tutti i documenti e la dichiarazione di consapevolezza. La pratica è pronta per essere presa in carico dall'Ufficio Regolatorio.
+            </p>
+        </div>
+    </div>
+    <form method="post" action="{% url 'assignment_update_status' assignment.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="status" value="in_processing">
+        <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold rounded-3 shadow-sm" style="background: #1976d2; border: none;">
+            <i class="bi bi-play-circle-fill me-1"></i> Prendi in Carico (Avvia Lavorazione - 75%)
         </button>
-        <a href="{{ form_url }}" target="_blank" class="btn-open-link">
-            <i class="bi bi-box-arrow-up-right"></i> Apri Modulo
-        </a>
-    </div>
-    {% if assignment.form_data.access_password %}
-    <div style="margin-top: 1rem; padding: 0.85rem 1.25rem; background: rgba(232, 155, 167, 0.12); border: 1px solid #E8D3D8; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
-        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
-            <i class="bi bi-key-fill" style="color: #7B1123; font-size: 1.15rem;"></i>
-            <span style="font-weight: 600; color: #2C2C2C; font-size: 0.92rem;">Password di Accesso Cliente:</span>
-            <code id="accessPasswordVal" style="font-size: 1.05rem; font-weight: 700; background: white; padding: 3px 10px; border-radius: 6px; border: 1px solid #D0CBC4; color: #7B1123; letter-spacing: 0.5px;">{{ assignment.form_data.access_password }}</code>
+    </form>
+</div>
+{% elif assignment.status == 'in_processing' %}
+<div class="alert alert-info border-0 shadow-sm rounded-4 p-4 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3" style="background: linear-gradient(135deg, #e3f2fd 0%, #e1f5fe 100%); border-left: 6px solid #0288d1 !important;">
+    <div class="d-flex align-items-center gap-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm flex-shrink-0" style="width: 52px; height: 52px; color: #0288d1; font-size: 1.6rem;">
+            <i class="bi bi-gear-wide-connected"></i>
         </div>
-        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopyPwd" onclick="copyPassword()" style="border-radius: 6px; font-weight: 500;">
-            <i class="bi bi-clipboard"></i> Copia Password
+        <div>
+            <h5 class="fw-bold text-dark mb-1">⚙️ Lavorazione Regolatoria Etichub in Corso (75%)</h5>
+            <p class="mb-0 text-secondary" style="font-size: 0.95rem;">
+                La documentazione tecnica (PIF / dossier cosmetico) è attualmente in lavorazione presso l'Ufficio Regolatorio di Etichub.
+            </p>
+        </div>
+    </div>
+    <form method="post" action="{% url 'assignment_update_status' assignment.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="status" value="completed">
+        <button type="submit" class="btn btn-success px-4 py-2 fw-semibold rounded-3 shadow-sm" style="background: #2e7d32; border: none;">
+            <i class="bi bi-check-circle-fill me-1"></i> Segna come Lavorata (100% Completata)
         </button>
-    </div>
-    {% endif %}
-
-    <!-- Reopen / Regenerate Link Integration Box -->
-    {% if assignment.status == 'submitted' %}
-    <div style="margin-top: 1.25rem; padding: 1.15rem 1.4rem; background: #FFF9E6; border: 1px solid #FFE082; border-radius: 10px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.25rem;">
-        <div style="display: flex; align-items: flex-start; gap: 0.85rem; max-width: 680px;">
-            <i class="bi bi-info-circle-fill text-warning" style="font-size: 1.4rem; line-height: 1.2;"></i>
-            <div>
-                <div style="font-weight: 700; color: #7A5200; font-size: 0.96rem;">Pratica completata. Necessari ulteriori documenti o integrazioni?</div>
-                <div style="color: #6C5115; font-size: 0.86rem; line-height: 1.45; margin-top: 0.2rem;">
-                    Se alcuni file non erano inizialmente disponibili o sono richiesti documenti integrativi, puoi riaprire la pratica e generare una nuova URL per il cliente. La cartella NAS dedicata <code>/{{ assignment.customer.nas_folder_name }}/</code> e tutti i file già caricati rimarranno intatti.
-                </div>
-            </div>
+    </form>
+</div>
+{% elif assignment.status == 'completed' %}
+<div class="alert alert-success border-0 shadow-sm rounded-4 p-4 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-left: 6px solid #16a34a !important;">
+    <div class="d-flex align-items-center gap-3">
+        <div class="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm flex-shrink-0" style="width: 52px; height: 52px; color: #16a34a; font-size: 1.6rem;">
+            <i class="bi bi-check-all"></i>
         </div>
-        <form method="post" action="{% url 'reopen_assignment' assignment.id %}" onsubmit="return confirm('Confermi di voler riaprire la pratica e generare un nuovo link per il cliente?\n\n- Verrà generata una nuova URL sicura di upload.\n- La cartella NAS e i file già caricati saranno preservati.\n- Il cliente potrà integrare i documenti mancanti.');">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-warning" style="font-weight: 700; border-radius: 8px; box-shadow: 0 3px 10px rgba(255, 193, 7, 0.4); padding: 0.55rem 1.25rem; color: #4F3300; border: 1px solid #E5AF00;">
-                <i class="bi bi-arrow-repeat me-1"></i> Rigenera Link per Documenti Integrativi
-            </button>
-        </form>
+        <div>
+            <h5 class="fw-bold text-dark mb-1">✅ Lavorazione Completata con Successo (100%)</h5>
+            <p class="mb-0 text-secondary" style="font-size: 0.95rem;">
+                La pratica è stata interamente lavorata dall'Ufficio Regolatorio Etichub ("Lavorata"). Ciclo completato al 100%.
+            </p>
+        </div>
     </div>
-    {% else %}
-    <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
-        <form method="post" action="{% url 'reopen_assignment' assignment.id %}" onsubmit="return confirm('Vuoi rigenerare un nuovo link di accesso sicuro per il cliente? Il link precedente non sarà più utilizzabile.');">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-secondary" style="border-radius: 6px; font-size: 0.84rem; font-weight: 500;">
-                <i class="bi bi-arrow-clockwise me-1"></i> Rigenera Link di Accesso
-            </button>
-        </form>
-    </div>
+    {% if assignment.submission_date %}
+    <a href="{% url 'assignment_receipt' assignment.id %}" target="_blank" class="btn btn-outline-success px-3 py-2 rounded-3 fw-semibold">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Scarica Ricevuta PDF
+    </a>
     {% endif %}
 </div>
+{% endif %}
 
-<!-- Info Grid -->
+<!-- Box Accesso Area Riservata Cliente vs Validità Modulo Prodotto -->
+<div class="row g-3 mb-4">
+    <!-- Area Personale Cliente (Permanente) -->
+    <div class="col-lg-6">
+        <div class="card h-100 border-0 shadow-sm rounded-4 p-3 p-md-4" style="background: #f8fafc; border: 1px solid #e2e8f0 !important;">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-person-workspace text-primary"></i> Area Personale Cliente
+                </h5>
+                {% if is_customer_active %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill">
+                    <i class="bi bi-check-circle-fill me-1"></i> Accesso Permanente Attivo
+                </span>
+                {% else %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 rounded-pill">
+                    <i class="bi bi-x-circle-fill me-1"></i> Cliente Disattivato
+                </span>
+                {% endif %}
+            </div>
+            <p class="text-secondary small mb-3">
+                L'area personale non ha scadenza temporale. L'accesso rimane attivo fintanto che lo stato dell'anagrafica cliente è <strong>Attivo</strong>.
+            </p>
+            <div class="mb-2">
+                <label class="form-label small text-muted mb-1">Link Portale Clienti:</label>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control font-monospace bg-white" value="{{ portal_url }}" id="portalUrlInput" readonly>
+                    <button class="btn btn-outline-secondary" type="button" onclick="copyPortalLink()">
+                        <i class="bi bi-clipboard"></i> Copia
+                    </button>
+                    <a href="{{ portal_url }}" target="_blank" class="btn btn-outline-primary">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="d-flex align-items-center justify-content-between small text-muted mt-2 pt-2 border-top">
+                <span>Codice Accesso: <strong class="text-dark">{{ assignment.customer.code }}</strong></span>
+                <span>Referente: <strong class="text-dark">{{ assignment.customer.first_name }} {{ assignment.customer.last_name }}</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modulo Prodotto (TTL / Validità Upload) -->
+    <div class="col-lg-6">
+        <div class="card h-100 border-0 shadow-sm rounded-4 p-3 p-md-4" style="background: #fffbf6; border: 1px solid #fdecd2 !important;">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-box-seam text-warning"></i> Validità Modulo Prodotto (TTL)
+                </h5>
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1 rounded-pill">
+                    <i class="bi bi-clock-history me-1"></i> 
+                    {% if assignment.status in 'submitted,in_processing,completed' %}
+                    Concluso
+                    {% elif ttl_days_remaining > 0 %}
+                    {{ ttl_days_remaining }} gg rimanenti
+                    {% else %}
+                    Scaduto
+                    {% endif %}
+                </span>
+            </div>
+            <p class="text-secondary small mb-3">
+                Link Riservato di Accesso Cliente per l'upload della documentazione per un tempo prefissato (TTL stabilito alla creazione).
+            </p>
+            <div class="mb-2">
+                <label class="form-label small text-muted mb-1">Link Diretto Modulo Prodotto:</label>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control font-monospace bg-white" value="{{ form_url }}" id="formUrlInput" readonly>
+                    <button class="btn btn-outline-secondary" type="button" id="btnCopy" onclick="copyFormLink()">
+                        <i class="bi bi-clipboard"></i> Copia
+                    </button>
+                    <a href="{{ form_url }}" target="_blank" class="btn btn-outline-secondary">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="d-flex align-items-center justify-content-between small text-muted mt-2 pt-2 border-top">
+                <span>Scadenza TTL: <strong class="text-dark">{{ assignment.expiry_date|date:"d/m/Y H:i" }}</strong></span>
+                {% if assignment.form_data.access_password %}
+                <span><i class="bi bi-shield-lock-fill text-success"></i> Accesso: <span class="badge bg-success-subtle text-success border border-success-subtle">Protetta da password</span></span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Info Grid & Controllo Operatore Macchina a Stati -->
 <div class="info-grid">
     <!-- Card Cliente -->
     <div class="info-card">
@@ -345,16 +434,10 @@
             </span>
         </div>
         <div class="info-row">
-            <span class="info-label">Progetto / Pratica</span>
+            <span class="info-label">Prodotto / Pratica</span>
             <span class="info-val" style="color: #2C2C2C; font-weight: 700;">
-                <i class="bi bi-folder" style="color: #E89BA7;"></i>
-                {% if assignment.form_data.project_name %}
-                    {{ assignment.form_data.project_name }}
-                {% elif assignment.form_template.project_name %}
-                    {{ assignment.form_template.project_name }}
-                {% else %}
-                    Pratica Standard
-                {% endif %}
+                <i class="bi bi-box-seam" style="color: #E89BA7;"></i>
+                {{ assignment.form_template.name }}
             </span>
         </div>
         <div class="info-row">
@@ -365,41 +448,78 @@
         </div>
     </div>
 
-    <!-- Card Stato & Avanzamento -->
+    <!-- Card Stato & Avanzamento con Macchina a Stati -->
     <div class="info-card">
-        <h4><i class="bi bi-bar-chart-steps" style="color: #7B44CC;"></i> Stato & Avanzamento</h4>
+        <h4><i class="bi bi-bar-chart-steps" style="color: #7B44CC;"></i> Stato & Avanzamento (Macchina a Stati)</h4>
         <div class="info-row">
-            <span class="info-label">Stato Pratica</span>
+            <span class="info-label">Stato Corrente</span>
             <span class="info-val">
-                {% if assignment.status == 'submitted' %}
-                <span class="badge bg-success">Completata</span>
+                {% if assignment.status == 'completed' %}
+                <span class="badge bg-success"><i class="bi bi-check2-all me-1"></i> Lavorazione Completata (100%)</span>
+                {% elif assignment.status == 'in_processing' %}
+                <span class="badge bg-primary"><i class="bi bi-gear-fill me-1"></i> Lavorazione Etichub in corso (75%)</span>
+                {% elif assignment.status == 'submitted' %}
+                <span class="badge bg-info text-dark"><i class="bi bi-clipboard-check me-1"></i> Upload Documentale Completato (50%)</span>
                 {% elif assignment.status == 'in_progress' %}
-                <span class="badge bg-info text-dark">In Corso</span>
+                <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i> Documentazione Parziale</span>
                 {% elif assignment.status == 'expired' %}
-                <span class="badge bg-danger">Scaduta</span>
+                <span class="badge bg-danger"><i class="bi bi-alarm me-1"></i> Scaduta</span>
                 {% else %}
-                <span class="badge bg-secondary">Bozza</span>
+                <span class="badge bg-secondary"><i class="bi bi-folder me-1"></i> Pratica Aperta (Bozza)</span>
                 {% endif %}
             </span>
         </div>
         <div class="info-row">
-            <span class="info-label">Completamento</span>
-            <span class="info-val">{{ assignment.completion_percentage }}%</span>
+            <span class="info-label">Progresso Globale</span>
+            <span class="info-val fw-bold text-dark">{{ assignment.completion_percentage }}%</span>
         </div>
         <div class="progress-bar-container">
             <div class="progress-bar-fill" style="width: {{ assignment.completion_percentage }}%;"></div>
         </div>
-        <div class="info-row" style="margin-top: 0.75rem;">
-            <span class="info-label">Scadenza Assegnazione</span>
-            <span class="info-val">{{ assignment.expiry_date|date:"d/m/Y H:i" }}</span>
+
+        <!-- Azioni Operatore Macchina a Stati -->
+        <div class="mt-3 pt-3 border-top">
+            <label class="form-label small fw-bold text-secondary mb-2">Transizione di Stato (Operatore Etichub):</label>
+            <div class="d-flex flex-wrap gap-2">
+                {% if assignment.status != 'in_processing' and assignment.status != 'completed' %}
+                <form method="post" action="{% url 'assignment_update_status' assignment.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="in_processing">
+                    <button type="submit" class="btn btn-sm btn-outline-primary rounded-3">
+                        <i class="bi bi-play-circle me-1"></i> Avvia Lavorazione (75%)
+                    </button>
+                </form>
+                {% endif %}
+
+                {% if assignment.status != 'completed' %}
+                <form method="post" action="{% url 'assignment_update_status' assignment.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="completed">
+                    <button type="submit" class="btn btn-sm btn-success rounded-3 fw-semibold">
+                        <i class="bi bi-check2-circle me-1"></i> Segna come Lavorata (100%)
+                    </button>
+                </form>
+                {% endif %}
+
+                {% if assignment.status == 'completed' or assignment.status == 'in_processing' %}
+                <form method="post" action="{% url 'assignment_update_status' assignment.id %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="status" value="submitted">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary rounded-3" title="Riporta a Upload Completato">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Riporta a 50%
+                    </button>
+                </form>
+                {% endif %}
+            </div>
         </div>
+
         {% if assignment.submission_date %}
-        <div class="info-row">
-            <span class="info-label">Data Sottomissione</span>
+        <div class="info-row mt-2">
+            <span class="info-label">Data Sottomissione Cliente</span>
             <span class="info-val text-success">{{ assignment.submission_date|date:"d/m/Y H:i" }}</span>
         </div>
-        <div class="mt-3">
-            <a href="{% url 'assignment_receipt' assignment.id %}" target="_blank" class="btn btn-sm btn-outline-success w-100" style="border-radius: 8px; font-weight: 600; padding: 6px 12px;">
+        <div class="mt-2">
+            <a href="{% url 'assignment_receipt' assignment.id %}" target="_blank" class="btn btn-sm btn-outline-success w-100 rounded-3 fw-semibold">
                 <i class="bi bi-file-earmark-pdf-fill me-1"></i> Scarica Ricevuta Ufficiale (PDF)
             </a>
         </div>
@@ -430,18 +550,27 @@
                     <td>
                         <div style="font-weight: 600; color: #2C2C2C;">
                             {% if upload.availability_status == 'not_available' %}
-                            <i class="bi bi-file-earmark-x text-warning me-1"></i> Requisito: {{ upload.document_requirement.name|default:"Documento" }}
+                            <i class="bi bi-file-earmark-medical text-warning me-1"></i> Requisito: {{ upload.document_requirement.name|default:"Documento" }}
+                            {% if upload.stored_filename and upload.original_filename != 'NON_DISPONIBILE' %}
+                            <div class="small text-dark mt-1">
+                                <i class="bi bi-paperclip text-muted me-1"></i> <strong>Allegato:</strong> {{ upload.original_filename }}
+                            </div>
+                            {% endif %}
                             {% else %}
                             <i class="bi bi-file-earmark-pdf text-danger me-1"></i> {{ upload.original_filename }}
                             {% endif %}
                         </div>
                         {% if upload.stored_filename %}
-                        <small class="text-muted font-monospace">{{ upload.stored_filename }}</small>
+                        <small class="text-muted font-monospace d-block">{{ upload.stored_filename }}</small>
                         {% endif %}
                     </td>
                     <td>
                         {% if upload.availability_status == 'not_available' %}
-                        <span class="text-muted">—</span>
+                            {% if upload.file_size %}
+                            {{ upload.file_size|filesizeformat }}
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
                         {% else %}
                         {{ upload.file_size|filesizeformat }}
                         {% endif %}
@@ -449,12 +578,16 @@
                     <td>{{ upload.upload_datetime|date:"d/m/Y H:i" }}</td>
                     <td>
                         {% if upload.availability_status == 'not_available' %}
-                        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle-fill me-1"></i> Non disponibile</span>
-                        {% if upload.motivazione_indisponibilita %}
-                        <div class="small text-muted mt-1" style="max-width: 260px; line-height: 1.25;">
-                            <em>Motivo: {{ upload.motivazione_indisponibilita }}</em>
-                        </div>
-                        {% endif %}
+                            {% if upload.stored_filename and upload.original_filename != 'NON_DISPONIBILE' %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-file-earmark-check-fill me-1"></i> Dichiarazione su Carta Intestata (Firmata)</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle-fill me-1"></i> Non disponibile</span>
+                            {% endif %}
+                            {% if upload.motivazione_indisponibilita %}
+                            <div class="small text-muted mt-1" style="max-width: 260px; line-height: 1.25;">
+                                <em>Note: {{ upload.motivazione_indisponibilita }}</em>
+                            </div>
+                            {% endif %}
                         {% elif upload.status == 'superseded' %}
                         <span class="badge bg-secondary"><i class="bi bi-clock-history me-1"></i> Sostituito</span>
                         {% else %}
@@ -495,6 +628,17 @@
 </div>
 
 <script>
+function copyPortalLink() {
+    const copyText = document.getElementById("portalUrlInput");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(copyText.value).then(function() {
+        alert("Link Portale Clienti copiato negli appunti!");
+    }).catch(function(err) {
+        alert("Impossibile copiare il link: " + err);
+    });
+}
+
 function copyFormLink() {
     const copyText = document.getElementById("formUrlInput");
     copyText.select();

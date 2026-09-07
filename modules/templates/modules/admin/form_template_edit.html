@@ -29,6 +29,11 @@
                 <label class="form-label">Testo Introduttivo *</label>
                 <textarea name="intro_text" class="form-control" rows="4" required>{{ template.intro_text }}</textarea>
             </div>
+            <div class="mb-3">
+                <label class="form-label">Validità Predefinita Pratica (giorni) *</label>
+                <input type="number" name="default_expiry_days" class="form-control" value="{{ template.default_expiry_days|default:30 }}" min="1" max="365" required>
+                <small class="form-text text-muted">Durata predefinita (TTL) proposta all'operatore in fase di assegnazione del modulo a un cliente.</small>
+            </div>
             <button type="submit" class="btn btn-primary">Salva</button>
             <a href="{% url 'form_template_list' %}" class="btn btn-secondary">Annulla</a>
         </form>
