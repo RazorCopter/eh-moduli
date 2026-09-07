@@ -38,6 +38,7 @@ urlpatterns = [
     path('api/v1/customers/<uuid:customer_id>/delete/', forms_api.api_customer_delete, name='api_customer_delete'),
 
     # Client Personal Area
+    path('clienti/', views_client.client_login, name='clienti_login'),
     path('client/login/', views_client.client_login, name='client_login'),
     path('client/logout/', views_client.client_logout, name='client_logout'),
     path('client/dashboard/', views_client.client_dashboard, name='client_dashboard'),

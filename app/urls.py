@@ -12,6 +12,10 @@ urlpatterns = [
     path('health/live/', health_live, name='health_live_v2'),  # Liveness probe (explicit)
     path('health/ready/', health_ready, name='health_ready'),  # Readiness probe (checks DB + storage)
 
+    # Client portal direct root aliases (e.g. updoc.etichub.it/clienti/)
+    path('clienti/', RedirectView.as_view(url='/modules/client/login/', permanent=False), name='clienti_portal_root'),
+    path('client/', RedirectView.as_view(url='/modules/client/login/', permanent=False), name='client_portal_root'),
+
     # Admin and application URLs
     path('admin/', admin.site.urls),
     path('', include('accounts.urls')),

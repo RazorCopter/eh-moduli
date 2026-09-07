@@ -71,7 +71,7 @@ def assignment_detail(request, pk):
     uploads = assignment.documentupload_set.all()
     declarations = assignment.awarenessdeclaration_set.all()
     form_url = request.build_absolute_uri(f"/modules/form/{assignment.secure_token}/")
-    portal_url = request.build_absolute_uri(reverse('client_login'))
+    portal_url = request.build_absolute_uri(reverse('clienti_portal_root'))
     ttl_days_remaining = max(0, (assignment.expiry_date - timezone.now()).days) if assignment.expiry_date else 0
 
     context = {
