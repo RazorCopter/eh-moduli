@@ -579,7 +579,7 @@
         </a>
     </div>
 
-    <!-- 4. Da Lavorare (50%) -->
+    <!-- 4. Da Lavorare -->
     <div class="kpi-card kpi-card-amber">
         <div>
             <div class="kpi-card-header">
@@ -590,19 +590,19 @@
                         class="kpi-info-btn"
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top" 
-                        data-bs-title="Pratiche con upload documentale completato e dichiarazione di consapevolezza confermata dal cliente (50%). Pronte per essere prese in carico da Etichub.">
+                        data-bs-title="Pratiche con upload documentale completato dal cliente, pronte per la presa in carico da parte dell'Ufficio Regolatorio.">
                     <i class="bi bi-info-circle-fill"></i>
                 </button>
             </div>
             <div class="kpi-metric counter-val" data-target="{{ submitted_count }}" style="color: #d97706;">{{ submitted_count }}</div>
-            <h6 class="kpi-title">Da Lavorare (50%)</h6>
+            <h6 class="kpi-title">Da Lavorare</h6>
         </div>
         <span class="kpi-footer-link" style="color: #b45309; cursor: default;">
             <i class="bi bi-patch-exclamation"></i> Upload Cliente Concluso
         </span>
     </div>
 
-    <!-- 4. In Lavorazione Etichub (75%) -->
+    <!-- 5. In Lavorazione -->
     <div class="kpi-card kpi-card-cyan">
         <div>
             <div class="kpi-card-header">
@@ -613,19 +613,19 @@
                         class="kpi-info-btn"
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top" 
-                        data-bs-title="Pratiche prese in carico dall'Ufficio Regolatorio di Etichub (75%) per verifica tecnica e redazione PIF.">
+                        data-bs-title="Pratiche attualmente in lavorazione presso l'Ufficio Regolatorio di Etichub per verifica tecnica e redazione PIF.">
                     <i class="bi bi-info-circle-fill"></i>
                 </button>
             </div>
             <div class="kpi-metric counter-val" data-target="{{ in_processing_count }}" style="color: #0284c7;">{{ in_processing_count }}</div>
-            <h6 class="kpi-title">In Lavorazione (75%)</h6>
+            <h6 class="kpi-title">In Lavorazione</h6>
         </div>
         <span class="kpi-footer-link" style="color: #0369a1; cursor: default;">
             <i class="bi bi-hourglass-split"></i> Ufficio Regolatorio
         </span>
     </div>
 
-    <!-- 5. Pratiche Lavorate (100%) -->
+    <!-- 6. Pratiche Completate -->
     <div class="kpi-card kpi-card-green">
         <div>
             <div class="kpi-card-header">
@@ -636,7 +636,7 @@
                         class="kpi-info-btn"
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top" 
-                        data-bs-title="Pratiche interamente lavorate da Etichub (100%) con fascicolo regolatorio evaso e archiviato.">
+                        data-bs-title="Pratiche interamente lavorate da Etichub con fascicolo regolatorio evaso e archiviato sul NAS.">
                     <i class="bi bi-info-circle-fill"></i>
                 </button>
             </div>
@@ -644,7 +644,7 @@
             <h6 class="kpi-title">Pratiche Completate</h6>
         </div>
         <span class="kpi-footer-link" style="color: #2D8A4E; cursor: default;">
-            <i class="bi bi-patch-check"></i> Lavorate (100%)
+            <i class="bi bi-patch-check"></i> Lavorate e Archiviate
         </span>
     </div>
 </div>
@@ -671,7 +671,7 @@
                         <th>Cliente</th>
                         <th>Modulo / Prodotto</th>
                         <th>Avanzamento</th>
-                        <th>Stato Macchina</th>
+                        <th>Stato</th>
                         <th>Data Assegnazione</th>
                         <th style="text-align: right;">Dettagli</th>
                     </tr>
@@ -706,19 +706,19 @@
                         <td>
                             {% if assignment.status == 'completed' %}
                             <span class="badge-status badge-status-submitted" style="background: #e8f5e9; color: #1b5e20;">
-                                <i class="bi bi-check2-all"></i> Lavorata (100%)
+                                <i class="bi bi-check2-all"></i> Lavorata
                             </span>
                             {% elif assignment.status == 'in_processing' %}
                             <span class="badge-status badge-status-in-progress" style="background: #e0f2fe; color: #0369a1;">
-                                <i class="bi bi-gear-wide-connected"></i> In Lavorazione (75%)
+                                <i class="bi bi-gear-wide-connected"></i> In Lavorazione
                             </span>
                             {% elif assignment.status == 'submitted' %}
                             <span class="badge-status" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">
-                                <i class="bi bi-bell-fill"></i> Da Lavorare (50%)
+                                <i class="bi bi-bell-fill"></i> Da Lavorare
                             </span>
                             {% elif assignment.status == 'in_progress' %}
                             <span class="badge-status badge-status-in-progress">
-                                <i class="bi bi-hourglass-split"></i> Doc Parziale
+                                <i class="bi bi-hourglass-split"></i> In Compilazione
                             </span>
                             {% elif assignment.status == 'expired' %}
                             <span class="badge-status badge-status-expired">
@@ -726,7 +726,7 @@
                             </span>
                             {% else %}
                             <span class="badge-status badge-status-draft">
-                                <i class="bi bi-pencil"></i> Pratica Aperta
+                                <i class="bi bi-pencil"></i> Bozza
                             </span>
                             {% endif %}
                         </td>

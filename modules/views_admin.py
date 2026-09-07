@@ -885,9 +885,9 @@ def assignment_update_status(request, pk):
     assignment.save(update_fields=['status', 'completion_percentage'])
 
     status_labels = {
-        'submitted': 'Upload Documentale Completato (50%)',
-        'in_processing': 'In Lavorazione Etichub (75%)',
-        'completed': 'Lavorata e Completata (100%)',
+        'submitted': 'Upload Documentale Completato',
+        'in_processing': 'In Lavorazione Etichub',
+        'completed': 'Lavorata e Completata',
         'in_progress': 'In Corso / Integrazioni Documentali',
     }
 

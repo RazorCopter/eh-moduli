@@ -272,7 +272,7 @@
             <i class="bi bi-bell-fill"></i>
         </div>
         <div>
-            <h5 class="fw-bold text-dark mb-1">🔔 Notifica Etichub: Upload Documentale Completato (50%)</h5>
+            <h5 class="fw-bold text-dark mb-1">🔔 Notifica Etichub: Upload Documentale Completato</h5>
             <p class="mb-0 text-secondary" style="font-size: 0.95rem;">
                 Il cliente ha confermato la trasmissione di tutti i documenti e la dichiarazione di consapevolezza. La pratica è pronta per essere presa in carico dall'Ufficio Regolatorio.
             </p>
@@ -282,7 +282,7 @@
         {% csrf_token %}
         <input type="hidden" name="status" value="in_processing">
         <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold rounded-3 shadow-sm" style="background: #1976d2; border: none;">
-            <i class="bi bi-play-circle-fill me-1"></i> Prendi in Carico (Avvia Lavorazione - 75%)
+            <i class="bi bi-play-circle-fill me-1"></i> Prendi in Carico (Avvia Lavorazione)
         </button>
     </form>
 </div>
@@ -293,7 +293,7 @@
             <i class="bi bi-gear-wide-connected"></i>
         </div>
         <div>
-            <h5 class="fw-bold text-dark mb-1">⚙️ Lavorazione Regolatoria Etichub in Corso (75%)</h5>
+            <h5 class="fw-bold text-dark mb-1">⚙️ Lavorazione Regolatoria Etichub in Corso</h5>
             <p class="mb-0 text-secondary" style="font-size: 0.95rem;">
                 La documentazione tecnica (PIF / dossier cosmetico) è attualmente in lavorazione presso l'Ufficio Regolatorio di Etichub.
             </p>
@@ -303,7 +303,7 @@
         {% csrf_token %}
         <input type="hidden" name="status" value="completed">
         <button type="submit" class="btn btn-success px-4 py-2 fw-semibold rounded-3 shadow-sm" style="background: #2e7d32; border: none;">
-            <i class="bi bi-check-circle-fill me-1"></i> Segna come Lavorata (100% Completata)
+            <i class="bi bi-check-circle-fill me-1"></i> Segna come Lavorata (Completata)
         </button>
     </form>
 </div>
@@ -314,9 +314,9 @@
             <i class="bi bi-check-all"></i>
         </div>
         <div>
-            <h5 class="fw-bold text-dark mb-1">✅ Lavorazione Completata con Successo (100%)</h5>
+            <h5 class="fw-bold text-dark mb-1">✅ Lavorazione Completata con Successo</h5>
             <p class="mb-0 text-secondary" style="font-size: 0.95rem;">
-                La pratica è stata interamente lavorata dall'Ufficio Regolatorio Etichub ("Lavorata"). Ciclo completato al 100%.
+                La pratica è stata interamente lavorata dall'Ufficio Regolatorio Etichub ("Lavorata"). Ciclo completato.
             </p>
         </div>
     </div>
@@ -450,16 +450,16 @@
 
     <!-- Card Stato & Avanzamento con Macchina a Stati -->
     <div class="info-card">
-        <h4><i class="bi bi-bar-chart-steps" style="color: #7B44CC;"></i> Stato & Avanzamento (Macchina a Stati)</h4>
+        <h4><i class="bi bi-bar-chart-steps" style="color: #7B44CC;"></i> Stato & Avanzamento</h4>
         <div class="info-row">
             <span class="info-label">Stato Corrente</span>
             <span class="info-val">
                 {% if assignment.status == 'completed' %}
-                <span class="badge bg-success"><i class="bi bi-check2-all me-1"></i> Lavorazione Completata (100%)</span>
+                <span class="badge bg-success"><i class="bi bi-check2-all me-1"></i> Lavorazione Completata</span>
                 {% elif assignment.status == 'in_processing' %}
-                <span class="badge bg-primary"><i class="bi bi-gear-fill me-1"></i> Lavorazione Etichub in corso (75%)</span>
+                <span class="badge bg-primary"><i class="bi bi-gear-fill me-1"></i> In Lavorazione</span>
                 {% elif assignment.status == 'submitted' %}
-                <span class="badge bg-info text-dark"><i class="bi bi-clipboard-check me-1"></i> Upload Documentale Completato (50%)</span>
+                <span class="badge bg-info text-dark"><i class="bi bi-clipboard-check me-1"></i> Upload Documentale Completato</span>
                 {% elif assignment.status == 'in_progress' %}
                 <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i> Documentazione Parziale</span>
                 {% elif assignment.status == 'expired' %}
@@ -486,7 +486,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="status" value="in_processing">
                     <button type="submit" class="btn btn-sm btn-outline-primary rounded-3">
-                        <i class="bi bi-play-circle me-1"></i> Avvia Lavorazione (75%)
+                        <i class="bi bi-play-circle me-1"></i> Avvia Lavorazione
                     </button>
                 </form>
                 {% endif %}
@@ -496,7 +496,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="status" value="completed">
                     <button type="submit" class="btn btn-sm btn-success rounded-3 fw-semibold">
-                        <i class="bi bi-check2-circle me-1"></i> Segna come Lavorata (100%)
+                        <i class="bi bi-check2-circle me-1"></i> Segna come Lavorata
                     </button>
                 </form>
                 {% endif %}
@@ -506,7 +506,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="status" value="submitted">
                     <button type="submit" class="btn btn-sm btn-outline-secondary rounded-3" title="Riporta a Upload Completato">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i> Riporta a 50%
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Riporta a Da Lavorare
                     </button>
                 </form>
                 {% endif %}

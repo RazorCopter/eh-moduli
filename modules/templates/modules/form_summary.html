@@ -97,7 +97,7 @@
                                 <strong class="d-block mb-1 text-dark">
                                     <i class="bi bi-patch-check-fill text-warning me-1"></i> {{ t.awareness_declaration_title|default:"Dichiarazione di Consapevolezza Documentale" }}
                                 </strong>
-                                {{ t.awareness_declaration_text|default:"Dichiaro formalmente di aver trasmesso tutti i documenti e le informazioni in mio possesso necessari per la lavorazione del prodotto da parte dell'ufficio regolatorio Etichub. Sono consapevole che la conferma attesterà il completamento del 50% del processo e notificherà il team tecnico per l'avvio della lavorazione." }}
+                                {{ t.awareness_declaration_text|default:"Dichiaro formalmente di aver trasmesso tutti i documenti e le informazioni in mio possesso necessari per la lavorazione del prodotto da parte dell'ufficio regolatorio Etichub. Sono consapevole che la conferma attesterà il completamento dell'acquisizione documentale e notificherà il team tecnico per l'avvio della lavorazione." }}
                             </label>
                         </div>
                     </div>
@@ -108,7 +108,7 @@
                         </a>
 
                         <button type="button" id="btnOpenConfirmModal" class="btn btn-success btn-lg px-4 py-2 rounded-3 fw-semibold" style="box-shadow: 0 4px 14px rgba(45, 138, 78, 0.3);">
-                            <i class="bi bi-send-check me-2"></i> {{ t.btn_confirm_submit_50|default:"Conferma e Invia Documenti (50%)" }}
+                            <i class="bi bi-send-check me-2"></i> {{ t.btn_confirm_submit|default:t.btn_confirm_submit_50|default:"Conferma e Invia Documenti" }}
                         </button>
                     </div>
                 </form>
@@ -138,7 +138,7 @@
                                     {{ t.alert_confirm_btn_cancel|default:"Annulla e Ricontrolla" }}
                                 </button>
                                 <button type="button" id="btnConfirmSubmit" class="btn btn-success px-4 rounded-3 fw-semibold">
-                                    <i class="bi bi-check2-circle me-1"></i> {{ t.alert_confirm_btn_submit|default:"Sì, Confermo e Invia (50%)" }}
+                                    <i class="bi bi-check2-circle me-1"></i> {{ t.alert_confirm_btn_submit|default:"Sì, Confermo e Invia" }}
                                 </button>
                             </div>
                         </div>

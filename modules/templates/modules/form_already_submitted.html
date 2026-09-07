@@ -32,11 +32,11 @@
                         <span>{{ t.detail_status|default:"Stato" }}:</span>
                         <span class="fw-semibold text-primary">
                             {% if assignment.status == 'submitted' %}
-                                {{ t.status_submitted|default:"Upload documentale completato (50%)" }}
+                                {{ t.status_submitted|default:"Upload documentale completato" }}
                             {% elif assignment.status == 'in_processing' %}
-                                {{ t.status_in_processing|default:"Lavorazione Etichub in corso (75%)" }}
+                                {{ t.status_in_processing|default:"Lavorazione Etichub in corso" }}
                             {% elif assignment.status == 'completed' %}
-                                {{ t.status_completed|default:"Lavorazione completata (100%)" }}
+                                {{ t.status_completed|default:"Lavorazione completata" }}
                             {% else %}
                                 {{ assignment.status }}
                             {% endif %}

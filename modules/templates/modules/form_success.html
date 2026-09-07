@@ -247,13 +247,13 @@
 
         <h1 class="success-title">{{ t.success_title|default:"Modulo Inviato!" }}</h1>
         <p class="success-message">
-            {{ t.success_msg_50|default:"Grazie per aver inviato i documenti. L'Ufficio Regolatorio di Etichub è stato notificato per l'avvio della lavorazione tecnica (50% completato)." }}
+            {{ t.success_msg|default:t.success_msg_50|default:"Grazie per aver inviato i documenti. L'Ufficio Regolatorio di Etichub è stato notificato per l'avvio della lavorazione tecnica." }}
         </p>
 
         <div class="details-card">
             <div class="detail-row">
                 <span class="detail-label">{{ t.detail_status|default:"Stato" }}</span>
-                <span class="detail-value">{{ t.detail_status_val|default:"✓ Documentazione Acquisita (50%)" }}</span>
+                <span class="detail-value">{{ t.detail_status_val|default:"✓ Documentazione Acquisita" }}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">{{ t.detail_datetime|default:"Data e ora" }}</span>
