@@ -158,6 +158,10 @@ class FormTemplate(models.Model):
             return check_password(raw_password, self.access_password)
         return secrets.compare_digest(raw_password, self.access_password)
 
+    def has_access_password(self):
+        """Check if this template has an access password configured."""
+        return bool(self.access_password)
+
     def duplicate(self):
         new_form = FormTemplate.objects.create(
             family_id=self.family_id,
