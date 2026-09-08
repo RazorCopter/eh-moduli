@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Icon Standardization - Complete Examples</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="modules/static/css/design-system.css">
+    <style>
+        .example-section {
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+        .example-group {
+            margin-bottom: 1.5rem;
+        }
+        .example-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #6b7280;
+            margin-bottom: 1rem;
+            letter-spacing: 0.05em;
+        }
+        .example-item {
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .example-code {
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            background: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 4px;
+            color: #374151;
+        }
+        .icon-preview {
+            font-size: 1.5rem;
+            min-width: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .section-header {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+        .size-showcase {
+            display: flex;
+            align-items: flex-end;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .color-showcase {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+        .color-item {
+            padding: 1rem;
+            border-radius: 8px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+        .color-preview {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .color-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <!-- Header -->
+        <div class="section-header">
+            <h1>Icon Standardization System</h1>
+            <p class="mb-0">Comprehensive guide to icon sizing, colors, and usage patterns</p>
+        </div>
+
+        <!-- Size Standards Section -->
+        <div class="example-section">
+            <h2 class="mb-4">1. Icon Size Standards</h2>
+            <p class="text-muted mb-4">Six-tier sizing system: xs (16px) → 2xl (64px)</p>
+
+            <div class="example-group">
+                <div class="example-title">All Sizes Compared</div>
+                <div class="size-showcase">
+                    <div class="text-center">
+                        <i class="bi bi-check icon-xs"></i>
+                        <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">xs (16px)</div>
+                    </div>
+                    <div class="text-center">
+                        <i class="bi bi-check icon-sm"></i>
+                        <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">sm (20px)</div>
+                    </div>
+                    <div class="text-center">
+                        <i class="bi bi-check icon-md"></i>
+                        <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">md (24px)</div>
+                    </div>
+                    <div class="text-center">
+                        <i class="bi bi-check icon-lg"></i>
+                        <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">lg (32px)</div>
+                    </div>
+                    <div class="text-center">
+                        <i class="bi bi-check icon-xl"></i>
+                        <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">xl (48px)</div>
+                    </div>
+                    <div class="text-center">
+                        <i class="bi bi-check icon-2xl"></i>
+                        <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">2xl (64px)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="example-group">
+                <div class="example-title">Usage by Context</div>
+                <div class="example-item">
+                    <div class="icon-preview"><i class="bi bi-check-circle-fill icon-xs"></i></div>
+                    <div class="flex-grow-1">
+                        <strong>Icon XS (16px)</strong>
+                        <div class="example-code">&lt;i class="bi bi-check icon-xs"&gt;&lt;/i&gt;</div>
+                        Inline icons, badges, small indicators
+                    </div>
+                </div>
+                <div class="example-item">
+                    <div class="icon-preview"><i class="bi bi-arrow-left icon-sm"></i></div>
+                    <div class="flex-grow-1">
+                        <strong>Icon SM (20px)</strong>
+                        <div class="example-code">&lt;i class="bi bi-arrow-left icon-sm"&gt;&lt;/i&gt;</div>
+                        Small buttons, list items, secondary elements
+                    </div>
+                </div>
+                <div class="example-item">
+                    <div class="icon-preview"><i class="bi bi-upload icon-md"></i></div>
+                    <div class="flex-grow-1">
+                        <strong>Icon MD (24px) - DEFAULT</strong>
+                        <div class="example-code">&lt;i class="bi bi-upload icon-md"&gt;&lt;/i&gt;</div>
+                        Button icons, list items, normal actions (MOST COMMON)
+                    </div>
+                </div>
+                <div class="example-item">
+                    <div class="icon-preview"><i class="bi bi-folder-check icon-lg"></i></div>
+                    <div class="flex-grow-1">
+                        <strong>Icon LG (32px)</strong>
+                        <div class="example-code">&lt;i class="bi bi-folder-check icon-lg"&gt;&lt;/i&gt;</div>
+                        Section headers, feature cards
+                    </div>
+                </div>
+                <div class="example-item">
+                    <div class="icon-preview"><i class="bi bi-exclamation-circle icon-xl"></i></div>
+                    <div class="flex-grow-1">
+                        <strong>Icon XL (48px)</strong>
+                        <div class="example-code">&lt;i class="bi bi-exclamation-circle icon-xl"&gt;&lt;/i&gt;</div>
+                        Modal headers, hero sections
+                    </div>
+                </div>
+                <div class="example-item">
+                    <div class="icon-preview"><i class="bi bi-search icon-2xl"></i></div>
+                    <div class="flex-grow-1">
+                        <strong>Icon 2XL (64px)</strong>
+                        <div class="example-code">&lt;i class="bi bi-search icon-2xl"&gt;&lt;/i&gt;</div>
+                        Error pages, empty states, major sections
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Color Standards Section -->
+        <div class="example-section">
+            <h2 class="mb-4">2. Icon Color Standards</h2>
+            <p class="text-muted mb-4">Seven semantic colors with clear meaning</p>
+
+            <div class="color-showcase mb-4">
+                <div class="color-item">
+                    <div class="color-preview"><i class="bi bi-star-fill icon-md-primary"></i></div>
+                    <div class="color-label">Primary</div>
+                    <code style="font-size: 0.7rem;">#0284c7</code>
+                </div>
+                <div class="color-item">
+                    <div class="color-preview"><i class="bi bi-check-circle-fill icon-md-success"></i></div>
+                    <div class="color-label">Success</div>
+                    <code style="font-size: 0.7rem;">#10b981</code>
+                </div>
+                <div class="color-item">
+                    <div class="color-preview"><i class="bi bi-exclamation-triangle-fill icon-md-warning"></i></div>
+                    <div class="color-label">Warning</div>
+                    <code style="font-size: 0.7rem;">#f59e0b</code>
+                </div>
+                <div class="color-item">
+                    <div class="color-preview"><i class="bi bi-exclamation-circle-fill icon-md-error"></i></div>
+                    <div class="color-label">Error</div>
+                    <code style="font-size: 0.7rem;">#ef4444</code>
+                </div>
+                <div class="color-item">
+                    <div class="color-preview"><i class="bi bi-info-circle-fill icon-md-info"></i></div>
+                    <div class="color-label">Info</div>
+                    <code style="font-size: 0.7rem;">#3b82f6</code>
+                </div>
+                <div class="color-item">
+                    <div class="color-preview"><i class="bi bi-dash-circle-fill icon-md-gray"></i></div>
+                    <div class="color-label">Gray</div>
+                    <code style="font-size: 0.7rem;">#6b7280</code>
+                </div>
+                <div class="color-item">
+                    <div class="color-preview"><i class="bi bi-question-circle-fill icon-md-muted"></i></div>
+                    <div class="color-label">Muted</div>
+                    <code style="font-size: 0.7rem;">#9ca3af</code>
+                </div>
+            </div>
+
+            <div class="example-group">
+                <div class="example-title">Color Usage Guide</div>
+                <div class="example-item">
+                    <div class="icon-preview"><i class="bi bi-star-fill icon-md icon-primary"></i></div>
+                    <div><strong>.icon-primary</strong> - Primary buttons, main CTAs, highlights</div>
+                </div>
+                <div class="example-item">
+                    <div class="icon-preview"><i class="bi bi-check-circle-fill icon-md icon-success"></i></div>
+                    <div><strong>.icon-success</strong> - Confirmations, checkmarks, success states</div>
+                </div>
+                <div class="example-item">
+                    <div class="icon-preview"><i class="bi bi-exclamation-triangle-fill icon-md icon-warning"></i></div>
+                    <div><strong>.icon-warning</strong> - Alerts, cautions, needs attention</div>
+                </div>
+                <div class="example-item">
+                    <div class="icon-preview"><i class="bi bi-trash icon-md icon-error"></i></div>
+                    <div><strong>.icon-error</strong> - Errors, delete actions, critical issues</div>
+                </div>
+                <div class="example-item">
+                    <div class="icon-preview"><i class="bi bi-info-circle-fill icon-md icon-info"></i></div>
+                    <div><strong>.icon-info</strong> - Information, help, explanations</div>
+                </div>
+                <div class="example-item">
+                    <div class="icon-preview"><i class="bi bi-dash-circle-fill icon-md icon-gray"></i></div>
+                    <div><strong>.icon-gray</strong> - Navigation, disabled state, secondary</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Button Examples -->
+        <div class="example-section">
+            <h2 class="mb-4">3. Button Icon Examples</h2>
+
+            <div class="example-group">
+                <div class="example-title">Primary Actions</div>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                    <button class="btn btn-primary">
+                        <i class="bi bi-plus-lg icon-md"></i> New Module
+                    </button>
+                    <button class="btn btn-primary">
+                        <i class="bi bi-download icon-md"></i> Download
+                    </button>
+                    <button class="btn btn-primary">
+                        <i class="bi bi-upload icon-md"></i> Upload
+                    </button>
+                </div>
+            </div>
+
+            <div class="example-group">
+                <div class="example-title">Secondary Actions</div>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                    <button class="btn btn-secondary">
+                        <i class="bi bi-arrow-left icon-md"></i> Back
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="bi bi-save icon-md"></i> Save
+                    </button>
+                    <button class="btn btn-secondary">
+                        <i class="bi bi-eye icon-md"></i> Preview
+                    </button>
+                </div>
+            </div>
+
+            <div class="example-group">
+                <div class="example-title">Success / Danger / Ghost</div>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                    <button class="btn btn-success">
+                        <i class="bi bi-check-circle icon-md"></i> Confirm
+                    </button>
+                    <button class="btn btn-danger">
+                        <i class="bi bi-trash icon-md"></i> Delete
+                    </button>
+                    <button class="btn btn-ghost">
+                        <i class="bi bi-arrow-left icon-md"></i> Cancel
+                    </button>
+                </div>
+            </div>
+
+            <div class="example-group">
+                <div class="example-title">Button Sizes with Icons</div>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                    <button class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus-lg"></i> Small
+                    </button>
+                    <button class="btn btn-primary">
+                        <i class="bi bi-plus-lg"></i> Normal
+                    </button>
+                    <button class="btn btn-lg btn-primary">
+                        <i class="bi bi-plus-lg"></i> Large
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Examples -->
+        <div class="example-section">
+            <h2 class="mb-4">4. Alert Icon Examples</h2>
+
+            <div class="alert alert-success d-flex align-items-center gap-2">
+                <i class="bi bi-check-circle-fill icon-md-success flex-shrink-0"></i>
+                <div>Operation completed successfully!</div>
+            </div>
+
+            <div class="alert alert-info d-flex align-items-center gap-2">
+                <i class="bi bi-info-circle-fill icon-md-info flex-shrink-0"></i>
+                <div>This is an informational message about your account.</div>
+            </div>
+
+            <div class="alert alert-warning d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill icon-md-warning flex-shrink-0"></i>
+                <div>Please review this carefully before proceeding.</div>
+            </div>
+
+            <div class="alert alert-danger d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-circle-fill icon-md-error flex-shrink-0"></i>
+                <div>An error occurred while processing your request.</div>
+            </div>
+        </div>
+
+        <!-- Badge Examples -->
+        <div class="example-section">
+            <h2 class="mb-4">5. Badge & Status Examples</h2>
+
+            <div class="example-group">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <span class="badge bg-success">
+                        <i class="bi bi-check-circle-fill icon-xs"></i> Complete
+                    </span>
+                    <span class="badge bg-warning text-dark">
+                        <i class="bi bi-exclamation-triangle-fill icon-xs"></i> Pending
+                    </span>
+                    <span class="badge bg-danger">
+                        <i class="bi bi-exclamation-circle-fill icon-xs"></i> Error
+                    </span>
+                    <span class="badge bg-info">
+                        <i class="bi bi-info-circle-fill icon-xs"></i> Info
+                    </span>
+                </div>
+            </div>
+
+            <div class="example-group">
+                <div class="example-title">Status Circles</div>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; background: #ecfdf5; border-radius: 50%;">
+                        <i class="bi bi-check-circle-fill icon-lg-success"></i>
+                    </div>
+                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; background: #eff6ff; border-radius: 50%;">
+                        <i class="bi bi-gear-wide-connected icon-lg-info"></i>
+                    </div>
+                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; background: #fef3c7; border-radius: 50%;">
+                        <i class="bi bi-hourglass-split icon-lg-warning"></i>
+                    </div>
+                    <div style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; background: #fef2f2; border-radius: 50%;">
+                        <i class="bi bi-exclamation-circle-fill icon-lg-error"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- List Examples -->
+        <div class="example-section">
+            <h2 class="mb-4">6. List & Table Icon Examples</h2>
+
+            <div class="example-group">
+                <div class="example-title">Document List</div>
+                <ul class="list-unstyled" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                    <li style="padding: 1rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 1rem;">
+                        <i class="bi bi-file-earmark-pdf icon-md-error"></i>
+                        <span>Contract_2024.pdf (2.5 MB)</span>
+                    </li>
+                    <li style="padding: 1rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 1rem;">
+                        <i class="bi bi-file-earmark-word icon-md-primary"></i>
+                        <span>Report_Q3.docx (1.2 MB)</span>
+                    </li>
+                    <li style="padding: 1rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 1rem;">
+                        <i class="bi bi-image icon-md-info"></i>
+                        <span>Product_Image.jpg (856 KB)</span>
+                    </li>
+                    <li style="padding: 1rem; display: flex; align-items: center; gap: 1rem;">
+                        <i class="bi bi-file-earmark-check icon-md-success"></i>
+                        <span>Approval.pdf (428 KB)</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="example-group">
+                <div class="example-title">Customer List</div>
+                <ul class="list-unstyled" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                    <li style="padding: 1rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 1rem;">
+                        <i class="bi bi-person-circle icon-lg-primary"></i>
+                        <div>
+                            <strong>Giovanni Rossi</strong>
+                            <div style="font-size: 0.875rem; color: #6b7280;">Premium Customer</div>
+                        </div>
+                    </li>
+                    <li style="padding: 1rem; display: flex; align-items: center; gap: 1rem;">
+                        <i class="bi bi-person-circle icon-lg-gray"></i>
+                        <div>
+                            <strong>Maria Bianchi</strong>
+                            <div style="font-size: 0.875rem; color: #6b7280;">Standard Customer</div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Empty States -->
+        <div class="example-section">
+            <h2 class="mb-4">7. Empty States with Icons</h2>
+
+            <div style="text-align: center; padding: 3rem 1rem; background: #f9fafb; border-radius: 8px;">
+                <i class="bi bi-inbox icon-2xl icon-gray mb-3 d-block"></i>
+                <h5>No documents yet</h5>
+                <p class="text-muted">Upload your first document to get started</p>
+                <button class="btn btn-primary">
+                    <i class="bi bi-upload icon-md"></i> Upload Document
+                </button>
+            </div>
+        </div>
+
+        <!-- Combined Size + Color Examples -->
+        <div class="example-section">
+            <h2 class="mb-4">8. Combined Size + Color Classes</h2>
+            <p class="text-muted mb-4">Convenient shorthand for common patterns</p>
+
+            <div class="example-group">
+                <div class="example-title">XS (16px) Combinations</div>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <i class="bi bi-check icon-xs-primary"></i>
+                    <i class="bi bi-check icon-xs-success"></i>
+                    <i class="bi bi-check icon-xs-warning"></i>
+                    <i class="bi bi-check icon-xs-error"></i>
+                </div>
+            </div>
+
+            <div class="example-group">
+                <div class="example-title">SM (20px) Combinations</div>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <i class="bi bi-arrow-left icon-sm-primary"></i>
+                    <i class="bi bi-arrow-left icon-sm-success"></i>
+                    <i class="bi bi-arrow-left icon-sm-warning"></i>
+                    <i class="bi bi-arrow-left icon-sm-error"></i>
+                </div>
+            </div>
+
+            <div class="example-group">
+                <div class="example-title">MD (24px) Combinations</div>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <i class="bi bi-upload icon-md-primary"></i>
+                    <i class="bi bi-upload icon-md-success"></i>
+                    <i class="bi bi-upload icon-md-warning"></i>
+                    <i class="bi bi-upload icon-md-error"></i>
+                </div>
+            </div>
+
+            <div class="example-group">
+                <div class="example-title">LG (32px) Combinations</div>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <i class="bi bi-folder-check icon-lg-primary"></i>
+                    <i class="bi bi-folder-check icon-lg-success"></i>
+                    <i class="bi bi-folder-check icon-lg-warning"></i>
+                    <i class="bi bi-folder-check icon-lg-error"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-world Examples -->
+        <div class="example-section">
+            <h2 class="mb-4">9. Real-World Examples from Application</h2>
+
+            <!-- Example 1: Document Card -->
+            <div class="example-group" style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div>
+                        <h6 class="mb-2 d-flex align-items-center gap-2">
+                            <i class="bi bi-file-earmark-arrow-up icon-md-primary"></i>
+                            Upload Document
+                        </h6>
+                        <p class="text-muted small mb-2">PDF, DOCX, JPG, PNG (max 10MB)</p>
+                    </div>
+                </div>
+                <div style="padding: 2rem; border: 2px dashed #ccc; border-radius: 8px; text-align: center;">
+                    <i class="bi bi-cloud-arrow-up icon-lg icon-gray mb-2 d-block"></i>
+                    <span class="small fw-semibold">Click or drag to upload</span>
+                </div>
+            </div>
+
+            <!-- Example 2: Status Card -->
+            <div class="example-group row g-3">
+                <div class="col-md-6">
+                    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+                        <div style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; background: #ecfdf5; border-radius: 50%; margin-bottom: 1rem;">
+                            <i class="bi bi-check-circle-fill icon-lg-success"></i>
+                        </div>
+                        <h6>Completed</h6>
+                        <p class="text-muted small">All documents uploaded successfully</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem;">
+                        <div style="display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; background: #fef3c7; border-radius: 50%; margin-bottom: 1rem;">
+                            <i class="bi bi-exclamation-triangle-fill icon-lg-warning"></i>
+                        </div>
+                        <h6>Pending Review</h6>
+                        <p class="text-muted small">Waiting for regulatory team</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Example 3: Navigation -->
+            <div class="example-group">
+                <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                    <div style="padding: 1rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 1rem; cursor: pointer;">
+                        <i class="bi bi-house icon-md icon-gray"></i>
+                        <span>Dashboard</span>
+                    </div>
+                    <div style="padding: 1rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 1rem; cursor: pointer;">
+                        <i class="bi bi-people icon-md icon-gray"></i>
+                        <span>Customers</span>
+                    </div>
+                    <div style="padding: 1rem; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; gap: 1rem; cursor: pointer;">
+                        <i class="bi bi-file-earmark-check icon-md icon-gray"></i>
+                        <span>Forms</span>
+                    </div>
+                    <div style="padding: 1rem; display: flex; align-items: center; gap: 1rem; cursor: pointer;">
+                        <i class="bi bi-gear icon-md icon-gray"></i>
+                        <span>Settings</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Migration Examples -->
+        <div class="example-section">
+            <h2 class="mb-4">10. Migration Guide: Old → New</h2>
+
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Old Approach</th>
+                            <th>New Approach</th>
+                            <th>Benefit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>&lt;i class="bi bi-check fs-3"&gt;</code></td>
+                            <td><code>&lt;i class="bi bi-check icon-lg"&gt;</code></td>
+                            <td>Consistent sizing, easier maintenance</td>
+                        </tr>
+                        <tr>
+                            <td><code style="color: #ef4444;">&lt;i style="color: #ef4444"&gt;</code></td>
+                            <td><code>&lt;i class="icon-error"&gt;</code></td>
+                            <td>Semantic naming, theming support</td>
+                        </tr>
+                        <tr>
+                            <td><code>&lt;i class="bi bi-check" style="font-size: 20px; color: #10b981;"&gt;</code></td>
+                            <td><code>&lt;i class="bi bi-check icon-sm-success"&gt;</code></td>
+                            <td>Single class, cleaner HTML</td>
+                        </tr>
+                        <tr>
+                            <td><code>&lt;i class="bi bi-upload"&gt;&lt;/i&gt;</code></td>
+                            <td><code>&lt;i class="bi bi-upload icon-md"&gt;&lt;/i&gt;</code></td>
+                            <td>Explicit sizing prevents confusion</td>
+                        </tr>
+                        <tr>
+                            <td><code style="font-size: 0.7rem;">Multiple inline style variations</code></td>
+                            <td><code>&lt;i class="bi bi-alert icon-md-warning"&gt;</code></td>
+                            <td>Consistency across application</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Best Practices -->
+        <div class="example-section">
+            <h2 class="mb-4">11. Best Practices</h2>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded">
+                        <h6 class="text-success mb-2">✓ DO</h6>
+                        <ul style="font-size: 0.9rem;">
+                            <li>Always specify icon size</li>
+                            <li>Use color classes not inline styles</li>
+                            <li>Pair icons with text for clarity</li>
+                            <li>Use semantic colors</li>
+                            <li>Test icon visibility on backgrounds</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="bg-light p-3 rounded">
+                        <h6 class="text-danger mb-2">✗ DON'T</h6>
+                        <ul style="font-size: 0.9rem;">
+                            <li>Use undefined icon sizes</li>
+                            <li>Use inline color styles</li>
+                            <li>Use icons without text context</li>
+                            <li>Use colors inconsistently</li>
+                            <li>Assume sufficient contrast</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="alert alert-info mt-5">
+            <i class="bi bi-info-circle-fill icon-md-info me-2"></i>
+            <strong>Documentation:</strong> See <code>ICON_STANDARDS.md</code> for complete reference guide.
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

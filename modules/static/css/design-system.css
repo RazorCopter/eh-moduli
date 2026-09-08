@@ -4,25 +4,44 @@
    ======================================================== */
 
 :root {
-  /* Primary Colors */
-  --color-primary: #E8847D;
-  --color-primary-dark: #D97468;
-  --color-primary-light: #F0E8E6;
+  /* ========== STANDARDIZED COLOR SYSTEM ==========*/
+  /* Primary Color (Blue) - Used for buttons, links, focus states */
+  --color-primary: #0284c7;
+  --color-primary-light: #0ea5e9;
+  --color-primary-lighter: #e0f2fe;
 
-  /* Neutrals */
-  --color-bg: #F5F3F0;
-  --color-bg-light: #FAFAF8;
-  --color-text: #1A1A1A;
-  --color-text-light: #9A9A9A;
-  --color-text-lighter: #C0C0C0;
-  --color-border: #E5E5E5;
-  --color-border-light: #F0EDEA;
+  /* Secondary Color (Indigo) */
+  --color-secondary: #6366f1;
+  --color-secondary-light: #818cf8;
 
   /* Status Colors */
-  --color-success: #10B981;
-  --color-error: #EF4444;
-  --color-warning: #F59E0B;
-  --color-info: #3B82F6;
+  --color-success: #10b981;
+  --color-success-light: #d1fae5;
+  --color-error: #ef4444;
+  --color-error-light: #fee2e2;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fef3c7;
+  --color-info: #3b82f6;
+  --color-info-light: #dbeafe;
+
+  /* Neutral Colors (Gray) */
+  --color-neutral: #6b7280;
+  --color-neutral-light: #9ca3af;
+  --color-neutral-lighter: #d1d5db;
+
+  /* Background Colors */
+  --color-bg: #f9fafb;
+  --color-bg-light: #ffffff;
+  --color-bg-dark: #f3f4f6;
+
+  /* Text Colors */
+  --color-text: #111827;
+  --color-text-light: #6b7280;
+  --color-text-lighter: #9ca3af;
+
+  /* Border Colors */
+  --color-border: #e5e7eb;
+  --color-border-light: #f3f4f6;
 
   /* Typography */
   --font-primary: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -54,18 +73,34 @@
   --space-3xl: 3rem;
   --space-4xl: 4rem;
 
-  /* Shadows */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
-
-  /* Border Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  /* ========== STANDARDIZED BORDER-RADIUS SYSTEM ==========*/
+  /* Small (badges, small buttons, small components): 8px */
+  --radius-sm: 8px;
+  /* Medium (cards, inputs, form elements): 12px */
+  --radius-md: 12px;
+  /* Large (modals, large containers): 16px */
+  --radius-lg: 16px;
+  /* Extra Large (hero sections, featured elements): 20px */
+  --radius-xl: 20px;
+  /* Full (pills, circular elements): 9999px */
   --radius-full: 9999px;
+
+  /* ========== STANDARDIZED SHADOW HIERARCHY ==========*/
+  /* Subtle: Used for hover states on cards, minimal depth */
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.05);
+  /* Normal: Default shadow for cards, form elements, medium depth */
+  --shadow-normal: 0 4px 6px rgba(0, 0, 0, 0.1);
+  /* Elevated: Used for dropdowns, modals starting state, significant depth */
+  --shadow-elevated: 0 10px 15px rgba(0, 0, 0, 0.15);
+  /* Maximum: Used for modal overlays, top-level elements, maximum depth */
+  --shadow-maximum: 0 20px 25px rgba(0, 0, 0, 0.2);
+
+  /* Backwards compatibility aliases */
+  --shadow-xs: var(--shadow-subtle);
+  --shadow-sm: var(--shadow-subtle);
+  --shadow-md: var(--shadow-normal);
+  --shadow-lg: var(--shadow-elevated);
+  --shadow-xl: var(--shadow-maximum);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -173,7 +208,7 @@ p:last-child {
   font-size: var(--text-base);
   border: 2px solid;
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all var(--transition-fast);
   text-decoration: none;
   text-align: center;
   user-select: none;
@@ -193,19 +228,23 @@ p:last-child {
   border-color: var(--color-primary);
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled):not(.disabled) {
   background: var(--color-primary);
   color: white;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+  transform: scale(1.02);
 }
 
-.btn-primary:active {
-  background: var(--color-primary-dark);
-  border-color: var(--color-primary-dark);
+.btn-primary:active:not(:disabled):not(.disabled) {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-light);
   color: white;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: scale(0.98);
 }
 
 .btn-primary:focus {
-  box-shadow: 0 0 0 3px rgba(232, 132, 125, 0.1);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
 }
 
 /* Secondary Button */
@@ -215,13 +254,22 @@ p:last-child {
   border-color: var(--color-primary);
 }
 
-.btn-secondary:hover {
-  background: var(--color-primary-dark);
-  border-color: var(--color-primary-dark);
+.btn-secondary:hover:not(:disabled):not(.disabled) {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-light);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+  transform: scale(1.02);
+}
+
+.btn-secondary:active:not(:disabled):not(.disabled) {
+  background: #0370b9;
+  border-color: #0370b9;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: scale(0.98);
 }
 
 .btn-secondary:focus {
-  box-shadow: 0 0 0 3px rgba(232, 132, 125, 0.1);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
 }
 
 /* Ghost Button */
@@ -231,9 +279,19 @@ p:last-child {
   border-color: var(--color-border);
 }
 
-.btn-ghost:hover {
+.btn-ghost:hover:not(:disabled):not(.disabled) {
   border-color: var(--color-primary);
   color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+  transform: scale(1.02);
+}
+
+.btn-ghost:active:not(:disabled):not(.disabled) {
+  background: rgba(2, 132, 199, 0.1);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: scale(0.98);
 }
 
 /* Success Button */
@@ -243,9 +301,18 @@ p:last-child {
   border-color: var(--color-success);
 }
 
-.btn-success:hover {
+.btn-success:hover:not(:disabled):not(.disabled) {
   background: var(--color-success);
   color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  transform: scale(1.02);
+}
+
+.btn-success:active:not(:disabled):not(.disabled) {
+  background: #059669;
+  border-color: #059669;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: scale(0.98);
 }
 
 /* Danger Button */
@@ -255,9 +322,18 @@ p:last-child {
   border-color: var(--color-error);
 }
 
-.btn-danger:hover {
+.btn-danger:hover:not(:disabled):not(.disabled) {
   background: var(--color-error);
   color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  transform: scale(1.02);
+}
+
+.btn-danger:active:not(:disabled):not(.disabled) {
+  background: #dc2626;
+  border-color: #dc2626;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  transform: scale(0.98);
 }
 
 /* Button Sizes */
@@ -271,12 +347,142 @@ p:last-child {
   font-size: var(--text-lg);
 }
 
-/* Button States */
+/* Button States - Disabled */
 .btn:disabled,
 .btn.disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  pointer-events: none;
 }
+
+.btn:disabled:hover,
+.btn.disabled:hover,
+.btn:disabled:active,
+.btn.disabled:active {
+  transform: none;
+  box-shadow: none;
+}
+
+/* ========================================================
+   INTERACTIVE STATES - TRANSITIONS & TIMING GUIDE
+   ======================================================== */
+
+/*
+TRANSITION TIMING:
+  - Fast transitions (150ms): Used for interactive elements that need immediate feedback
+    Applied to: buttons, form inputs, checkboxes
+  - Base transitions (300ms): Used for non-critical animations
+  - Slow transitions (500ms): Used for modal/overlay animations
+
+BUTTON STATES & EFFECTS:
+  1. Default
+     - No special styling, solid background/border
+     - Cursor: pointer
+     - Transition: all 150ms ease
+
+  2. Hover (not disabled)
+     - Background: darkened by ~10% (using darker shade)
+     - Shadow: 0 4px 12px with 30% alpha of button color
+     - Scale: 1.02x (subtle grow)
+     - Transition: 150ms smooth
+
+  3. Active/Pressed (not disabled)
+     - Background: darkened by ~20%
+     - Shadow: inset 0 2px 4px rgba(0,0,0,0.2) (pressed effect)
+     - Scale: 0.98x (subtle shrink - tactile feedback)
+     - No additional transform duration
+
+  4. Disabled
+     - Opacity: 50%
+     - Cursor: not-allowed
+     - Pointer-events: none (no interactions)
+     - No hover/active effects
+
+  5. Focus (Keyboard navigation)
+     - Outline: 3px solid #0284c7
+     - Outline-offset: 2px
+     - Visible even when hovering
+
+FORM INPUT STATES & EFFECTS:
+  1. Default
+     - Border: 1px solid #e5e7eb
+     - Background: white
+     - Cursor: text
+     - Transition: border-color, box-shadow, background 150ms
+
+  2. Hover (not focused)
+     - Border remains 1px (unchanged)
+     - No visual change to encourage focus
+
+  3. Focus
+     - Border: 2px solid #0284c7 (doubles thickness)
+     - Padding adjusted (11px 15px to maintain consistent spacing)
+     - Box-shadow: 0 0 0 3px rgba(2,132,199,0.1)
+     - Outline: none (overrides default)
+     - Transition: 150ms smooth
+
+  4. Filled (has value, not focused)
+     - Border: 1px solid #0284c7 (soft blue)
+     - Background: #f9fafb (light gray)
+     - Indicates field contains data
+
+  5. Error
+     - Border: 2px solid #ef4444
+     - Padding: 11px 15px (matches focus state)
+     - Box-shadow: 0 0 0 3px rgba(239,68,68,0.1)
+     - Applied with class: is-invalid
+
+  6. Disabled
+     - Background: #f3f4f6
+     - Border: 1px solid #d1d5db
+     - Cursor: not-allowed
+     - Pointer-events: none
+     - Text color: muted
+
+CHECKBOX & RADIO STATES & EFFECTS:
+  1. Unchecked (default)
+     - Border: 2px solid #d1d5db
+     - Background: white
+     - Cursor: pointer
+     - Appearance: none (custom styling)
+
+  2. Unchecked Hover
+     - Border: 2px solid #9ca3af (darker gray)
+     - Box-shadow: 0 0 0 2px rgba(209,213,219,0.2)
+
+  3. Checked
+     - Background: #0284c7 (blue)
+     - Border: 2px solid #0284c7
+     - Checkmark: SVG icon, white, 12px centered
+     - Background-image: url(data: svg+xml checkmark)
+
+  4. Checked Hover
+     - Background: #0370b9 (darker blue)
+     - Border: 2px solid #0370b9
+
+  5. Active
+     - Box-shadow: inset 0 2px 4px rgba(0,0,0,0.15)
+
+  6. Focus
+     - Outline: 3px solid #0284c7
+     - Outline-offset: 2px
+     - Border: 2px solid #0284c7
+
+  7. Disabled
+     - Opacity: 50%
+     - Cursor: not-allowed
+     - Background: #f3f4f6
+     - Border: #d1d5db
+
+ACCESSIBILITY NOTES:
+  - All interactive elements have visible focus indicators (3px outline)
+  - Keyboard navigation supported via :focus-visible
+  - Disabled states clearly indicated by opacity and cursor changes
+  - Color not the only indicator of state (using borders, shadows, opacity)
+  - WCAG AA contrast ratios maintained for all text and borders
+  - Scale/shadow effects enhance perceived interactivity
+  - Inset shadows on active states provide tactile feedback
+*/
 
 /* ========================================================
    CARDS
@@ -286,13 +492,13 @@ p:last-child {
   background: white;
   border-radius: var(--radius-lg);
   padding: var(--space-2xl);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--color-border-light);
+  box-shadow: var(--shadow-subtle);
+  border: 1px solid var(--color-border);
   transition: all var(--transition-base);
 }
 
 .card:hover {
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-elevated);
   transform: translateY(-2px);
 }
 
@@ -326,7 +532,7 @@ p:last-child {
 }
 
 /* ========================================================
-   FORMS
+   FORMS - INTERACTIVE STATES
    ======================================================== */
 
 .form-group {
@@ -351,39 +557,93 @@ p:last-child {
   color: var(--color-error);
 }
 
+/* Form Control - Base State
+   Default: 1px solid border #e5e7eb, white background
+*/
 .form-control {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid var(--color-border);
+  border: 1px solid #e5e7eb;
   border-radius: var(--radius-md);
   font-family: var(--font-primary);
   font-size: var(--text-base);
   color: var(--color-text);
   background: white;
-  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  transition: border-color var(--transition-fast),
+              box-shadow var(--transition-fast),
+              background-color var(--transition-fast);
 }
 
+/* Form Control - Focus State
+   2px solid border #0284c7, box-shadow with 10% alpha blue, outline: none
+*/
 .form-control:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(232, 132, 125, 0.1);
+  border-color: #0284c7;
+  border-width: 2px;
+  padding: 11px 15px; /* Adjust for 2px border */
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
 }
 
 .form-control:focus-visible {
   outline: 3px solid #0284c7;
   outline-offset: 1px;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(232, 132, 125, 0.1);
+  border-color: #0284c7;
+  border-width: 2px;
+  padding: 11px 15px;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
 }
 
+/* Form Control - Filled State
+   When input has a value: 1px solid #0284c7, background #f9fafb
+*/
+.form-control:not(:placeholder-shown):not(:focus) {
+  border-color: #0284c7;
+  background-color: #f9fafb;
+}
+
+/* Form Control - Placeholder */
 .form-control::placeholder {
   color: var(--color-text-light);
 }
 
+/* Form Control - Disabled State
+   Background #f3f4f6, border #d1d5db, cursor not-allowed
+*/
 .form-control:disabled {
-  background: var(--color-bg);
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
   color: var(--color-text-light);
   cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Form Control - Error State
+   2px solid #ef4444, box-shadow with 10% alpha red
+*/
+.form-control.is-invalid {
+  border-color: #ef4444;
+  border-width: 2px;
+  padding: 11px 15px;
+}
+
+.form-control.is-invalid:focus {
+  border-color: #ef4444;
+  border-width: 2px;
+  padding: 11px 15px;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Form Control - Success State */
+.form-control.is-valid {
+  border-color: var(--color-success);
+  border-width: 1px;
+}
+
+.form-control.is-valid:focus {
+  border-width: 2px;
+  padding: 11px 15px;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
 
 /* Select */
@@ -433,23 +693,109 @@ textarea.form-control {
   color: var(--color-success);
 }
 
+/* Checkbox & Radio Container */
 .form-check {
   display: flex;
   align-items: center;
   margin-bottom: var(--space-lg);
 }
 
+/* Checkbox & Radio - Custom Styling
+   Replaces default browser input with premium appearance
+*/
 .form-check-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
   width: 20px;
   height: 20px;
+  min-width: 20px;
   margin-right: var(--space-lg);
   cursor: pointer;
-  accent-color: var(--color-primary);
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  background-color: white;
+  transition: border-color var(--transition-fast),
+              background-color var(--transition-fast),
+              box-shadow var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
 
+/* Checkbox & Radio - Unchecked State (default)
+   Border: 2px solid #d1d5db, background: white
+*/
+.form-check-input:not(:checked) {
+  border-color: #d1d5db;
+  background-color: white;
+}
+
+/* Checkbox & Radio - Hover State (unchecked) */
+.form-check-input:not(:checked):hover {
+  border-color: #9ca3af;
+  box-shadow: 0 0 0 2px rgba(209, 213, 219, 0.2);
+}
+
+/* Checkbox & Radio - Checked State
+   Background: #0284c7, border: 2px solid #0284c7
+   Checkmark displayed via pseudo-element
+*/
+.form-check-input:checked {
+  border-color: #0284c7;
+  background-color: #0284c7;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px;
+}
+
+/* Checkbox & Radio - Checked Hover */
+.form-check-input:checked:hover {
+  border-color: #0370b9;
+  background-color: #0370b9;
+}
+
+/* Checkbox & Radio - Active/Pressed State */
+.form-check-input:active {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Checkbox & Radio - Focus State
+   Outline: 3px solid #0284c7, outline-offset: 2px
+*/
+.form-check-input:focus-visible {
+  outline: 3px solid #0284c7;
+  outline-offset: 2px;
+  border-color: #0284c7;
+}
+
+/* Checkbox & Radio - Disabled State */
+.form-check-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  border-color: #d1d5db;
+  background-color: #f3f4f6;
+}
+
+.form-check-input:disabled:checked {
+  border-color: #9ca3af;
+  background-color: #9ca3af;
+}
+
+/* Checkbox & Radio - Label */
 .form-check-label {
   cursor: pointer;
   margin-bottom: 0;
+  user-select: none;
+  transition: color var(--transition-fast);
+}
+
+/* Label hover effect - highlight label when hovering over input */
+.form-check-input:hover + .form-check-label,
+.form-check-input:not(:disabled) + .form-check-label:hover {
+  color: #0284c7;
 }
 
 /* ========================================================
@@ -495,7 +841,7 @@ textarea:focus {
 /* Ensure focus is visible even with box-shadow */
 button:focus-visible,
 .btn:focus-visible {
-  box-shadow: 0 0 0 3px rgba(232, 132, 125, 0.1), 0 0 0 5px #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1), 0 0 0 5px var(--color-primary);
 }
 
 /* ========================================================
@@ -567,7 +913,7 @@ button:focus-visible,
   width: 100%;
   height: 6px;
   background: var(--color-border);
-  border-radius: 3px;
+  border-radius: var(--radius-full);
   overflow: hidden;
   margin: var(--space-xl) 0;
 }
@@ -688,16 +1034,238 @@ button:focus-visible,
   border-radius: var(--radius-full);
 }
 
+.shadow-subtle {
+  box-shadow: var(--shadow-subtle);
+}
+
 .shadow {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-normal);
+}
+
+.shadow-elevated {
+  box-shadow: var(--shadow-elevated);
 }
 
 .shadow-lg {
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-maximum);
+}
+
+.shadow-md {
+  box-shadow: var(--shadow-normal);
 }
 
 .hidden {
   display: none !important;
+}
+
+/* ========================================================
+   ICON SIZING & COLORS - Standardized System
+   ======================================================== */
+
+/* Icon Size Classes
+   Usage: <i class="bi bi-check icon-md"></i>
+   Standard sizes aligned with design system spacing scale
+*/
+
+.icon-xs {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  line-height: 16px;
+}
+
+.icon-sm {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  line-height: 20px;
+}
+
+.icon-md {
+  width: 24px;
+  height: 24px;
+  font-size: 24px;
+  line-height: 24px;
+}
+
+.icon-lg {
+  width: 32px;
+  height: 32px;
+  font-size: 32px;
+  line-height: 32px;
+}
+
+.icon-xl {
+  width: 48px;
+  height: 48px;
+  font-size: 48px;
+  line-height: 48px;
+}
+
+.icon-2xl {
+  width: 64px;
+  height: 64px;
+  font-size: 64px;
+  line-height: 64px;
+}
+
+/* Icon Color Classes
+   Usage: <i class="bi bi-check icon-primary"></i>
+   Primary: Brand color for primary CTAs and main actions
+   Success: Green for success states and confirmations
+   Warning: Amber for alerts and cautions
+   Error/Danger: Red for errors and destructive actions
+   Gray: Gray for disabled, navigation, and secondary elements
+*/
+
+.icon-primary {
+  color: var(--color-primary);
+}
+
+.icon-secondary {
+  color: var(--color-text-light);
+}
+
+.icon-success {
+  color: var(--color-success);
+}
+
+.icon-warning {
+  color: var(--color-warning);
+}
+
+.icon-error,
+.icon-danger {
+  color: var(--color-error);
+}
+
+.icon-gray {
+  color: #6b7280;
+}
+
+.icon-muted {
+  color: var(--color-text-lighter);
+}
+
+.icon-info {
+  color: var(--color-info);
+}
+
+/* Icon Combinations - Size + Color
+   Semantic combinations for common patterns
+*/
+
+.icon-xs-primary { width: 16px; height: 16px; font-size: 16px; color: var(--color-primary); }
+.icon-xs-success { width: 16px; height: 16px; font-size: 16px; color: var(--color-success); }
+.icon-xs-warning { width: 16px; height: 16px; font-size: 16px; color: var(--color-warning); }
+.icon-xs-error { width: 16px; height: 16px; font-size: 16px; color: var(--color-error); }
+
+.icon-sm-primary { width: 20px; height: 20px; font-size: 20px; color: var(--color-primary); }
+.icon-sm-success { width: 20px; height: 20px; font-size: 20px; color: var(--color-success); }
+.icon-sm-warning { width: 20px; height: 20px; font-size: 20px; color: var(--color-warning); }
+.icon-sm-error { width: 20px; height: 20px; font-size: 20px; color: var(--color-error); }
+
+.icon-md-primary { width: 24px; height: 24px; font-size: 24px; color: var(--color-primary); }
+.icon-md-success { width: 24px; height: 24px; font-size: 24px; color: var(--color-success); }
+.icon-md-warning { width: 24px; height: 24px; font-size: 24px; color: var(--color-warning); }
+.icon-md-error { width: 24px; height: 24px; font-size: 24px; color: var(--color-error); }
+
+.icon-lg-primary { width: 32px; height: 32px; font-size: 32px; color: var(--color-primary); }
+.icon-lg-success { width: 32px; height: 32px; font-size: 32px; color: var(--color-success); }
+.icon-lg-warning { width: 32px; height: 32px; font-size: 32px; color: var(--color-warning); }
+.icon-lg-error { width: 32px; height: 32px; font-size: 32px; color: var(--color-error); }
+
+/* Icon Display Modes
+   For responsive and spacing concerns
+*/
+
+.icon-inline {
+  display: inline;
+  margin: 0 var(--space-xs);
+  vertical-align: middle;
+}
+
+.icon-block {
+  display: block;
+  margin: var(--space-md) auto;
+}
+
+.icon-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ========================================================
+   ICON USAGE EXAMPLES & PATTERNS
+   ======================================================== */
+
+/* Button Icons */
+.btn i {
+  margin-right: var(--space-md);
+  font-size: 1.1em;
+}
+
+.btn-sm i {
+  font-size: 0.9em;
+  margin-right: var(--space-sm);
+}
+
+.btn-lg i {
+  font-size: 1.2em;
+  margin-right: var(--space-lg);
+}
+
+/* Badge/Label Icons */
+.badge i,
+[role="status"] i {
+  margin-right: var(--space-xs);
+}
+
+/* Alert Icons */
+.alert i {
+  margin-right: var(--space-md);
+  font-size: 1.1em;
+  vertical-align: middle;
+}
+
+/* List/Table Icons */
+.table i,
+li i {
+  margin-right: var(--space-md);
+}
+
+/* Navigation Icons */
+nav i {
+  margin-right: var(--space-md);
+}
+
+/* Status Indicator Icons */
+.status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+}
+
+.status-icon-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-success);
+}
+
+.status-icon-warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-warning);
+}
+
+.status-icon-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-error);
+}
+
+.status-icon-info {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--color-info);
 }
 
 /* ========================================================
