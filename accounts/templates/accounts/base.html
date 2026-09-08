@@ -126,7 +126,7 @@
 
             {% if not is_public_form and user.is_authenticated %}
             <!-- Mobile Collapsible Navigation Menu (UX-02) -->
-            <div class="navbar-collapse-custom" id="adminNavbarCollapse">
+            <div class="navbar-collapse-custom d-md-none" id="adminNavbarCollapse">
                 <ul class="navbar-nav">
                     {% if user.is_staff or user.role == 'admin' %}
                         <li>

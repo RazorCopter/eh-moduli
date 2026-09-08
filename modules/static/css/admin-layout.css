@@ -561,6 +561,10 @@ body {
     gap: 12px;
 }
 
+.navbar-collapse-custom {
+    display: none;
+}
+
 @media (max-width: 768px) {
     .navbar-container {
         padding: 0 16px;
