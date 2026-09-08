@@ -101,10 +101,10 @@
                             </div>
 
                             <div class="d-flex gap-2 mt-4">
-                                <button type="submit" class="btn btn-primary" style="border-radius: 8px; background: #1976d2; border: none;">
-                                    <i class="bi bi-check-circle"></i> Salva
+                                <button type="submit" id="userFormSubmitBtn" class="btn btn-shimmer" style="border-radius: 8px; background: linear-gradient(135deg, #E89BA7, #E0849B); color: #ffffff !important; border: none; font-weight: 600; padding: 0.6rem 1.4rem; box-shadow: 0 2px 8px rgba(232, 155, 167, 0.35); display: inline-flex; align-items: center; gap: 0.5rem;">
+                                    <i class="bi bi-check-circle-fill" style="color: #ffffff;"></i> <span id="userFormSubmitText">Crea Operatore</span>
                                 </button>
-                                <button type="button" class="btn btn-secondary" onclick="resetUserForm()" style="border-radius: 8px;">
+                                <button type="button" class="btn btn-secondary" onclick="resetUserForm()" style="border-radius: 8px; font-weight: 500; padding: 0.6rem 1.2rem; background: #6c757d; color: #ffffff !important; border: none;">
                                     <i class="bi bi-x-circle"></i> Annulla
                                 </button>
                             </div>
@@ -118,7 +118,7 @@
             </div>
 
             <div class="modal-footer" style="border-top: 1px solid #F0EDE8; padding: 1rem 1.5rem; background: #FAF8F6;">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 500; background: #6c757d; color: #ffffff !important; border: none;">
                     Chiudi
                 </button>
             </div>
@@ -132,13 +132,15 @@
         font-weight: 500;
         border: none;
         border-bottom: 3px solid transparent;
+        padding: 0.75rem 1rem;
     }
     #userManagementModal .nav-link:hover {
-        color: #1976d2;
+        color: #E0849B;
     }
     #userManagementModal .nav-link.active {
-        color: #1976d2;
-        border-bottom-color: #1976d2;
+        color: #2C2C2C;
+        font-weight: 600;
+        border-bottom-color: #E89BA7;
         background: none;
     }
     #userManagementModal .table tbody tr:hover {
@@ -150,7 +152,15 @@
     }
     #userManagementModal .form-control:focus,
     #userManagementModal .form-select:focus {
-        border-color: #1976d2;
-        box-shadow: 0 0 0 0.2rem rgba(25, 118, 210, 0.25);
+        border-color: #E89BA7;
+        box-shadow: 0 0 0 0.2rem rgba(232, 155, 167, 0.25);
+    }
+    #userFormSubmitBtn:hover {
+        background: linear-gradient(135deg, #df8996, #d4748c) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(232, 155, 167, 0.45) !important;
+    }
+    #userFormSubmitBtn:active {
+        transform: scale(0.98);
     }
 </style>

@@ -124,6 +124,21 @@ verify_storage() {
     fi
     log_info "✓ /app/data is writable"
 
+    # Check /app/data/logs
+    if [ ! -d "/app/data/logs" ]; then
+        log_warn "/app/data/logs does not exist, creating it..."
+        mkdir -p /app/data/logs || {
+            log_error "Failed to create /app/data/logs"
+            exit 1
+        }
+    fi
+
+    if [ ! -w "/app/data/logs" ]; then
+        log_error "/app/data/logs is not writable by current user"
+        exit 1
+    fi
+    log_info "✓ /app/data/logs is writable"
+
     # Check /storage/clienti
     if [ ! -d "/storage/clienti" ]; then
         log_warn "/storage/clienti does not exist, creating it..."

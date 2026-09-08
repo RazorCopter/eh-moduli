@@ -786,17 +786,30 @@
         // Open user management modal
         function openUserManagementModal(event) {
             if (event) event.preventDefault();
-            const modal = new bootstrap.Modal(document.getElementById('userManagementModal'));
+            const modalEl = document.getElementById('userManagementModal');
+            if (!modalEl) return;
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
             modal.show();
             loadUserList();
         }
 
         // Load user list from API
         function loadUserList() {
-            fetch('/admin/api/users/')
-                .then(response => response.json())
+            fetch('/modules/admin/api/users/')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(users => renderUserList(users))
-                .catch(error => console.error('Error loading users:', error));
+                .catch(error => {
+                    console.error('Error loading users:', error);
+                    const tbody = document.getElementById('userListTableBody');
+                    if (tbody) {
+                        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: #ef4444;"><i class="bi bi-exclamation-triangle"></i> Errore caricamento utenti (${escapeHtml(error.message)})</td></tr>`;
+                    }
+                });
         }
 
         // Render user list in table
@@ -804,21 +817,22 @@
             const tbody = document.getElementById('userListTableBody');
             if (!tbody) return;
 
-            // Hide form when showing list
-            document.getElementById('userForm').style.display = 'none';
-            document.getElementById('noFormMessage').style.display = 'none';
-
             tbody.innerHTML = '';
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: #9CA3AF;">Nessun utente trovato.</td></tr>`;
+                return;
+            }
+
             users.forEach(user => {
                 const roleColor = user.role === 'admin' ? '#fee2e2' : '#dbeafe';
                 const roleText = user.role === 'admin' ? 'Admin' : 'Operatore';
                 const lastName = user.last_name || '';
-                const fullName = user.first_name + ' ' + lastName;
+                const fullName = (user.first_name || '') + (lastName ? ' ' + lastName : '');
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td style="padding: 1rem;">${escapeHtml(user.username)}</td>
-                    <td style="padding: 1rem;">${escapeHtml(fullName)}</td>
+                    <td style="padding: 1rem; font-weight: 500;">${escapeHtml(user.username)}</td>
+                    <td style="padding: 1rem;">${escapeHtml(fullName || '-')}</td>
                     <td style="padding: 1rem;">${escapeHtml(user.email)}</td>
                     <td style="padding: 1rem;">
                         <span style="background: ${roleColor}; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
@@ -826,10 +840,10 @@
                         </span>
                     </td>
                     <td style="padding: 1rem;">
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="editUser(${user.id}, '${escapeHtml(user.username)}', '${escapeHtml(user.email)}', '${escapeHtml(user.first_name)}', '${escapeHtml(lastName)}', '${user.role}')">
+                        <button type="button" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; margin-right: 4px;" onclick="editUser(${user.id}, '${escapeHtml(user.username)}', '${escapeHtml(user.email)}', '${escapeHtml(user.first_name || '')}', '${escapeHtml(lastName)}', '${user.role}')">
                             <i class="bi bi-pencil"></i> Modifica
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">
+                        <button type="button" class="btn btn-sm btn-outline-danger" style="border-radius: 6px;" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')">
                             <i class="bi bi-trash"></i> Elimina
                         </button>
                     </td>
@@ -840,6 +854,7 @@
 
         // Helper function to escape HTML
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
@@ -855,29 +870,57 @@
             document.getElementById('userRole').value = role;
             document.getElementById('userPassword').value = '';
 
-            document.getElementById('userForm').style.display = 'block';
-            document.getElementById('noFormMessage').style.display = 'none';
+            const submitText = document.getElementById('userFormSubmitText');
+            if (submitText) submitText.textContent = 'Salva Modifiche';
 
-            const tab = new bootstrap.Tab(document.getElementById('addUserTab'));
-            tab.show();
+            const userForm = document.getElementById('userForm');
+            if (userForm) userForm.style.display = 'block';
+            const noFormMsg = document.getElementById('noFormMessage');
+            if (noFormMsg) noFormMsg.style.display = 'none';
+
+            const tabEl = document.getElementById('addUserTab');
+            if (tabEl) {
+                const tab = bootstrap.Tab.getOrCreateInstance(tabEl);
+                tab.show();
+            }
         }
 
-        // Reset user form
-        function resetUserForm() {
-            document.getElementById('userForm').reset();
-            document.getElementById('userId').value = '';
-            document.getElementById('userForm').style.display = 'none';
-            document.getElementById('noFormMessage').style.display = 'block';
+        // Prepare Add User mode
+        function prepareAddUser() {
+            const form = document.getElementById('userForm');
+            if (form) {
+                form.reset();
+                form.style.display = 'block';
+            }
+            const userIdEl = document.getElementById('userId');
+            if (userIdEl) userIdEl.value = '';
+            const submitText = document.getElementById('userFormSubmitText');
+            if (submitText) submitText.textContent = 'Crea Operatore';
+            const noFormMsg = document.getElementById('noFormMessage');
+            if (noFormMsg) noFormMsg.style.display = 'none';
+        }
 
-            const tab = new bootstrap.Tab(document.getElementById('userListTab'));
-            tab.show();
+        // Reset user form & return to list
+        function resetUserForm() {
+            const form = document.getElementById('userForm');
+            if (form) form.reset();
+            const userIdEl = document.getElementById('userId');
+            if (userIdEl) userIdEl.value = '';
+            const submitText = document.getElementById('userFormSubmitText');
+            if (submitText) submitText.textContent = 'Crea Operatore';
+
+            const tabEl = document.getElementById('userListTab');
+            if (tabEl) {
+                const tab = bootstrap.Tab.getOrCreateInstance(tabEl);
+                tab.show();
+            }
         }
 
         // Generate random password
         function generatePassword() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
             let password = '';
-            for (let i = 0; i < 12; i++) {
+            for (let i = 0; i < 14; i++) {
                 password += chars.charAt(Math.floor(Math.random() * chars.length));
             }
             document.getElementById('userPassword').value = password;
@@ -896,12 +939,12 @@
             const password = document.getElementById('userPassword').value.trim();
 
             if (!username || !email) {
-                alert('Username e Email sono obbligatori');
+                alert('Username ed Email sono obbligatori');
                 return;
             }
 
             if (!userId && !password) {
-                alert('Password è obbligatoria per nuovi utenti');
+                alert('La password è obbligatoria per creare un nuovo utente');
                 return;
             }
 
@@ -915,9 +958,16 @@
             };
 
             const url = userId
-                ? `/admin/api/users/${userId}/update/`
-                : '/admin/api/users/create/';
+                ? `/modules/admin/api/users/${userId}/update/`
+                : '/modules/admin/api/users/create/';
             const method = userId ? 'PUT' : 'POST';
+
+            const submitBtn = document.getElementById('userFormSubmitBtn');
+            const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Salvataggio...';
+            }
 
             fetch(url, {
                 method,
@@ -927,44 +977,54 @@
                 },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
-            .then(result => {
-                if (result.error) {
-                    alert('Errore: ' + result.error);
-                } else {
-                    alert(userId ? 'Utente aggiornato con successo' : 'Utente creato con successo');
-                    resetUserForm();
-                    loadUserList();
+            .then(async response => {
+                const json = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(json.error || `Errore server (${response.status})`);
                 }
+                return json;
+            })
+            .then(result => {
+                alert(userId ? 'Operatore aggiornato con successo' : 'Operatore creato con successo');
+                resetUserForm();
+                loadUserList();
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('Errore nel salvataggio');
+                console.error('Error saving user:', error);
+                alert('Errore nel salvataggio: ' + error.message);
+            })
+            .finally(() => {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHtml;
+                }
             });
         }
 
         // Delete user
         function deleteUser(userId, username) {
-            if (!confirm(`Sei sicuro di voler eliminare l'utente "${username}"?`)) return;
+            if (!confirm(`Sei sicuro di voler eliminare l'operatore "${username}"?`)) return;
 
-            fetch(`/admin/api/users/${userId}/delete/`, {
+            fetch(`/modules/admin/api/users/${userId}/delete/`, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRFToken': getCsrfToken()
                 }
             })
-            .then(response => response.json())
-            .then(result => {
-                if (result.error) {
-                    alert('Errore: ' + result.error);
-                } else {
-                    alert('Utente eliminato con successo');
-                    loadUserList();
+            .then(async response => {
+                const json = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(json.error || `Errore server (${response.status})`);
                 }
+                return json;
+            })
+            .then(result => {
+                alert('Operatore eliminato con successo');
+                loadUserList();
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('Errore nell\'eliminazione');
+                console.error('Error deleting user:', error);
+                alert('Errore nell\'eliminazione: ' + error.message);
             });
         }
 
@@ -985,11 +1045,34 @@
             return cookieValue;
         }
 
-        // Attach form submit handler
+        // Attach form submit handler and tab listeners
         document.addEventListener('DOMContentLoaded', function() {
             const userForm = document.getElementById('userForm');
             if (userForm) {
                 userForm.addEventListener('submit', saveUser);
+            }
+
+            const addUserTab = document.getElementById('addUserTab');
+            if (addUserTab) {
+                addUserTab.addEventListener('click', function() {
+                    const userId = document.getElementById('userId').value;
+                    if (!userId) {
+                        prepareAddUser();
+                    }
+                });
+            }
+
+            // Client-side user search
+            const searchInput = document.getElementById('userSearchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const term = this.value.toLowerCase().trim();
+                    const rows = document.querySelectorAll('#userListTableBody tr');
+                    rows.forEach(r => {
+                        const text = r.textContent.toLowerCase();
+                        r.style.display = text.includes(term) ? '' : 'none';
+                    });
+                });
             }
         });
 

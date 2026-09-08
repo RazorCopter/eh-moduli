@@ -274,7 +274,7 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '[{levelname}] {asctime} [v{version}|{commit}] {module} {funcName}:{lineno} - {message}',
+            'format': '[{levelname}] {asctime} [v{version}|{commit}] {name} {funcName}:{lineno} - {message}',
             'style': '{',
             'datefmt': '%Y-%m-%d %H:%M:%S',
             'defaults': {'version': APP_VERSION, 'commit': GIT_COMMIT[:7] if GIT_COMMIT != 'unknown' else 'unknown'},
@@ -289,7 +289,7 @@ LOGGING = {
         'file': {
             'level': LOG_LEVEL,
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'django.log',
+            'filename': str(LOGS_DIR / 'django.log'),
             'maxBytes': 10485760,  # 10MB
             'backupCount': 5,
             'formatter': 'verbose',
@@ -298,7 +298,7 @@ LOGGING = {
         'error_file': {
             'level': 'ERROR',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOGS_DIR / 'errors.log',
+            'filename': str(LOGS_DIR / 'errors.log'),
             'maxBytes': 10485760,
             'backupCount': 5,
             'formatter': 'verbose',
@@ -310,18 +310,37 @@ LOGGING = {
             'formatter': 'simple',
         },
     },
+    'root': {
+        'handlers': ['file', 'error_file', 'console'],
+        'level': LOG_LEVEL,
+    },
     'loggers': {
         'django': {
             'handlers': ['file', 'error_file', 'console'],
             'level': LOG_LEVEL,
             'propagate': False,
         },
+        'django.request': {
+            'handlers': ['file', 'error_file', 'console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['file', 'error_file', 'console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
         'django.db.backends': {
             'handlers': ['file'],
-            'level': LOG_LEVEL if LOG_LEVEL in ['DEBUG', 'INFO'] else 'INFO',
+            'level': 'INFO',  # Keep db queries to INFO unless explicitly debugging queries to avoid bloating log files
             'propagate': False,
         },
         'modules': {
+            'handlers': ['file', 'error_file', 'console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+        'accounts': {
             'handlers': ['file', 'error_file', 'console'],
             'level': LOG_LEVEL,
             'propagate': False,
