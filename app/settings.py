@@ -240,16 +240,32 @@ SECURE_CONTENT_SECURITY_POLICY = {
 is_production = ENVIRONMENT == 'production'
 
 # Robust ALLOWED_HOSTS parsing: split, strip, discard empties
-_raw_hosts = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1')
-ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(',') if h.strip()]
-if not ALLOWED_HOSTS:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-    logger.warning('ALLOWED_HOSTS was empty after parsing, using defaults: %s', ALLOWED_HOSTS)
-elif '*' in ALLOWED_HOSTS and is_production:
+_raw_hosts = os.getenv('ALLOWED_HOSTS', '')
+_parsed_hosts = [h.strip() for h in _raw_hosts.split(',') if h.strip() and h.strip() != 'NAS_IP_HERE']
+
+_hosts_set = set(_parsed_hosts)
+# Always include loopbacks
+_hosts_set.update(['localhost', '127.0.0.1'])
+
+# Known organizational domains for EticHUB deployment (including wildcard .etichub.it)
+_default_etichub_hosts = [
+    'regolatorio.etichub.it',
+    'service.etichub.it',
+    'moduli.etichub.it',
+    '.etichub.it',
+    '172.17.135.184',
+    '172.27.100.2',
+]
+# In production or if no specific hosts were configured, ensure EticHUB domains are allowed
+if is_production or not _parsed_hosts:
+    _hosts_set.update(_default_etichub_hosts)
+
+# Sanitize '*' in production
+if '*' in _hosts_set and is_production:
     logger.warning('SECURITY WARNING: ALLOWED_HOSTS contains "*" in production! Sanitizing.')
-    ALLOWED_HOSTS = [h for h in ALLOWED_HOSTS if h != '*']
-    if not ALLOWED_HOSTS:
-        ALLOWED_HOSTS = ['service.etichub.it', 'moduli.etichub.it', '172.17.135.184', '172.27.100.2', 'localhost', '127.0.0.1']
+    _hosts_set.remove('*')
+
+ALLOWED_HOSTS = sorted(list(_hosts_set))
 
 # Robust CSRF_TRUSTED_ORIGINS parsing:
 _raw_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
@@ -259,8 +275,16 @@ for origin in _raw_csrf.split(','):
     if origin and (origin.startswith('http://') or origin.startswith('https://')):
         _csrf_set.add(origin)
 
-# Always trust standard loopback / local dev origins
+# Always trust etichub.it domains (HTTP & HTTPS) and standard loopbacks
 _csrf_set.update([
+    'https://regolatorio.etichub.it',
+    'http://regolatorio.etichub.it',
+    'https://service.etichub.it',
+    'http://service.etichub.it',
+    'https://moduli.etichub.it',
+    'http://moduli.etichub.it',
+    'https://*.etichub.it',
+    'http://*.etichub.it',
     'http://localhost:6060',
     'http://127.0.0.1:6060',
     'http://localhost:8000',
@@ -322,15 +346,17 @@ LOG_LEVEL = os.getenv('LOG_LEVEL', 'DEBUG' if DEBUG else 'INFO').upper()
 LOGS_DIR = BASE_DIR / 'data' / 'logs'
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
+_commit_short = GIT_COMMIT[:7] if GIT_COMMIT != 'unknown' else 'unknown'
+_log_version_prefix = f'[v{APP_VERSION}|{_commit_short}]'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '[{levelname}] {asctime} [v{version}|{commit}] {name} {funcName}:{lineno} - {message}',
+            'format': f'[{{levelname}}] {{asctime}} {_log_version_prefix} {{name}} {{funcName}}:{{lineno}} - {{message}}',
             'style': '{',
             'datefmt': '%Y-%m-%d %H:%M:%S',
-            'defaults': {'version': APP_VERSION, 'commit': GIT_COMMIT[:7] if GIT_COMMIT != 'unknown' else 'unknown'},
         },
         'simple': {
             'format': '[{levelname}] {asctime} - {message}',
