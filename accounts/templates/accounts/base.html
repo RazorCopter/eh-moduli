@@ -103,6 +103,9 @@
                                         <a href="#" class="dropdown-item" onclick="openUserManagementModal(event)">
                                             <i class="bi bi-gear"></i> Gestione Utenti
                                         </a>
+                                        <a href="{% url 'admin_maintenance' %}" class="dropdown-item">
+                                            <i class="bi bi-tools"></i> Manutenzione Sistema
+                                        </a>
                                     {% endif %}
 
                                     <a href="{% url 'logout' %}" class="dropdown-item logout-item btn-logout-pill">
@@ -142,6 +145,13 @@
                         <li>
                             <a href="{% url 'customer_list' %}" class="navbar-link {% if 'customer' in request.resolver_match.url_name %}active{% endif %}">
                                 <i class="bi bi-people"></i> Clienti
+                            </a>
+                        </li>
+                    {% endif %}
+                    {% if user.is_superuser or user.role == 'admin' %}
+                        <li>
+                            <a href="{% url 'admin_maintenance' %}" class="navbar-link {% if 'maintenance' in request.resolver_match.url_name %}active{% endif %}">
+                                <i class="bi bi-tools"></i> Manutenzione
                             </a>
                         </li>
                     {% endif %}

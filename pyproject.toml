@@ -1,7 +1,7 @@
 [project]
-name = "eh-moduli"
-version = "2.0.3"
-description = "EticHUB Form Collection and Document Management Platform"
+name = "ehmoduli"
+version = "2.1.0"
+description = "Sistema gestione moduli e raccolta documenti Etichub"
 requires-python = ">=3.11"
 
 [tool.ruff]

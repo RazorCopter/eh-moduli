@@ -2718,4 +2718,175 @@ class Sprint4AdvancedTestingAndValidationTests(TestCase):
         self.assertEqual(doc2.max_file_size, 10 * 1024 * 1024)
 
 
+from pathlib import Path
+import gzip
+import modules.views_maintenance as vm
+
+
+class MaintenanceAndBackupTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin_user = User.objects.create_user(
+            username='maint_admin',
+            email='maint_admin@example.com',
+            password='password123',
+            role='admin',
+            is_staff=True,
+            is_superuser=True
+        )
+        self.operator_user = User.objects.create_user(
+            username='maint_operator',
+            email='maint_op@example.com',
+            password='password123',
+            role='operator',
+            is_staff=True,
+            is_superuser=False
+        )
+        self.temp_backup_dir = Path(tempfile.mkdtemp(prefix="backup_test_"))
+        self.original_backup_dir = vm.BACKUP_DIR
+        vm.BACKUP_DIR = self.temp_backup_dir
+
+    def tearDown(self):
+        vm.BACKUP_DIR = self.original_backup_dir
+        if self.temp_backup_dir.exists():
+            shutil.rmtree(self.temp_backup_dir, ignore_errors=True)
+
+    def test_anonymous_redirected_from_maintenance(self):
+        response = self.client.get(reverse('admin_maintenance'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login/', response.url)
+
+    def test_operator_access_denied(self):
+        self.client.force_login(self.operator_user)
+        response = self.client.get(reverse('admin_maintenance'))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/login/', response.url)
+
+    def test_admin_can_access_maintenance_dashboard(self):
+        self.client.force_login(self.admin_user)
+        response = self.client.get(reverse('admin_maintenance'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        self.assertIn('Manutenzione &amp; Backup Sistema', content.replace('&', '&amp;'))
+        self.assertIn('Reset Statistiche', content)
+
+    def test_backup_create_and_download(self):
+        self.client.force_login(self.admin_user)
+        # 1. Create a backup
+        response = self.client.post(reverse('admin_backup_create'))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('admin_maintenance'))
+
+        # Verify file created on disk in temp_backup_dir
+        files = list(self.temp_backup_dir.glob("*.json.gz"))
+        self.assertEqual(len(files), 1)
+        backup_file = files[0]
+        self.assertTrue(backup_file.name.endswith('.json.gz'))
+
+        # Verify gzip content is valid json
+        with gzip.open(backup_file, 'rt', encoding='utf-8') as f:
+            data = json.load(f)
+            self.assertIsInstance(data, list)
+            models_in_dump = [item['model'] for item in data]
+            self.assertIn('modules.user', models_in_dump)
+
+        # 2. Download backup
+        download_url = reverse('admin_backup_download', kwargs={'filename': backup_file.name})
+        dl_response = self.client.get(download_url)
+        self.assertEqual(dl_response.status_code, 200)
+        self.assertEqual(dl_response.headers.get('Content-Disposition'), f'attachment; filename="{backup_file.name}"')
+        dl_response.close()
+
+    def test_backup_download_traversal_prevention(self):
+        self.client.force_login(self.admin_user)
+        download_url = '/admin/maintenance/backup/../../something/download/'
+        response = self.client.get(download_url)
+        self.assertIn(response.status_code, [400, 404])
+
+    def test_backup_delete(self):
+        self.client.force_login(self.admin_user)
+        dummy_file = self.temp_backup_dir / "test_del.json.gz"
+        with gzip.open(dummy_file, 'wt', encoding='utf-8') as f:
+            f.write("[]")
+
+        self.assertTrue(dummy_file.exists())
+        del_url = reverse('admin_backup_delete', kwargs={'filename': dummy_file.name})
+        response = self.client.post(del_url)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(dummy_file.exists())
+
+    def test_backup_restore_from_server(self):
+        self.client.force_login(self.admin_user)
+        Customer.objects.create(
+            code="CUST_BCK_01",
+            first_name="Mario",
+            last_name="Rossi",
+            email="backup@test.com",
+            nas_folder_name="MARIO_ROSSI_BCK"
+        )
+        self.assertTrue(Customer.objects.filter(code="CUST_BCK_01").exists())
+
+        # Create backup
+        self.client.post(reverse('admin_backup_create'))
+        files = list(self.temp_backup_dir.glob("ehmoduli_backup_*.json.gz"))
+        self.assertEqual(len(files), 1)
+        backup_filename = files[0].name
+
+        # Perform restore
+        restore_url = reverse('admin_backup_restore')
+        resp = self.client.post(restore_url, {
+            'backup_source': 'server',
+            'backup_filename': backup_filename,
+            'confirm_text': 'RIPRISTINA'
+        })
+        self.assertEqual(resp.status_code, 302)
+
+        # Check that a pre_restore snapshot was created
+        pre_snapshots = list(self.temp_backup_dir.glob("pre_restore_snapshot_*.json.gz"))
+        self.assertTrue(len(pre_snapshots) >= 1)
+
+    def test_reset_statistics(self):
+        self.client.force_login(self.admin_user)
+        AuditLog.objects.create(
+            action='create',
+            object_type='test',
+            object_id='1',
+            actor_ip='127.0.0.1',
+            actor_user_agent='test-agent',
+            details={'msg': 'detail 1'}
+        )
+        AuditLog.objects.create(
+            action='update',
+            object_type='test',
+            object_id='2',
+            actor_ip='127.0.0.1',
+            actor_user_agent='test-agent',
+            details={'msg': 'detail 2'}
+        )
+        NotificationLog.objects.create(
+            notification_type='form_assigned',
+            recipient_email='test@example.com'
+        )
+
+        self.assertGreaterEqual(AuditLog.objects.count(), 2)
+        self.assertEqual(NotificationLog.objects.count(), 1)
+
+        # Post reset without confirmation text -> fails
+        reset_url = reverse('admin_reset_statistics')
+        resp = self.client.post(reset_url, {'reset_mode': 'all', 'confirm_text': 'WRONG'})
+        self.assertEqual(resp.status_code, 302)
+        self.assertGreaterEqual(AuditLog.objects.count(), 2)
+
+        # Post reset with valid 'RESET' text
+        resp = self.client.post(reset_url, {'reset_mode': 'all', 'confirm_text': 'RESET'})
+        self.assertEqual(resp.status_code, 302)
+
+        # NotificationLog should be 0
+        self.assertEqual(NotificationLog.objects.count(), 0)
+        # AuditLog will only have the log entry for the reset action itself
+        reset_logs = AuditLog.objects.filter(object_id='telemetry_reset')
+        self.assertEqual(reset_logs.count(), 1)
+        self.assertEqual(AuditLog.objects.count(), 1)
+
+
 

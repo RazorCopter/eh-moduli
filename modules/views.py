@@ -58,4 +58,10 @@ from .views_admin import (
     assignment_delete,
     assignment_update_status,
     analytics_dashboard,
+    admin_maintenance,
+    admin_reset_statistics,
+    admin_backup_create,
+    admin_backup_download,
+    admin_backup_restore,
+    admin_backup_delete,
 )

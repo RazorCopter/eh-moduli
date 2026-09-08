@@ -28,6 +28,14 @@ urlpatterns = [
     path('admin/guide/', views_admin.operational_guide, name='operational_guide'),
     path('admin/analytics/', views_admin.analytics_dashboard, name='analytics_dashboard'),
 
+    # Admin System Maintenance & Database Backup
+    path('admin/maintenance/', views_admin.admin_maintenance, name='admin_maintenance'),
+    path('admin/maintenance/reset-stats/', views_admin.admin_reset_statistics, name='admin_reset_statistics'),
+    path('admin/maintenance/backup/create/', views_admin.admin_backup_create, name='admin_backup_create'),
+    path('admin/maintenance/backup/<str:filename>/download/', views_admin.admin_backup_download, name='admin_backup_download'),
+    path('admin/maintenance/backup/restore/', views_admin.admin_backup_restore, name='admin_backup_restore'),
+    path('admin/maintenance/backup/<str:filename>/delete/', views_admin.admin_backup_delete, name='admin_backup_delete'),
+
     # Admin User Management API
     path('admin/api/users/', views_admin.admin_user_list, name='admin_user_list'),
     path('admin/api/users/create/', views_admin.admin_user_create, name='admin_user_create'),

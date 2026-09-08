@@ -70,3 +70,13 @@ from .views_users_api import (
     admin_user_delete,
     admin_user_password_generate,
 )
+
+# 6. System Maintenance & Database Backup/Restore Views
+from .views_maintenance import (
+    admin_maintenance,
+    admin_reset_statistics,
+    admin_backup_create,
+    admin_backup_download,
+    admin_backup_restore,
+    admin_backup_delete,
+)

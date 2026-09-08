@@ -1,0 +1,859 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Manutenzione & Backup Sistema - Etichub Moduli{% endblock %}
+
+{% block extra_css %}
+<style>
+    .maintenance-hero {
+        background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+        border: 1px solid #E2E8F0;
+        border-radius: 18px;
+        padding: 2.2rem 2.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+    }
+    .maintenance-hero::after {
+        content: '';
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(circle, rgba(15, 76, 129, 0.08) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .maintenance-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #0F4C81;
+        background: #EFF6FF;
+        border: 1px solid #BFDBFE;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        margin-bottom: 0.75rem;
+    }
+    .maintenance-hero h1 {
+        font-size: 1.95rem;
+        font-weight: 800;
+        color: #0F172A;
+        margin: 0 0 0.5rem 0;
+        line-height: 1.2;
+    }
+    .maintenance-hero p {
+        color: #64748B;
+        font-size: 0.95rem;
+        margin: 0;
+        max-width: 680px;
+    }
+    .hero-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        z-index: 2;
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    .kpi-stat-card {
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        padding: 1.4rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .kpi-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+    }
+    .kpi-stat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+    .kpi-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+    }
+    .kpi-icon-blue { background: #EFF6FF; color: #2563EB; }
+    .kpi-icon-green { background: #ECFDF5; color: #059669; }
+    .kpi-icon-amber { background: #FEF3C7; color: #D97706; }
+    .kpi-icon-purple { background: #F5F3FF; color: #7C3AED; }
+
+    .kpi-stat-value {
+        font-size: 1.95rem;
+        font-weight: 800;
+        color: #0F172A;
+        line-height: 1;
+        margin-bottom: 0.35rem;
+        letter-spacing: -0.5px;
+    }
+    .kpi-stat-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748B;
+        margin: 0;
+    }
+    .kpi-stat-sub {
+        font-size: 0.76rem;
+        color: #94A3B8;
+        margin-top: 0.4rem;
+    }
+
+    /* Section Cards */
+    .m-card {
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        padding: 1.75rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+    }
+    .m-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #F1F5F9;
+    }
+    .m-card-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0F172A;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+    }
+    .m-card-desc {
+        color: #64748B;
+        font-size: 0.9rem;
+        margin: 0 0 1.25rem 0;
+    }
+
+    /* Table styles */
+    .table-maintenance {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .table-maintenance th {
+        background: #F8FAFC;
+        color: #475569;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 10px 16px;
+        border-bottom: 1px solid #E2E8F0;
+    }
+    .table-maintenance td {
+        padding: 14px 16px;
+        vertical-align: middle;
+        border-bottom: 1px solid #F1F5F9;
+        font-size: 0.9rem;
+    }
+    .table-maintenance tr:hover td {
+        background: #F8FAFC;
+    }
+
+    .badge-pre-restore {
+        background: #FEF3C7;
+        color: #92400E;
+        border: 1px solid #FDE68A;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+    .badge-regular-backup {
+        background: #EFF6FF;
+        color: #1E40AF;
+        border: 1px solid #DBEAFE;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+    }
+
+    /* Database entity grid */
+    .db-breakdown-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+        gap: 0.75rem;
+    }
+    .db-entity-box {
+        background: #F8FAFC;
+        border: 1px solid #E2E8F0;
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        display: flex;
+        flex-direction: column;
+    }
+    .db-entity-name {
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #64748B;
+        text-transform: uppercase;
+    }
+    .db-entity-count {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #0F172A;
+        margin-top: 0.2rem;
+    }
+
+    /* Action buttons */
+    .btn-create-backup {
+        background: linear-gradient(135deg, #0F4C81 0%, #1E3A8A 100%);
+        color: white;
+        border: none;
+        padding: 10px 22px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.92rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 12px rgba(15, 76, 129, 0.25);
+        transition: all 0.2s ease;
+    }
+    .btn-create-backup:hover {
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(15, 76, 129, 0.35);
+    }
+    .btn-danger-action {
+        background: #DC2626;
+        color: white;
+        border: none;
+        padding: 9px 18px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.88rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s;
+    }
+    .btn-danger-action:hover {
+        background: #B91C1C;
+        color: white;
+    }
+
+    .btn-action-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #E2E8F0;
+        background: white;
+        color: #475569;
+        transition: all 0.15s;
+    }
+    .btn-action-icon:hover {
+        background: #F1F5F9;
+        color: #0F172A;
+    }
+    .btn-action-icon.text-danger:hover {
+        background: #FEE2E2;
+        color: #DC2626;
+        border-color: #FCA5A5;
+    }
+    .btn-action-icon.text-primary:hover {
+        background: #EFF6FF;
+        color: #2563EB;
+        border-color: #BFDBFE;
+    }
+
+    .callout-warning {
+        background: #FFFBEB;
+        border: 1px solid #FDE68A;
+        border-left: 4px solid #F59E0B;
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        font-size: 0.88rem;
+        color: #92400E;
+        margin-bottom: 1.25rem;
+        display: flex;
+        gap: 0.75rem;
+    }
+    .callout-info {
+        background: #F0FDF4;
+        border: 1px solid #BBF7D0;
+        border-left: 4px solid #10B981;
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        font-size: 0.88rem;
+        color: #065F46;
+        margin-bottom: 1.25rem;
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    @media (max-width: 768px) {
+        .maintenance-hero {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- Hero Header -->
+    <div class="maintenance-hero">
+        <div>
+            <div class="maintenance-badge">
+                <i class="bi bi-shield-lock"></i> Amministrazione Avanzata
+            </div>
+            <h1>Manutenzione & Backup Sistema</h1>
+            <p>Gestione centralizzata dell'integrità del database, creazione e ripristino di backup integrali (.json.gz) e pulizia periodica della telemetria.</p>
+        </div>
+        <div class="hero-actions">
+            <form method="POST" action="{% url 'admin_backup_create' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn-create-backup">
+                    <i class="bi bi-cloud-arrow-down-fill"></i> Crea Backup Completo
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- KPI Cards Grid -->
+    <div class="kpi-grid">
+        <div class="kpi-stat-card">
+            <div class="kpi-stat-header">
+                <span class="kpi-stat-title">Record Database</span>
+                <span class="kpi-stat-icon kpi-icon-blue"><i class="bi bi-database"></i></span>
+            </div>
+            <div class="kpi-stat-value">{{ total_records }}</div>
+            <div class="kpi-stat-sub">Motore: <strong>{{ db_engine }}</strong> (v{{ app_version }})</div>
+        </div>
+
+        <div class="kpi-stat-card">
+            <div class="kpi-stat-header">
+                <span class="kpi-stat-title">Backup Archiviati</span>
+                <span class="kpi-stat-icon kpi-icon-green"><i class="bi bi-archive"></i></span>
+            </div>
+            <div class="kpi-stat-value">{{ backup_count }}</div>
+            <div class="kpi-stat-sub">
+                {% if last_backup %}
+                    Ultimo: {{ last_backup|date:"d/m/Y H:i" }}
+                {% else %}
+                    Nessun backup salvato
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="kpi-stat-card">
+            <div class="kpi-stat-header">
+                <span class="kpi-stat-title">Statistiche & Audit Log</span>
+                <span class="kpi-stat-icon kpi-icon-amber"><i class="bi bi-activity"></i></span>
+            </div>
+            <div class="kpi-stat-value">{{ counts.audit_logs }}</div>
+            <div class="kpi-stat-sub">+ {{ counts.notification_logs }} notifiche inviate</div>
+        </div>
+
+        <div class="kpi-stat-card">
+            <div class="kpi-stat-header">
+                <span class="kpi-stat-title">Pratiche & Documenti</span>
+                <span class="kpi-stat-icon kpi-icon-purple"><i class="bi bi-file-earmark-check"></i></span>
+            </div>
+            <div class="kpi-stat-value">{{ counts.assignments }}</div>
+            <div class="kpi-stat-sub">{{ counts.uploads }} file caricati da clienti</div>
+        </div>
+    </div>
+
+    <!-- Database Breakdown Card -->
+    <div class="m-card">
+        <div class="m-card-header">
+            <h2 class="m-card-title">
+                <i class="bi bi-table text-primary"></i> Stato e Consistenza Database
+            </h2>
+            <span class="badge bg-light text-dark border">
+                <i class="bi bi-cpu"></i> {{ db_engine }}
+            </span>
+        </div>
+        <p class="m-card-desc">Conteggio dettagliato dei record attualmente presenti nelle tabelle dell'applicativo.</p>
+
+        <div class="db-breakdown-grid">
+            <div class="db-entity-box">
+                <span class="db-entity-name">Clienti</span>
+                <span class="db-entity-count">{{ counts.customers }}</span>
+            </div>
+            <div class="db-entity-box">
+                <span class="db-entity-name">Moduli Master</span>
+                <span class="db-entity-count">{{ counts.templates }}</span>
+            </div>
+            <div class="db-entity-box">
+                <span class="db-entity-name">Passaggi (Step)</span>
+                <span class="db-entity-count">{{ counts.steps }}</span>
+            </div>
+            <div class="db-entity-box">
+                <span class="db-entity-name">Campi Form</span>
+                <span class="db-entity-count">{{ counts.elements }}</span>
+            </div>
+            <div class="db-entity-box">
+                <span class="db-entity-name">Doc Richiesti</span>
+                <span class="db-entity-count">{{ counts.requirements }}</span>
+            </div>
+            <div class="db-entity-box">
+                <span class="db-entity-name">Pratiche Assegnate</span>
+                <span class="db-entity-count">{{ counts.assignments }}</span>
+            </div>
+            <div class="db-entity-box">
+                <span class="db-entity-name">File Caricati</span>
+                <span class="db-entity-count">{{ counts.uploads }}</span>
+            </div>
+            <div class="db-entity-box">
+                <span class="db-entity-name">Dichiarazioni Presa Visione</span>
+                <span class="db-entity-count">{{ counts.declarations }}</span>
+            </div>
+            <div class="db-entity-box">
+                <span class="db-entity-name">Utenti Staff / Admin</span>
+                <span class="db-entity-count">{{ counts.users }}</span>
+            </div>
+            <div class="db-entity-box">
+                <span class="db-entity-name">Log di Audit</span>
+                <span class="db-entity-count text-secondary">{{ counts.audit_logs }}</span>
+            </div>
+            <div class="db-entity-box">
+                <span class="db-entity-name">Log Notifiche</span>
+                <span class="db-entity-count text-secondary">{{ counts.notification_logs }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup List Table Card -->
+    <div class="m-card">
+        <div class="m-card-header">
+            <h2 class="m-card-title">
+                <i class="bi bi-archive-fill text-primary"></i> Backup Totali del Database
+            </h2>
+            <div class="d-flex align-items-center gap-2">
+                <form method="POST" action="{% url 'admin_backup_create' %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus-circle"></i> Nuovo Backup
+                    </button>
+                </form>
+            </div>
+        </div>
+        <p class="m-card-desc">I file di backup includono tutti gli utenti, i clienti, i moduli, i passaggi, i campi e le pratiche in formato compresso e portabile (JSON Gzip).</p>
+
+        <div class="callout-info">
+            <i class="bi bi-info-circle-fill fs-5"></i>
+            <div>
+                <strong>Sicurezza Snapshot Pre-Ripristino:</strong> Ogni volta che si avvia un'operazione di ripristino, il sistema crea automaticamente uno snapshot di emergenza dello stato corrente del database con prefisso <code>pre_restore_snapshot_...</code>, garantendo l'impossibilità di perdere dati accidentali.
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table-maintenance">
+                <thead>
+                    <tr>
+                        <th>Nome File Backup</th>
+                        <th>Tipo</th>
+                        <th>Data e Ora Creazione</th>
+                        <th>Dimensione</th>
+                        <th class="text-end">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in backups %}
+                    <tr>
+                        <td>
+                            <span class="fw-bold font-monospace text-dark">{{ b.filename }}</span>
+                        </td>
+                        <td>
+                            {% if b.is_pre_restore %}
+                                <span class="badge-pre-restore">
+                                    <i class="bi bi-shield-check"></i> Snapshot Sicurezza
+                                </span>
+                            {% else %}
+                                <span class="badge-regular-backup">
+                                    <i class="bi bi-hdd-fill"></i> Backup Completo
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <i class="bi bi-clock text-muted me-1"></i> {{ b.created_at|date:"d/m/Y H:i:s" }}
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary font-monospace">{{ b.size_str }}</span>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-2">
+                                <!-- Download -->
+                                <a href="{% url 'admin_backup_download' filename=b.filename %}" class="btn-action-icon text-primary" title="Scarica Backup sul tuo computer" download>
+                                    <i class="bi bi-download"></i>
+                                </a>
+
+                                <!-- Restore Trigger -->
+                                <button type="button" class="btn-action-icon text-warning" title="Ripristina questo backup" onclick="openServerRestoreModal('{{ b.filename }}')">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </button>
+
+                                <!-- Delete Trigger -->
+                                <button type="button" class="btn-action-icon text-danger" title="Elimina questo backup" onclick="openDeleteModal('{{ b.filename }}')">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">
+                            <i class="bi bi-folder2-open display-6 d-block mb-2 text-secondary opacity-50"></i>
+                            Nessun backup presente nell'archivio del server.<br>
+                            <form method="POST" action="{% url 'admin_backup_create' %}" class="mt-3">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-cloud-arrow-down"></i> Crea il primo backup adesso
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Operations Row: Reset Stats & Upload Restore -->
+    <div class="row g-4">
+        <!-- Reset Statistics Card -->
+        <div class="col-lg-6">
+            <div class="m-card h-100">
+                <div class="m-card-header">
+                    <h2 class="m-card-title text-danger">
+                        <i class="bi bi-trash3-fill"></i> Reset Statistiche & Log
+                    </h2>
+                </div>
+                <p class="m-card-desc">
+                    Consente di svuotare i registri di audit delle azioni e lo storico delle notifiche inviate. I clienti, moduli, documenti e pratiche rimarranno inalterati.
+                </p>
+
+                <div class="callout-warning">
+                    <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                    <div>
+                        <strong>Attenzione:</strong> La cancellazione dei log di telemetria e audit è irreversibile. Sarà registrata nel registro di sicurezza un'apposita voce di tracciamento.
+                    </div>
+                </div>
+
+                <div class="mt-auto pt-3">
+                    <button type="button" class="btn-danger-action" onclick="openResetModal()">
+                        <i class="bi bi-arrow-clockwise"></i> Configura Reset Statistiche...
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Restore from External File Card -->
+        <div class="col-lg-6">
+            <div class="m-card h-100">
+                <div class="m-card-header">
+                    <h2 class="m-card-title">
+                        <i class="bi bi-upload text-primary"></i> Ripristino da File Esterno
+                    </h2>
+                </div>
+                <p class="m-card-desc">
+                    Carica un file di backup esportato precedentemente (formato <code>.json</code> o <code>.json.gz</code>) per ripristinare integralmente i dati.
+                </p>
+
+                <form method="POST" action="{% url 'admin_backup_restore' %}" enctype="multipart/form-data" id="uploadRestoreForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="backup_source" value="upload">
+                    <input type="hidden" name="confirm_text" id="uploadRestoreConfirmText" value="">
+
+                    <div class="mb-3">
+                        <label for="backupFileInput" class="form-label fw-bold text-dark small">Seleziona File di Backup (.json.gz o .json)</label>
+                        <input class="form-control" type="file" id="backupFileInput" name="backup_file" accept=".json,.gz" required>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="button" class="btn btn-outline-primary fw-semibold" onclick="confirmUploadRestore()">
+                            <i class="bi bi-box-arrow-in-down"></i> Avvia Ripristino da File...
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODAL: Reset Statistiche -->
+<div class="modal fade" id="resetStatsModal" tabindex="-1" aria-labelledby="resetStatsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="resetStatsModalLabel">
+                    <i class="bi bi-exclamation-octagon-fill me-2"></i> Conferma Reset Statistiche & Log
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'admin_reset_statistics' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-secondary small">
+                        Seleziona la modalità di cancellazione desiderata per i log di sistema (AuditLog e NotificationLog):
+                    </p>
+
+                    <div class="form-check mb-3 p-3 bg-light rounded border">
+                        <input class="form-check-input" type="radio" name="reset_mode" id="resetMode30" value="older_30" checked>
+                        <label class="form-check-label fw-bold" for="resetMode30">
+                            Elimina solo i log più vecchi di 30 giorni
+                            <div class="text-muted fw-normal small">Conserva la telemetria recente e libera spazio per i log archiviati nel tempo.</div>
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-3 p-3 bg-light rounded border">
+                        <input class="form-check-input" type="radio" name="reset_mode" id="resetModeAll" value="all">
+                        <label class="form-check-label fw-bold text-danger" for="resetModeAll">
+                            Azzera COMPLETAMENTE tutte le statistiche e i log
+                            <div class="text-muted fw-normal small">Rimuove l'intero storico di navigazione, consultazione e notifiche dell'intera piattaforma.</div>
+                        </label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="resetConfirmInput" class="form-label small fw-bold">Per confermare, digita esattamente <span class="text-danger">RESET</span>:</label>
+                        <input type="text" class="form-control" id="resetConfirmInput" name="confirm_text" placeholder="RESET" autocomplete="off" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-danger" id="btnSubmitReset" disabled>Esegui Reset</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Ripristino Backup Server -->
+<div class="modal fade" id="serverRestoreModal" tabindex="-1" aria-labelledby="serverRestoreModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-warning">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="serverRestoreModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Ripristino Database da Backup
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" action="{% url 'admin_backup_restore' %}">
+                {% csrf_token %}
+                <input type="hidden" name="backup_source" value="server">
+                <input type="hidden" name="backup_filename" id="serverRestoreFilename">
+
+                <div class="modal-body">
+                    <p class="text-secondary small">
+                        Stai per ripristinare il database dal backup selezionato:
+                    </p>
+                    <div class="p-3 bg-light rounded border text-center font-monospace fw-bold text-primary mb-3" id="displayRestoreFilename">
+                        filename.json.gz
+                    </div>
+
+                    <div class="alert alert-info small">
+                        <i class="bi bi-shield-check"></i> Uno <strong>snapshot di sicurezza</strong> del database attuale verrà creato automaticamente prima di applicare i dati del backup.
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="serverRestoreConfirmInput" class="form-label small fw-bold">Per procedere, digita <span class="text-warning-emphasis">RIPRISTINA</span>:</label>
+                        <input type="text" class="form-control" id="serverRestoreConfirmInput" name="confirm_text" placeholder="RIPRISTINA" autocomplete="off" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-warning fw-bold text-dark" id="btnSubmitServerRestore" disabled>Ripristina Database</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Ripristino da File Caricato -->
+<div class="modal fade" id="uploadConfirmModal" tabindex="-1" aria-labelledby="uploadConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-warning">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="uploadConfirmModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Conferma Ripristino da File
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-secondary small">
+                    Stai caricando un file di ripristino esterno. I dati esistenti verranno sovrascritti o sincronizzati con quelli del backup.
+                </p>
+
+                <div class="alert alert-info small">
+                    <i class="bi bi-shield-check"></i> Uno snapshot di sicurezza dello stato corrente verrà generato automaticamente prima di iniziare il ripristino.
+                </div>
+
+                <div class="mb-3">
+                    <label for="uploadRestoreInputCheck" class="form-label small fw-bold">Per confermare, digita <span class="text-warning-emphasis">RIPRISTINA</span>:</label>
+                    <input type="text" class="form-control" id="uploadRestoreInputCheck" placeholder="RIPRISTINA" autocomplete="off">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-warning fw-bold text-dark" id="btnSubmitUploadRestore" onclick="submitUploadRestoreFinal()" disabled>Ripristina da File</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Elimina Backup -->
+<div class="modal fade" id="deleteBackupModal" tabindex="-1" aria-labelledby="deleteBackupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteBackupModalLabel">
+                    <i class="bi bi-trash-fill me-2"></i> Elimina Backup dal Server
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="deleteBackupForm" action="">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-secondary small">Sei sicuro di voler eliminare permanentemente questo file di backup dall'archivio?</p>
+                    <div class="p-3 bg-light rounded border text-center font-monospace fw-bold text-danger" id="displayDeleteFilename">
+                        backup.json.gz
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-danger">Elimina Definitivamente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Modal Helpers
+    let resetModalInstance = null;
+    let serverRestoreModalInstance = null;
+    let uploadConfirmModalInstance = null;
+    let deleteModalInstance = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        resetModalInstance = new bootstrap.Modal(document.getElementById('resetStatsModal'));
+        serverRestoreModalInstance = new bootstrap.Modal(document.getElementById('serverRestoreModal'));
+        uploadConfirmModalInstance = new bootstrap.Modal(document.getElementById('uploadConfirmModal'));
+        deleteModalInstance = new bootstrap.Modal(document.getElementById('deleteBackupModal'));
+
+        // Reset text validation
+        const resetInput = document.getElementById('resetConfirmInput');
+        const resetSubmitBtn = document.getElementById('btnSubmitReset');
+        if (resetInput && resetSubmitBtn) {
+            resetInput.addEventListener('input', function() {
+                resetSubmitBtn.disabled = (this.value.trim().toUpperCase() !== 'RESET');
+            });
+        }
+
+        // Server Restore text validation
+        const restoreInput = document.getElementById('serverRestoreConfirmInput');
+        const restoreSubmitBtn = document.getElementById('btnSubmitServerRestore');
+        if (restoreInput && restoreSubmitBtn) {
+            restoreInput.addEventListener('input', function() {
+                restoreSubmitBtn.disabled = (this.value.trim().toUpperCase() !== 'RIPRISTINA');
+            });
+        }
+
+        // Upload Restore text validation
+        const uploadCheckInput = document.getElementById('uploadRestoreInputCheck');
+        const uploadSubmitBtn = document.getElementById('btnSubmitUploadRestore');
+        if (uploadCheckInput && uploadSubmitBtn) {
+            uploadCheckInput.addEventListener('input', function() {
+                uploadSubmitBtn.disabled = (this.value.trim().toUpperCase() !== 'RIPRISTINA');
+            });
+        }
+    });
+
+    function openResetModal() {
+        const resetInput = document.getElementById('resetConfirmInput');
+        if (resetInput) resetInput.value = '';
+        const resetSubmitBtn = document.getElementById('btnSubmitReset');
+        if (resetSubmitBtn) resetSubmitBtn.disabled = true;
+        resetModalInstance.show();
+    }
+
+    function openServerRestoreModal(filename) {
+        document.getElementById('serverRestoreFilename').value = filename;
+        document.getElementById('displayRestoreFilename').textContent = filename;
+        const restoreInput = document.getElementById('serverRestoreConfirmInput');
+        if (restoreInput) restoreInput.value = '';
+        const restoreSubmitBtn = document.getElementById('btnSubmitServerRestore');
+        if (restoreSubmitBtn) restoreSubmitBtn.disabled = true;
+        serverRestoreModalInstance.show();
+    }
+
+    function confirmUploadRestore() {
+        const fileInput = document.getElementById('backupFileInput');
+        if (!fileInput.files || fileInput.files.length === 0) {
+            alert('Seleziona prima un file di backup (.json o .json.gz).');
+            return;
+        }
+        const uploadCheckInput = document.getElementById('uploadRestoreInputCheck');
+        if (uploadCheckInput) uploadCheckInput.value = '';
+        const uploadSubmitBtn = document.getElementById('btnSubmitUploadRestore');
+        if (uploadSubmitBtn) uploadSubmitBtn.disabled = true;
+        uploadConfirmModalInstance.show();
+    }
+
+    function submitUploadRestoreFinal() {
+        const checkVal = document.getElementById('uploadRestoreInputCheck').value.trim();
+        if (checkVal.toUpperCase() !== 'RIPRISTINA') return;
+        document.getElementById('uploadRestoreConfirmText').value = checkVal;
+        uploadConfirmModalInstance.hide();
+        document.getElementById('uploadRestoreForm').submit();
+    }
+
+    function openDeleteModal(filename) {
+        document.getElementById('displayDeleteFilename').textContent = filename;
+        const form = document.getElementById('deleteBackupForm');
+        form.action = `/admin/maintenance/backup/${encodeURIComponent(filename)}/delete/`;
+        deleteModalInstance.show();
+    }
+</script>
+{% endblock %}
