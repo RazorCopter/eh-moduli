@@ -804,6 +804,10 @@
             const tbody = document.getElementById('userListTableBody');
             if (!tbody) return;
 
+            // Hide form when showing list
+            document.getElementById('userForm').style.display = 'none';
+            document.getElementById('noFormMessage').style.display = 'none';
+
             tbody.innerHTML = '';
             users.forEach(user => {
                 const roleColor = user.role === 'admin' ? '#fee2e2' : '#dbeafe';
