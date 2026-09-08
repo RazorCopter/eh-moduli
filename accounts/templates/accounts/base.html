@@ -647,7 +647,7 @@
 
                                 <div class="dropdown-divider"></div>
 
-                                {% if user.is_staff or user.role == 'admin' %}
+                                {% if user.is_superuser or user.role == 'admin' %}
                                     <a href="#" class="dropdown-item" onclick="openUserManagementModal(event)">
                                         <i class="bi bi-gear"></i> Gestione Utenti
                                     </a>
@@ -783,6 +783,18 @@
             }
         }
 
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const userDropdown = document.querySelector('.navbar-user-dropdown');
+            const userMenu = document.getElementById('userDropdownMenu');
+            if (userDropdown && !userDropdown.contains(event.target)) {
+                if (userMenu) {
+                    userMenu.style.display = 'none';
+                }
+            }
+        });
+
+        {% if user.is_authenticated and user.is_superuser or user.is_authenticated and user.role == 'admin' %}
         // Open user management modal
         function openUserManagementModal(event) {
             if (event) event.preventDefault();
@@ -1075,22 +1087,12 @@
                 });
             }
         });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            const userDropdown = document.querySelector('.navbar-user-dropdown');
-            const userMenu = document.getElementById('userDropdownMenu');
-            if (userDropdown && !userDropdown.contains(event.target)) {
-                if (userMenu) {
-                    userMenu.style.display = 'none';
-                }
-            }
-        });
+        {% endif %}
     </script>
 
     {% block modals %}{% endblock %}
 
-    {% if user.is_authenticated and user.is_staff or user.role == 'admin' %}
+    {% if user.is_authenticated and user.is_superuser or user.is_authenticated and user.role == 'admin' %}
         {% include "modules/admin/user_management_modal.html" %}
     {% endif %}
 

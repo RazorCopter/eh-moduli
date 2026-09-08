@@ -26,11 +26,19 @@ from .upload_security import safe_join_paths, save_manifest_atomic
 
 logger = logging.getLogger('modules')
 
-def is_admin(user):
-    return user.is_staff or (hasattr(user, 'role') and user.role == 'admin')
+def is_admin_user(user):
+    """Strictly administrators and superusers (for user management)"""
+    return bool(user and user.is_authenticated and (user.is_superuser or (hasattr(user, 'role') and user.role == 'admin')))
+
+def is_backoffice_user(user):
+    """Backoffice operators and administrators (for operational dashboards and management)"""
+    return bool(user and user.is_authenticated and (user.is_staff or user.is_superuser or (hasattr(user, 'role') and user.role in ('admin', 'operator'))))
+
+# Backward compatibility alias for views that used is_admin for general backoffice access
+is_admin = is_backoffice_user
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_backoffice_user)
 def admin_dashboard(request):
     templates_count = FormTemplate.objects.filter(status='published').count()
     customers_count = Customer.objects.filter(active=True).count()
@@ -1433,7 +1441,7 @@ def analytics_dashboard(request):
 
 # USER MANAGEMENT API ENDPOINTS
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_user)
 @require_http_methods(["GET"])
 def admin_user_list(request):
     """Return list of all operators and admins in JSON format"""
@@ -1451,7 +1459,7 @@ def admin_user_list(request):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_user)
 @require_http_methods(["POST"])
 def admin_user_create(request):
     """Create new user"""
@@ -1496,7 +1504,7 @@ def admin_user_create(request):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_user)
 @require_http_methods(["POST", "PUT"])
 def admin_user_update(request, user_id):
     """Update existing user"""
@@ -1545,7 +1553,7 @@ def admin_user_update(request, user_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_user)
 @require_http_methods(["DELETE"])
 def admin_user_delete(request, user_id):
     """Delete user"""
@@ -1565,7 +1573,7 @@ def admin_user_delete(request, user_id):
 
 
 @login_required
-@user_passes_test(is_admin)
+@user_passes_test(is_admin_user)
 @require_http_methods(["POST"])
 def admin_user_password_generate(request):
     """Generate random password"""

@@ -2310,16 +2310,73 @@ class TestIntroAnimationSuppressionInPersonalArea(TestCase):
         self.assertNotIn('<etichub-intro', content)
 
 
+class UserManagementRolePermissionTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin_user = User.objects.create_user(
+            username='admin_boss',
+            email='admin_boss@test.com',
+            password='password123',
+            role='admin',
+            is_staff=True,
+            is_superuser=False
+        )
+        self.operator_user = User.objects.create_user(
+            username='alessia_operator',
+            email='alessia@test.com',
+            password='password123',
+            role='operator',
+            is_staff=True,
+            is_superuser=False
+        )
 
+    def test_operator_cannot_access_user_list_api(self):
+        self.client.force_login(self.operator_user)
+        response = self.client.get(reverse('admin_user_list'))
+        # Should be redirected away due to user_passes_test(is_admin_user)
+        self.assertEqual(response.status_code, 302)
 
+    def test_operator_cannot_create_user_api(self):
+        self.client.force_login(self.operator_user)
+        response = self.client.post(
+            reverse('admin_user_create'),
+            data=json.dumps({
+                'username': 'new_user',
+                'email': 'new@test.com',
+                'password': 'password123',
+                'role': 'operator'
+            }),
+            content_type='application/json'
+        )
+        # Should be redirected away due to user_passes_test(is_admin_user)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(User.objects.filter(username='new_user').exists())
 
+    def test_admin_can_access_user_list_api(self):
+        self.client.force_login(self.admin_user)
+        response = self.client.get(reverse('admin_user_list'))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        usernames = [u['username'] for u in data]
+        self.assertIn('admin_boss', usernames)
+        self.assertIn('alessia_operator', usernames)
 
+    def test_operator_dashboard_renders_without_user_management_modal(self):
+        self.client.force_login(self.operator_user)
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        # Operator should NOT have the dropdown item or the modal
+        self.assertNotIn('Gestione Utenti', content)
+        self.assertNotIn('openUserManagementModal', content)
+        self.assertNotIn('userManagementModal', content)
 
-
-
-
-
-
-
-
-
+    def test_admin_dashboard_renders_with_user_management_modal(self):
+        self.client.force_login(self.admin_user)
+        response = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        # Admin SHOULD have the dropdown item and the modal
+        self.assertIn('Gestione Utenti', content)
+        self.assertIn('openUserManagementModal', content)
+        self.assertIn('userManagementModal', content)
