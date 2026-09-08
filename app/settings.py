@@ -139,7 +139,11 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static'] if (BASE_DIR / 'static').exists() else []
 
 # WhiteNoise: serve static files directly from Gunicorn (no Nginx needed)
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+import sys
+if 'test' in sys.argv:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 WHITENOISE_MANIFEST_STRICT = False  # Prevents 500 crashes if a static file is not in the manifest
 
 # Media files
@@ -173,23 +177,42 @@ if not ALLOWED_HOSTS:
     logger.warning('ALLOWED_HOSTS was empty after parsing, using defaults: %s', ALLOWED_HOSTS)
 
 # Robust CSRF_TRUSTED_ORIGINS parsing:
+# Robust CSRF_TRUSTED_ORIGINS parsing:
 # - split by comma, strip whitespace, discard empties
 # - validate each value starts with http:// or https://
-# - log and skip malformed values instead of crashing
+# - automatically include localhost / loopback on standard dev ports
 _raw_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
-_csrf_parsed = []
+_csrf_set = set()
+
+# Always trust localhost and loopback for local testing / dev
+_local_hosts = ['localhost', '127.0.0.1']
+_common_ports = ['', ':80', ':443', ':8000', ':6060']
+_app_port = os.getenv('APP_PORT', '').strip()
+if _app_port:
+    _common_ports.append(f':{_app_port}')
+
+for _h in _local_hosts:
+    for _p in _common_ports:
+        _csrf_set.add(f'http://{_h}{_p}')
+        _csrf_set.add(f'https://{_h}{_p}')
+
 for _origin in _raw_csrf.split(','):
     _origin = _origin.strip()
     if not _origin:
         continue
     if _origin.startswith('http://') or _origin.startswith('https://'):
-        _csrf_parsed.append(_origin)
+        _csrf_set.add(_origin)
+        # Also auto-add opposite scheme for resilience behind SSL-terminating reverse proxies
+        if _origin.startswith('http://'):
+            _csrf_set.add('https://' + _origin[7:])
+        elif _origin.startswith('https://'):
+            _csrf_set.add('http://' + _origin[8:])
     else:
         logger.warning(
             'CSRF_TRUSTED_ORIGINS: skipping malformed value "%s" '
             '(must start with http:// or https://)', _origin
         )
-CSRF_TRUSTED_ORIGINS = _csrf_parsed
+CSRF_TRUSTED_ORIGINS = sorted(list(_csrf_set))
 
 # Reverse proxy support
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -223,14 +246,24 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 365  # 1 year - keeps public form access alive
 
 CSRF_COOKIE_SECURE = is_production and os.getenv('CSRF_COOKIE_SECURE', 'False').lower() == 'true'
-CSRF_COOKIE_HTTPONLY = True  # CSRF protection shouldn't need to be accessed by JavaScript
+CSRF_COOKIE_HTTPONLY = False  # Allows standard Django CSRF token synchronization
 CSRF_COOKIE_SAMESITE = 'Lax'
+CSRF_FAILURE_VIEW = 'modules.views_client.csrf_failure_view'
 
 # Login settings
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'admin_dashboard'
 
 # ==========================================================
+# Version & Build Info
+# ==========================================================
+APP_VERSION = os.getenv('APP_VERSION', 'unknown')
+GIT_COMMIT = os.getenv('GIT_COMMIT', 'unknown')
+BUILD_DATE = os.getenv('BUILD_DATE', 'unknown')
+
+# Dynamic LOG_LEVEL
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'DEBUG' if DEBUG else 'INFO').upper()
+
 # Logging Configuration - writes to /app/data/django.log
 # ==========================================================
 LOGS_DIR = BASE_DIR / 'data' / 'logs'
@@ -241,9 +274,10 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '[{levelname}] {asctime} {module} {funcName}:{lineno} - {message}',
+            'format': '[{levelname}] {asctime} [v{version}|{commit}] {module} {funcName}:{lineno} - {message}',
             'style': '{',
             'datefmt': '%Y-%m-%d %H:%M:%S',
+            'defaults': {'version': APP_VERSION, 'commit': GIT_COMMIT[:7] if GIT_COMMIT != 'unknown' else 'unknown'},
         },
         'simple': {
             'format': '[{levelname}] {asctime} - {message}',
@@ -253,7 +287,7 @@ LOGGING = {
     },
     'handlers': {
         'file': {
-            'level': 'DEBUG',
+            'level': LOG_LEVEL,
             'class': 'logging.handlers.RotatingFileHandler',
             'filename': LOGS_DIR / 'django.log',
             'maxBytes': 10485760,  # 10MB
@@ -271,7 +305,7 @@ LOGGING = {
             'encoding': 'utf-8',
         },
         'console': {
-            'level': 'INFO',
+            'level': LOG_LEVEL if LOG_LEVEL in ['DEBUG', 'INFO'] else 'INFO',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
@@ -279,17 +313,17 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['file', 'error_file', 'console'],
-            'level': 'DEBUG',
+            'level': LOG_LEVEL,
             'propagate': False,
         },
         'django.db.backends': {
             'handlers': ['file'],
-            'level': 'DEBUG',
+            'level': LOG_LEVEL if LOG_LEVEL in ['DEBUG', 'INFO'] else 'INFO',
             'propagate': False,
         },
         'modules': {
             'handlers': ['file', 'error_file', 'console'],
-            'level': 'DEBUG',
+            'level': LOG_LEVEL,
             'propagate': False,
         },
     },

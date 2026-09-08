@@ -20,6 +20,22 @@ DJANGO_SUPERUSER_PASSWORD="${DJANGO_SUPERUSER_PASSWORD:-}"
 GUNICORN_WORKERS="${GUNICORN_WORKERS:-3}"
 GUNICORN_TIMEOUT="${GUNICORN_TIMEOUT:-60}"
 GUNICORN_LOG_LEVEL="${GUNICORN_LOG_LEVEL:-info}"
+APP_VERSION="${APP_VERSION:-1.0.0}"
+DEBUG="${DEBUG:-False}"
+LOG_LEVEL="${LOG_LEVEL:-INFO}"
+
+# Version detection functions
+get_git_commit() {
+    if [ -d /app/.git ]; then
+        git -C /app rev-parse --short HEAD 2>/dev/null || echo "unknown"
+    else
+        echo "${GIT_COMMIT:-unknown}"
+    fi
+}
+
+get_build_date() {
+    date -u +'%Y-%m-%d %H:%M:%S UTC'
+}
 
 # Utility functions
 log_info() {
@@ -223,7 +239,12 @@ main() {
     log_info "=========================================="
     log_info "EHModuli Container Entrypoint"
     log_info "=========================================="
+    log_info "Application Version: $APP_VERSION"
+    log_info "Git Commit: $(get_git_commit)"
+    log_info "Build Date: $(get_build_date)"
     log_info "Environment: ${ENVIRONMENT:-development}"
+    log_info "DEBUG Mode: $DEBUG"
+    log_info "Log Level: $LOG_LEVEL"
     log_info "Workers: $GUNICORN_WORKERS"
     log_info "Timeout: $GUNICORN_TIMEOUT"
     log_info "=========================================="

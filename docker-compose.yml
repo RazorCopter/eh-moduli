@@ -109,6 +109,8 @@ services:
       - ${APP_DATA_PATH}:/app/data
       # Customer documents (should be independent Synology path)
       - ${CUSTOMER_DOCUMENTS_PATH}:/storage/clienti
+      # Application logs (readable from host)
+      - ${APP_LOGS_PATH}:/app/data/logs
 
     # Depends on db service being healthy
     depends_on:
