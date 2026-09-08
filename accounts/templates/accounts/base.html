@@ -1003,7 +1003,7 @@
 
     {% block modals %}{% endblock %}
 
-    {% if user.is_authenticated and (user.is_staff or user.role == 'admin') %}
+    {% if user.is_authenticated and user.is_staff or user.role == 'admin' %}
         {% include "modules/admin/user_management_modal.html" %}
     {% endif %}
 
