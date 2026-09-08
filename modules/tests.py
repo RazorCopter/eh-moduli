@@ -1404,8 +1404,9 @@ class TestPDFReceiptGeneration(TestCase):
             object_type='FormAssignment',
             object_id=str(self.assignment.id),
             action='submit',
-            actor=self.user,
-            actor_ip='198.51.100.75'
+            actor_user=self.user,
+            actor_ip='198.51.100.75',
+            actor_user_agent='Mozilla/5.0'
         )
 
         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
