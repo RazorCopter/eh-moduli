@@ -310,7 +310,7 @@ LOGIN_REDIRECT_URL = 'admin_dashboard'
 # ==========================================================
 # Version & Build Info
 # ==========================================================
-APP_VERSION = os.getenv('APP_VERSION', '2.0.0')
+APP_VERSION = os.getenv('APP_VERSION', '2.0.1')
 GIT_COMMIT = os.getenv('GIT_COMMIT', 'unknown')
 BUILD_DATE = os.getenv('BUILD_DATE', 'unknown')
 

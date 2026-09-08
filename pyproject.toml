@@ -1,6 +1,6 @@
 [project]
 name = "eh-moduli"
-version = "2.0.0"
+version = "2.0.1"
 description = "EticHUB Form Collection and Document Management Platform"
 requires-python = ">=3.11"
 
