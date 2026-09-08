@@ -130,12 +130,13 @@ def api_form_detail(request, form_id):
                 'required': doc_req.required,
                 'allowed_extensions': doc_req.allowed_extensions,
                 'mime_types': doc_req.mime_types,
-                'max_file_size': doc_req.max_file_size,
+                'max_file_size': round(doc_req.max_file_size / (1024 * 1024)) if (doc_req.max_file_size and doc_req.max_file_size >= 1024 * 1024) else (doc_req.max_file_size or 10),
                 'max_files': doc_req.max_files,
                 'destination_subfolder': doc_req.destination_subfolder,
                 'order': doc_req.order,
                 'awareness_text': doc_req.awareness_text,
-                'awareness_required_when_empty': doc_req.awareness_required_when_empty
+                'awareness_required_when_empty': doc_req.awareness_required_when_empty,
+                'allow_file_description': doc_req.allow_file_description
             })
 
         # Sort unified list by order
@@ -227,18 +228,49 @@ def api_form_save(request, form_id):
                             config=item.get('config', {})
                         )
                     elif item_type == 'document':
+                        # Parse max_file_size: convert MB to bytes if necessary, default to 10MB
+                        raw_max_size = item.get('max_file_size')
+                        try:
+                            if raw_max_size is not None and str(raw_max_size).strip():
+                                size_val = int(raw_max_size)
+                                if size_val <= 0:
+                                    file_size_bytes = 10485760  # default 10MB
+                                elif size_val <= 1024:
+                                    # User entered MB in builder UI
+                                    file_size_bytes = size_val * 1024 * 1024
+                                else:
+                                    # Already in bytes (e.g. 10485760)
+                                    file_size_bytes = size_val
+                            else:
+                                file_size_bytes = 10485760  # default 10MB
+                        except (ValueError, TypeError):
+                            file_size_bytes = 10485760
+
+                        allowed_ext = item.get('allowed_extensions', 'pdf,docx')
+                        if not allowed_ext or not str(allowed_ext).strip():
+                            allowed_ext = 'pdf,docx'
+
+                        m_types = item.get('mime_types', 'application/pdf,application/msword')
+                        if not m_types or not str(m_types).strip():
+                            m_types = 'application/pdf,application/msword'
+
+                        subfolder = item.get('destination_subfolder', '')
+                        subfolder = str(subfolder).strip() if subfolder is not None else ''
+
                         DocumentRequirement.objects.create(
                             form_step=step,
                             name=item.get('name', 'Document'),
                             description=item.get('description', ''),
                             required=item.get('required', True),
-                            allowed_extensions=item.get('allowed_extensions', 'pdf'),
-                            mime_types=item.get('mime_types', 'application/pdf'),
+                            allowed_extensions=allowed_ext,
+                            mime_types=m_types,
+                            max_file_size=file_size_bytes,
                             max_files=item.get('max_files') if (item.get('max_files') is not None and int(item.get('max_files', 0)) > 0) else 200,
-                            destination_subfolder=item.get('destination_subfolder', ''),
+                            destination_subfolder=subfolder,
                             order=item_order,
                             awareness_text=item.get('awareness_text', ''),
-                            awareness_required_when_empty=item.get('awareness_required_when_empty', False)
+                            awareness_required_when_empty=item.get('awareness_required_when_empty', False),
+                            allow_file_description=item.get('allow_file_description', True)
                         )
 
             log_action(

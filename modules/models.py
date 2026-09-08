@@ -250,7 +250,7 @@ class DocumentRequirement(models.Model):
         validators=[validate_mime_types],
         help_text="Comma-separated MIME types, e.g. application/pdf,application/msword"
     )
-    max_file_size = models.IntegerField(help_text="Max size in bytes")
+    max_file_size = models.IntegerField(default=10485760, help_text="Max size in bytes")
     max_files = models.IntegerField(default=200, help_text="Max files allowed (default 200 for batch uploads)")
     example_file = models.FileField(upload_to='examples/', null=True, blank=True)
     destination_subfolder = models.CharField(

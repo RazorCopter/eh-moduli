@@ -2662,4 +2662,60 @@ class Sprint4AdvancedTestingAndValidationTests(TestCase):
         self.assertIsNotNone(audit)
         self.assertEqual(audit.actor_user, self.admin_user)
 
+    def test_api_form_save_with_document_requirement_sets_max_file_size(self):
+        self.client.force_login(self.admin_user)
+        draft_form = FormTemplate.objects.create(
+            name="Test Builder Draft",
+            status="draft",
+            author=self.admin_user
+        )
+        url = reverse('api_form_save', kwargs={'form_id': draft_form.id})
+        payload = {
+            'name': 'Test Builder Draft Updated',
+            'steps': [
+                {
+                    'title': 'Step Documenti',
+                    'required': True,
+                    'elements': [
+                        {
+                            'type': 'document',
+                            'name': 'Documento Responsabile',
+                            'description': 'Descrizione documento',
+                            'required': True,
+                            'allowed_extensions': 'pdf,docx',
+                            'mime_types': 'application/pdf,application/msword',
+                            'max_file_size': 10,  # 10 MB in builder
+                            'max_files': 200,
+                            'destination_subfolder': 'Allegato I_Persona Responsabile'
+                        },
+                        {
+                            'type': 'document',
+                            'name': 'Documento Senza Size',
+                            'description': 'Test fallback default',
+                            'required': False,
+                            'max_file_size': None
+                        }
+                    ]
+                }
+            ]
+        }
+        response = self.client.put(
+            url,
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('success'), data)
+
+        # Verify DocumentRequirements were created and have non-null max_file_size in bytes
+        doc1 = DocumentRequirement.objects.get(name='Documento Responsabile')
+        self.assertIsNotNone(doc1.max_file_size)
+        self.assertEqual(doc1.max_file_size, 10 * 1024 * 1024)
+
+        doc2 = DocumentRequirement.objects.get(name='Documento Senza Size')
+        self.assertIsNotNone(doc2.max_file_size)
+        self.assertEqual(doc2.max_file_size, 10 * 1024 * 1024)
+
+
 
