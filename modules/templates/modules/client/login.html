@@ -1,391 +1,314 @@
-{% extends "modules/client/base_client.html" %}
 {% load static %}
-
-{% block title %}{{ t.login_page_title|default:'Accedi — Area Personale Etichub' }}{% endblock %}
-
-{% block navbar %}{% endblock %}
-
-{% block extra_css %}
-<style>
-    body {
-        background: linear-gradient(135deg, #F8F7F5 0%, #F0EDE8 50%, #FAF5F2 100%);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
+<!doctype html>
+<html lang="{{ client_lang|default:'it' }}" dir="{{ current_lang_obj.dir|default:'ltr' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#7f1718">
+  <meta name="description" content="Etichub: animazione del logo e accesso area personale clienti.">
+  <title>{{ t.login_page_title|default:'Accedi — Area Personale Etichub' }}</title>
+  
+  <style>
+    :root {
+      color-scheme: light;
+      --brand: #7f1718;
+      --ink: #231d1d;
+      --muted: #746b6b;
+      --paper: #fcfbfa;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-synthesis: none;
+      -webkit-font-smoothing: antialiased;
     }
-
-    .client-main {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex: 1;
-        width: 100%;
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--paper); }
+    etichub-intro:not(:defined) { position: fixed; inset: 0; z-index: 2147483000; background: var(--paper); }
+    button, input { font: inherit; }
+    button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, input:focus-visible { outline: 3px solid #bb7374; outline-offset: 4px; }
+    
+    .login-page { display: grid; grid-template-columns: 48% 52%; min-height: 100svh; }
+    .brand-panel { position: relative; display: flex; flex-direction: column; overflow: hidden; padding: clamp(32px,4.2vw,68px); color: white; background: var(--brand); isolation: isolate; }
+    .brand-mark { display: block; position: relative; z-index: 2; width: min(100%,360px); aspect-ratio: 1536/236; color: #fff; }
+    etichub-logo svg { display: block; width: 100%; height: 100%; }
+    .brand-watermark { position: absolute; width: 114%; aspect-ratio: 1; right: -34%; top: 15%; opacity: .07; z-index: -1; pointer-events: none; }
+    .brand-watermark svg { width: 100%; height: 100%; }
+    .brand-welcome { margin-top: auto; padding-top: 140px; padding-bottom: 76px; }
+    .eyebrow { display: block; font-size: .75rem; font-weight: 600; line-height: 1.5; letter-spacing: .16em; }
+    .brand-welcome .eyebrow { color: #e7bdbd; margin-bottom: 26px; }
+    h1 { margin: 0; font-size: clamp(2.5rem,4.65vw,5rem); font-weight: 450; letter-spacing: -.055em; line-height: 1.1; }
+    .heading-dot { color: #d28f8f; }
+    .brand-rule { width: 48px; height: 1px; margin-top: 40px; background: #cf8e8e; }
+    .brand-footnote { margin: 0; font-size: .75rem; line-height: 1.6; letter-spacing: .09em; color: #e4b7b7; }
+    
+    .access-panel { display: flex; flex-direction: column; min-width: 0; padding: 38px clamp(28px,5vw,80px) 30px; }
+    .access-top { display: flex; justify-content: flex-end; }
+    
+    /* ─── Language Selector Flag Bar ─── */
+    .lang-selector-bar {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #f5f0ef;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid #e5dcda;
     }
-
-    .login-container {
-        width: 100%;
-        max-width: 440px;
-        padding: 0 20px;
+    .lang-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: .8125rem;
+      font-weight: 500;
+      color: var(--muted);
+      transition: all 160ms ease;
     }
-
-    /* ─── Logo Area ─── */
-    .login-logo {
-        text-align: center;
-        margin-bottom: 2rem;
+    .lang-pill:hover {
+      background: #fff;
+      color: var(--brand);
     }
-
-    .login-logo img {
-        height: 56px;
-        width: auto;
-        object-fit: contain;
-        margin-bottom: 0.75rem;
+    .lang-pill.active {
+      background: #fff;
+      color: var(--brand);
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(127, 23, 24, 0.12);
+      border: 1px solid rgba(127, 23, 24, 0.2);
     }
-
-    .login-logo-subtitle {
-        font-size: 0.8125rem;
-        font-weight: 500;
-        color: #E8847D;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
+    .lang-flag {
+      font-size: 1.05rem;
+      line-height: 1;
     }
-
-    /* ─── Login Card ─── */
-    .login-card {
-        background: white;
-        border-radius: 20px;
-        padding: 2.5rem 2rem;
-        box-shadow:
-            0 4px 24px rgba(0, 0, 0, 0.04),
-            0 1px 3px rgba(0, 0, 0, 0.02);
-        border: 1px solid #EAE6E1;
-        position: relative;
-        overflow: hidden;
+    .lang-label {
+      letter-spacing: .02em;
     }
-
-    .login-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #E8847D 0%, #D97468 40%, #F0E8E6 100%);
-    }
-
-    .login-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #2C2C2C;
-        margin-bottom: 0.375rem;
-        text-align: center;
-    }
-
-    .login-description {
-        font-size: 0.875rem;
-        color: #9A9A9A;
-        text-align: center;
-        margin-bottom: 1.75rem;
-        line-height: 1.5;
-    }
-
+    
     /* ─── Error Alert ─── */
-    .login-error {
-        display: flex;
-        align-items: flex-start;
-        gap: 10px;
-        padding: 12px 16px;
-        background: #FEF2F2;
-        border: 1px solid #FECACA;
-        border-radius: 10px;
-        margin-bottom: 1.25rem;
-        font-size: 0.8125rem;
-        color: #DC2626;
-        line-height: 1.5;
-        animation: shakeError 0.4s ease-in-out;
+    .login-error-alert {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 16px;
+      margin-bottom: 22px;
+      background: #fdf2f2;
+      border: 1px solid #f8b4b4;
+      border-radius: 6px;
+      color: #9b1c1c;
+      font-size: .875rem;
+      line-height: 1.45;
+      animation: shakeError 0.35s ease-in-out;
     }
-
-    .login-error i {
-        margin-top: 2px;
-        flex-shrink: 0;
-    }
-
     @keyframes shakeError {
-        0%, 100% { transform: translateX(0); }
-        15% { transform: translateX(-6px); }
-        30% { transform: translateX(4px); }
-        45% { transform: translateX(-3px); }
-        60% { transform: translateX(2px); }
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-5px); }
+      40% { transform: translateX(4px); }
+      60% { transform: translateX(-3px); }
+      80% { transform: translateX(2px); }
     }
-
-    /* ─── Form Fields ─── */
-    .login-field {
-        margin-bottom: 1.25rem;
+    
+    .form-wrap { width: 100%; max-width: 390px; margin: auto; padding-block: 50px; }
+    .form-eyebrow { margin: 0 0 20px; color: var(--brand); letter-spacing: .13em; }
+    h2 { font-size: clamp(2.8rem,3.5vw,3.75rem); font-weight: 450; line-height: 1.1; letter-spacing: -.045em; margin: 0 0 14px; }
+    .form-description { color: var(--muted); font-size: 1rem; line-height: 1.5; margin: 0 0 32px; }
+    .field { margin-bottom: 22px; }
+    label { display: block; margin-bottom: 8px; font-size: .875rem; font-weight: 550; }
+    input { width: 100%; height: 52px; border: 1px solid #d9d1cf; border-radius: 6px; background: transparent; padding: 0 16px; color: var(--ink); transition: border-color 160ms,background 160ms; font-size: 1rem; }
+    input::placeholder { color: #908785; opacity: 1; }
+    input:hover { border-color: #bfb0ad; }
+    input:focus { border-color: var(--brand); background: #fff; }
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-right: 54px; }
+    .password-toggle { display: grid; place-items: center; width: 48px; height: 48px; position: absolute; right: 2px; top: 2px; border: 0; background: transparent; color: #827675; border-radius: 4px; }
+    .password-toggle:hover { color: var(--brand); }
+    .eye-slash { display: none; }
+    .password-toggle[aria-pressed=true] .eye-slash { display: block; }
+    .password-toggle[aria-pressed=true] .eye-open { display: none; }
+    
+    .submit-button { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 52px; padding: 15px 20px; border: 1px solid var(--brand); border-radius: 6px; background: var(--brand); color: white; font-weight: 550; margin-top: 28px; transition: background 150ms,transform 150ms; }
+    .submit-button:hover { background: #651011; }
+    .submit-button:active { transform: translateY(1px); }
+    .form-note { min-height: 38px; margin: 18px 0 0; color: var(--muted); font-size: .8125rem; line-height: 1.5; }
+    .access-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: var(--muted); font-size: .8125rem; }
+    .access-footer > span { font-weight: 600; letter-spacing: -.02em; }
+    .access-footer button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 0 10px 10px; background: transparent; border: 0; color: inherit; font-size: .8125rem; }
+    .access-footer button:hover { color: var(--brand); }
+    .noscript-message { position: fixed; bottom: 0; inset-inline: 0; margin: 0; padding: 12px; background: white; text-align: center; font-size: .875rem; z-index: 9999; }
+    
+    @media (min-height:1000px) and (min-width:761px) { .brand-welcome { padding-bottom: 110px; } }
+    @media (max-width:760px) {
+      .login-page { display: flex; flex-direction: column; }
+      .brand-panel { padding: 29px 28px 31px; min-height: 215px; }
+      .brand-mark { width: 252px; max-width: 100%; }
+      .brand-watermark { width: 280px; top: -47px; right: -75px; }
+      .brand-welcome { padding: 32px 0 0; }
+      .brand-welcome .eyebrow, .brand-rule, .brand-footnote { display: none; }
+      h1 { font-size: 2.05rem; line-height: 1.15; letter-spacing: -.035em; }
+      h1 br { display: none; }
+      h1 br::after { content: ' '; }
+      .access-panel { padding: 20px 28px 18px; flex: 1; }
+      .form-wrap { padding: 25px 0 38px; max-width: 420px; }
+      h2 { font-size: 2.8rem; }
+      .form-eyebrow { margin-bottom: 16px; }
+      .form-description { margin-bottom: 24px; }
+      .field { margin-bottom: 20px; }
+      .submit-button { margin-top: 24px; }
+      .access-footer { max-width: 420px; width: 100%; margin-inline: auto; }
     }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition: none !important; scroll-behavior: auto !important; } }
+  </style>
+  <script>setTimeout(function(){var intro=document.querySelector('etichub-intro');if(intro&&!customElements.get('etichub-intro'))intro.remove();},3500);</script>
+</head>
+<body>
+  <main class="login-page" id="login-page">
+    <section class="brand-panel" aria-label="Etichub">
+      <etichub-logo id="brand-mark" class="brand-mark" aria-label="Etichub, spin-off University of Pavia" role="img"></etichub-logo>
+      <div class="brand-watermark" aria-hidden="true"></div>
+      <div class="brand-welcome">
+        <span class="eyebrow">{{ t.brand_welcome_eyebrow|default:'AREA RISERVATA' }}</span>
+        <h1>{{ t.brand_welcome_heading|default:'Benvenuto<br> in etichub'|safe }}<span class="heading-dot">.</span></h1>
+        <div class="brand-rule" aria-hidden="true"></div>
+      </div>
+      <p class="brand-footnote">{{ t.brand_footnote|default:'SPIN-OFF · UNIVERSITY OF PAVIA' }}</p>
+    </section>
 
-    .login-label {
-        display: block;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        color: #4A4A4A;
-        margin-bottom: 6px;
-    }
-
-    .login-input-wrapper {
-        position: relative;
-    }
-
-    .login-input-wrapper i {
-        position: absolute;
-        left: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #B0ADA8;
-        font-size: 1rem;
-        transition: color 0.2s;
-        pointer-events: none;
-    }
-
-    .login-input {
-        width: 100%;
-        padding: 12px 16px 12px 42px;
-        border: 2px solid #E5E5E5;
-        border-radius: 10px;
-        font-family: 'Poppins', sans-serif;
-        font-size: 0.9375rem;
-        color: #2C2C2C;
-        background: #FAFAF8;
-        transition: all 0.25s ease;
-    }
-
-    .login-input:focus {
-        outline: none;
-        border-color: #E8847D;
-        background: white;
-        box-shadow: 0 0 0 3px rgba(232, 132, 125, 0.12);
-    }
-
-    .login-input:focus + i,
-    .login-input-wrapper:focus-within i {
-        color: #E8847D;
-    }
-
-    .login-input::placeholder {
-        color: #C0C0C0;
-    }
-
-    /* ─── Password Toggle ─── */
-    .password-toggle {
-        position: absolute;
-        right: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        color: #B0ADA8;
-        cursor: pointer;
-        font-size: 1rem;
-        padding: 4px;
-        transition: color 0.2s;
-    }
-
-    .password-toggle:hover {
-        color: #E8847D;
-    }
-
-    /* ─── Submit Button ─── */
-    .login-submit {
-        width: 100%;
-        padding: 13px 24px;
-        border: none;
-        border-radius: 10px;
-        background: linear-gradient(135deg, #E8847D 0%, #D97468 100%);
-        color: white;
-        font-family: 'Poppins', sans-serif;
-        font-size: 0.9375rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        margin-top: 0.5rem;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .login-submit::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 100%);
-        opacity: 0;
-        transition: opacity 0.3s;
-    }
-
-    .login-submit:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(232, 132, 125, 0.35);
-    }
-
-    .login-submit:hover::after {
-        opacity: 1;
-    }
-
-    .login-submit:active {
-        transform: translateY(0);
-    }
-
-    /* ─── Footer ─── */
-    .login-footer {
-        text-align: center;
-        margin-top: 1.5rem;
-        font-size: 0.8125rem;
-        color: #B0ADA8;
-    }
-
-    .login-footer a {
-        color: #E8847D;
-        text-decoration: none;
-        font-weight: 500;
-    }
-
-    .login-footer a:hover {
-        text-decoration: underline;
-    }
-
-    /* ─── Responsive ─── */
-    @media (max-width: 480px) {
-        .login-card {
-            padding: 2rem 1.5rem;
-            border-radius: 16px;
-        }
-        .login-logo img {
-            height: 44px;
-        }
-    }
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="login-container">
-    <!-- Language Switcher on Login Screen -->
-    <div style="display: flex; justify-content: flex-end; width: 100%; margin-bottom: 8px;">
-        <div class="lang-dropdown" id="loginLangDropdown">
-            <button type="button" class="lang-btn" onclick="toggleLoginLangMenu(event)">
-                <span>{{ current_lang_obj.flag }}</span>
-                <span>{{ current_lang_obj.name }}</span>
-                <i class="bi bi-chevron-down" style="font-size: 0.7rem; color: #8C8C8C;"></i>
-            </button>
-            <div class="lang-menu">
-                {% for l in supported_languages %}
-                <a href="{% url 'set_client_language' lang_code=l.code %}?next={{ request.get_full_path|urlencode }}" 
-                   class="lang-item {% if l.code == client_lang %}active{% endif %}">
-                    <span>{{ l.flag }}</span>
-                    <span>{{ l.name }}</span>
-                </a>
-                {% endfor %}
-            </div>
+    <section class="access-panel" aria-labelledby="login-title">
+      <div class="access-top">
+        <div class="lang-selector-bar" role="group" aria-label="{{ t.language|default:'Lingua' }}">
+          {% for l in supported_languages %}
+          <a href="{% url 'set_client_language' lang_code=l.code %}?next={{ request.get_full_path|urlencode }}" 
+             class="lang-pill {% if l.code == client_lang %}active{% endif %}"
+             title="{{ l.name }}">
+            <span class="lang-flag">{{ l.flag }}</span>
+            <span class="lang-label">{{ l.short|default:l.name }}</span>
+          </a>
+          {% endfor %}
         </div>
-    </div>
+      </div>
 
-    <!-- Logo -->
-    <div class="login-logo">
-        <img src="{% static 'images/Etichub_Logo_V2_Verticale_Color.svg' %}" alt="Etichub">
-        <div class="login-logo-subtitle">{{ t.portal_title|default:'Area Personale' }}</div>
-    </div>
-
-    <!-- Login Card -->
-    <div class="login-card">
-        <h1 class="login-title">{{ t.welcome_back }}</h1>
-        <p class="login-description">
-            {{ t.login_subtitle }}
-        </p>
+      <div class="form-wrap">
+        <p class="eyebrow form-eyebrow">{{ t.portal_space|default:'IL TUO SPAZIO ETICHUB' }}</p>
+        <h2 id="login-title">{{ t.login_submit|default:'Accedi' }}.</h2>
+        <p class="form-description">{{ t.login_subtitle|default:'Entra nella tua area riservata.' }}</p>
 
         {% if error %}
-        <div class="login-error">
-            <i class="bi bi-exclamation-circle-fill"></i>
-            <span>{{ error }}</span>
+        <div class="login-error-alert" role="alert">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style="flex-shrink:0;">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.8"/>
+            <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="12" cy="16" r="1" fill="currentColor"/>
+          </svg>
+          <span>{{ error }}</span>
         </div>
         {% endif %}
 
-        <form method="post" novalidate id="client-login-form">
-            {% csrf_token %}
+        <form method="post" id="client-login-form" novalidate autocomplete="off">
+          {% csrf_token %}
 
-            <div class="login-field">
-                <label for="id_code" class="login-label">{{ t.client_code }}</label>
-                <div class="login-input-wrapper">
-                    <input
-                        type="text"
-                        id="id_code"
-                        name="code"
-                        class="login-input"
-                        placeholder="{{ t.client_code_placeholder }}"
-                        value="{{ code_value|default:'' }}"
-                        autocomplete="username"
-                        autofocus
-                        required
-                    >
-                    <i class="bi bi-person-badge"></i>
-                </div>
+          <div class="field">
+            <label for="id_code">{{ t.client_code|default:'Codice Cliente' }}</label>
+            <input 
+              id="id_code" 
+              name="code" 
+              type="text" 
+              placeholder="{{ t.client_code_placeholder|default:'Es. CLI-001' }}" 
+              value="{{ code_value|default:'' }}" 
+              inputmode="text" 
+              autocomplete="username" 
+              required 
+              autofocus
+            >
+            <small style="display: block; margin-top: 6px; font-size: .75rem; color: var(--muted); line-height: 1.4;">
+              {{ t.client_code_help|default:'Inserisci il codice cliente assegnato (es. CLI-001)' }}
+            </small>
+          </div>
+
+          <div class="field">
+            <label for="id_password">{{ t.password|default:'Password' }}</label>
+            <div class="password-wrap">
+              <input 
+                id="id_password" 
+                name="password" 
+                type="password" 
+                placeholder="{{ t.password_placeholder|default:'Inserisci la password' }}" 
+                autocomplete="current-password" 
+                required
+              >
+              <button class="password-toggle" id="password-toggle" type="button" aria-label="{{ t.show_password|default:'Mostra password' }}" aria-pressed="false" aria-controls="id_password">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path class="eye-open" d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" stroke-width="1.6"/>
+                  <circle class="eye-open" cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/>
+                  <path class="eye-slash" d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" stroke-width="1.6"/>
+                  <path class="eye-slash" d="m4 3 16 18" stroke="currentColor" stroke-width="1.8"/>
+                </svg>
+              </button>
             </div>
+          </div>
 
-            <div class="login-field">
-                <label for="id_password" class="login-label">{{ t.password }}</label>
-                <div class="login-input-wrapper">
-                    <input
-                        type="password"
-                        id="id_password"
-                        name="password"
-                        class="login-input"
-                        placeholder="{{ t.password_placeholder }}"
-                        autocomplete="current-password"
-                        required
-                    >
-                    <i class="bi bi-lock"></i>
-                    <button type="button" class="password-toggle" onclick="togglePassword()" aria-label="{{ t.show_password }}">
-                        <i class="bi bi-eye" id="toggle-icon"></i>
-                    </button>
-                </div>
-            </div>
+          <button class="submit-button" id="login-btn" type="submit">
+            <span>{{ t.login_submit|default:'Accedi' }}</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
 
-            <button type="submit" class="login-submit" id="login-btn">
-                {{ t.login_submit }}
-            </button>
+          <p class="form-note" id="form-message" aria-live="polite">
+            {{ t.need_help|default:'Hai bisogno di assistenza?' }} 
+            <a href="mailto:info@etichub.it" style="color: var(--brand); font-weight: 550; text-decoration: underline;">{{ t.contact_us|default:'Contattaci' }}</a>
+          </p>
         </form>
-    </div>
+      </div>
 
-    <div class="login-footer">
-        {{ t.need_help }} <a href="mailto:info@etichub.it">{{ t.contact_us }}</a>
-    </div>
-</div>
-{% endblock %}
+      <footer class="access-footer">
+        <span>etichub</span>
+        <button id="replay" type="button">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 10a8 8 0 1 1 .8 6M4 4v6h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          {{ t.replay_intro|default:'Rivedi animazione' }}
+        </button>
+      </footer>
+    </section>
+  </main>
 
-{% block extra_js %}
-<script>
-    function togglePassword() {
-        const input = document.getElementById('id_password');
-        const icon = document.getElementById('toggle-icon');
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.className = 'bi bi-eye-slash';
-        } else {
-            input.type = 'password';
-            icon.className = 'bi bi-eye';
-        }
+  <etichub-intro duration="2600" target="#brand-mark" reveal="#login-page"></etichub-intro>
+
+  <noscript>
+    <style>etichub-intro{display:none!important}#replay,.password-toggle{display:none}</style>
+    <p class="noscript-message">L'animazione richiede JavaScript. Il modulo di accesso è comunque disponibile.</p>
+  </noscript>
+
+  <script src="{% static 'js/etichub-intro.js' %}"></script>
+  <script>
+    'use strict';
+    
+    // Password visibility toggle
+    const passwordInput = document.getElementById('id_password');
+    const toggleBtn = document.getElementById('password-toggle');
+    if (toggleBtn && passwordInput) {
+      toggleBtn.addEventListener('click', () => {
+        const isCurrentlyPassword = passwordInput.type === 'password';
+        passwordInput.type = isCurrentlyPassword ? 'text' : 'password';
+        toggleBtn.setAttribute('aria-pressed', String(isCurrentlyPassword));
+        toggleBtn.setAttribute('aria-label', isCurrentlyPassword ? '{{ t.hide_password|default:"Nascondi password" }}' : '{{ t.show_password|default:"Mostra password" }}');
+      });
     }
 
-    function toggleLoginLangMenu(e) {
-        e.stopPropagation();
-        const dropdown = document.getElementById('loginLangDropdown');
-        if (dropdown) {
-            dropdown.classList.toggle('active');
+    // Replay intro animation
+    const replayBtn = document.getElementById('replay');
+    if (replayBtn) {
+      replayBtn.addEventListener('click', () => {
+        const intro = document.querySelector('etichub-intro');
+        if (intro && typeof intro.play === 'function') {
+          intro.play();
         }
+      });
     }
 
-    document.addEventListener('click', function(e) {
-        const dropdown = document.getElementById('loginLangDropdown');
-        if (dropdown && !dropdown.contains(e.target)) {
-            dropdown.classList.remove('active');
-        }
-    });
-</script>
-{% endblock %}
+    // On login page, ensure personal area flag is reset
+    try {
+      sessionStorage.removeItem('eh_in_personal_area');
+    } catch(e) {}
+  </script>
+</body>
+</html>

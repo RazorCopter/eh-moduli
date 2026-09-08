@@ -1,0 +1,86 @@
+{% load static %}
+<!doctype html>
+<html lang="{{ client_lang|default:'it' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sessione Scaduta — Etichub</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #fcfbfa;
+      color: #231d1d;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #ffffff;
+      border: 1px solid #e2dbd9;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(35, 29, 29, 0.06);
+      max-width: 460px;
+      width: 100%;
+      padding: 36px 28px;
+      text-align: center;
+    }
+    .icon-box {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: #fdf2f2;
+      color: #7f1718;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin: 0 0 10px;
+      color: #231d1d;
+    }
+    p {
+      font-size: 0.925rem;
+      color: #746b6b;
+      line-height: 1.55;
+      margin: 0 0 26px;
+    }
+    .btn-retry {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #7f1718;
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 550;
+      font-size: 0.925rem;
+      transition: background 150ms;
+    }
+    .btn-retry:hover {
+      background: #651011;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon-box">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <h1>Sessione di sicurezza scaduta</h1>
+    <p>Il token di sicurezza del modulo è scaduto o non corrisponde. Per proseguire in sicurezza, ricarica la pagina.</p>
+    <a href="{% url 'client_login' %}" class="btn-retry">Torna all'Accesso</a>
+  </div>
+</body>
+</html>

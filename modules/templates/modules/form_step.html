@@ -4,6 +4,11 @@
 
 {% block title %}{{ step.title }} — {{ assignment.form_template.name }}{% endblock %}
 
+{% block extra_css %}
+<!-- JSZip for client-side seamless folder bundling into ZIP -->
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+{% endblock %}
+
 {% block content %}
 {% csrf_token %}
 <div class="row justify-content-center">
@@ -61,18 +66,29 @@
 
                             <!-- Upload Box -->
                             <div class="mt-3">
+                                <!-- Hidden inputs OUTSIDE the dropzone to prevent event bubbling -->
+                                <input type="file" class="d-none" id="file-{{ item.id }}" accept="{{ item.mime_types|default:'*/*' }},.zip,application/zip" onchange="handleFileInputChange('{{ item.id }}', this)">
+                                <input type="file" class="d-none" id="folder-{{ item.id }}" webkitdirectory="true" mozdirectory="true" directory="true" multiple onchange="handleFolderUpload('{{ item.id }}', this)">
+
                                 <div class="upload-dropzone p-3 border border-2 rounded-3 text-center" 
                                      id="dropzone-{{ item.id }}" 
                                      style="border-style: dashed !important; border-color: #CBD5E1; background: #FFFFFF; cursor: pointer; transition: all 0.2s;" 
-                                     onclick="document.getElementById('file-{{ item.id }}').click()"
+                                     onclick="triggerFileInput('{{ item.id }}', event)"
                                      ondragover="handleDragOver(event, this)"
                                      ondragenter="handleDragOver(event, this)"
                                      ondragleave="handleDragLeave(event, this)"
                                      ondrop="handleDrop(event, '{{ item.id }}', this)">
-                                    <input type="file" class="d-none" id="file-{{ item.id }}" accept="{{ item.mime_types|default:'*/*' }}" onchange="handleFileInputChange('{{ item.id }}', this)">
                                     <i class="bi bi-cloud-arrow-up fs-3 text-secondary mb-1 d-block"></i>
-                                    <span class="small fw-semibold text-dark">Clicca qui o trascina il file</span>
-                                    <div class="text-muted" style="font-size: 0.75rem;">Formati ammessi: {{ item.allowed_extensions|default:'pdf, docx, jpg, png' }} (max 10MB)</div>
+                                    <span class="small fw-semibold text-dark">Clicca qui o trascina il file / archivio ZIP</span>
+                                    <div class="text-muted" style="font-size: 0.75rem;">Formati ammessi: {{ item.allowed_extensions|default:'pdf, docx, jpg, png' }}, ZIP</div>
+                                </div>
+                                <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1" onclick="triggerFileInput('{{ item.id }}', event)" style="font-size: 0.78rem;">
+                                        <i class="bi bi-file-earmark me-1"></i> File o Archivio ZIP
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1" onclick="triggerFolderPicker('{{ item.id }}', event)" style="font-size: 0.78rem;" title="Carica un'intera cartella dal tuo computer con tutte le relative sottocartelle">
+                                        <i class="bi bi-folder-plus me-1"></i> Carica intera Cartella
+                                    </button>
                                 </div>
 
                                 <!-- Feedback Area -->
@@ -341,6 +357,17 @@ function handleDrop(e, reqId, el) {
     }
 }
 
+function triggerFileInput(reqId, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    const input = document.getElementById('file-' + reqId);
+    if (input) {
+        input.value = '';
+        input.click();
+    }
+}
+
 function handleFileInputChange(reqId, inputElement) {
     const file = inputElement.files[0];
     if (file) {
@@ -352,6 +379,150 @@ function handleFileUpload(reqId, inputElement) {
     const file = inputElement.files[0];
     if (file) {
         uploadSingleFile(reqId, file);
+    }
+}
+
+async function triggerFolderPicker(reqId, event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+
+    // 1. Prova prima la File System Access API nativa (window.showDirectoryPicker)
+    // Su Chrome ed Edge apre direttamente la vera finestra "Seleziona cartella" di Windows
+    if (window.showDirectoryPicker) {
+        try {
+            const dirHandle = await window.showDirectoryPicker({
+                mode: 'read'
+            });
+            if (dirHandle) {
+                await handleDirectoryHandleUpload(reqId, dirHandle);
+                return;
+            }
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                // L'utente ha chiuso o annullato la finestra di selezione cartella
+                return;
+            }
+            console.warn('showDirectoryPicker non consentito o fallito, fallback su input:', err);
+        }
+    }
+
+    // 2. Fallback per browser che non supportano la Directory Picker API
+    const folderInput = document.getElementById('folder-' + reqId);
+    if (folderInput) {
+        folderInput.value = '';
+        folderInput.click();
+    }
+}
+
+async function handleDirectoryHandleUpload(reqId, dirHandle) {
+    const container = document.querySelector(`[data-req-id="${reqId}"]`);
+    const loadingEl = container ? container.querySelector('.upload-loading') : null;
+    if (loadingEl) {
+        loadingEl.classList.remove('d-none');
+        const textEl = loadingEl.querySelector('small');
+        if (textEl) textEl.textContent = `Scansione cartella "${dirHandle.name}" in corso...`;
+    }
+
+    try {
+        if (typeof JSZip === 'undefined') {
+            alert("Libreria di compressione in caricamento. Riprova tra un istante.");
+            if (loadingEl) loadingEl.classList.add('d-none');
+            return;
+        }
+
+        const zip = new JSZip();
+        let fileCount = 0;
+
+        async function scanDir(dir, prefix) {
+            for await (const entry of dir.values()) {
+                const entryPath = prefix ? `${prefix}/${entry.name}` : entry.name;
+                if (entry.kind === 'file') {
+                    const fileData = await entry.getFile();
+                    zip.file(entryPath, fileData);
+                    fileCount++;
+                } else if (entry.kind === 'directory') {
+                    const subDir = await dir.getDirectoryHandle(entry.name);
+                    await scanDir(subDir, entryPath);
+                }
+            }
+        }
+
+        await scanDir(dirHandle, dirHandle.name);
+
+        if (fileCount === 0) {
+            if (loadingEl) loadingEl.classList.add('d-none');
+            alert(`La cartella "${dirHandle.name}" è vuota. Seleziona una cartella contenente file.`);
+            return;
+        }
+
+        if (loadingEl && loadingEl.querySelector('small')) {
+            loadingEl.querySelector('small').textContent = `Compressione cartella "${dirHandle.name}" (${fileCount} file)...`;
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+        const zipFile = new File([zipBlob], `${dirHandle.name}.zip`, { type: 'application/zip' });
+
+        if (loadingEl && loadingEl.querySelector('small')) {
+            loadingEl.querySelector('small').textContent = `Caricamento archivio massivo (${fileCount} file)...`;
+        }
+
+        uploadSingleFile(reqId, zipFile);
+    } catch (err) {
+        console.error('Directory upload error:', err);
+        if (loadingEl) loadingEl.classList.add('d-none');
+        alert("Errore durante la lettura della cartella: " + err.message);
+    }
+}
+
+async function handleFolderUpload(reqId, inputElement) {
+    const files = inputElement.files;
+    if (!files || files.length === 0) return;
+
+    const container = document.querySelector(`[data-req-id="${reqId}"]`);
+    const loadingEl = container ? container.querySelector('.upload-loading') : null;
+    if (loadingEl) {
+        loadingEl.classList.remove('d-none');
+        const textEl = loadingEl.querySelector('small');
+        if (textEl) textEl.textContent = `Compressione cartella in corso (${files.length} file)...`;
+    }
+
+    try {
+        if (typeof JSZip === 'undefined') {
+            alert("Libreria di compressione in caricamento. Riprova tra un istante.");
+            if (loadingEl) loadingEl.classList.add('d-none');
+            return;
+        }
+
+        const zip = new JSZip();
+        let folderName = 'cartella_massiva';
+        if (files[0] && files[0].webkitRelativePath) {
+            const parts = files[0].webkitRelativePath.split('/');
+            if (parts.length > 1 && parts[0]) {
+                folderName = parts[0];
+            }
+        }
+
+        for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            const relPath = f.webkitRelativePath || f.name;
+            zip.file(relPath, f);
+        }
+
+        if (loadingEl && loadingEl.querySelector('small')) {
+            loadingEl.querySelector('small').textContent = `Caricamento archivio massivo (${files.length} file)...`;
+        }
+
+        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+        const zipFile = new File([zipBlob], `${folderName}.zip`, { type: 'application/zip' });
+        uploadSingleFile(reqId, zipFile);
+    } catch (err) {
+        console.error('Folder packing error:', err);
+        if (loadingEl) loadingEl.classList.add('d-none');
+        alert("Errore durante la compressione della cartella: " + err.message);
+    } finally {
+        inputElement.value = '';
     }
 }
 
@@ -406,20 +577,35 @@ function uploadSingleFile(reqId, file) {
             if (loadingEl) loadingEl.classList.add('d-none');
         }
         if (uploadsDiv) {
-            const fileName = data.filename || file.name;
-            const fileSizeFormatted = formatBytes(data.size || file.size);
-            uploadsDiv.innerHTML = `
-                <div class="alert alert-success py-2 px-3 mb-2 d-flex align-items-center justify-content-between rounded-3">
-                    <span class="small"><i class="bi bi-check-circle-fill text-success me-2"></i> <strong>${fileName}</strong> (${fileSizeFormatted})</span>
-                    <span class="badge bg-success doc-status-indicator" data-status="uploaded">Salvato</span>
-                </div>
-                <div class="upload-loading d-none mt-2">
-                    <div class="spinner-border spinner-border-sm text-primary" role="status">
-                        <span class="visually-hidden">Caricamento...</span>
+            if (data.is_bulk) {
+                uploadsDiv.innerHTML = `
+                    <div class="alert alert-success py-2 px-3 mb-2 d-flex align-items-center justify-content-between rounded-3">
+                        <span class="small"><i class="bi bi-folder-check text-success me-2"></i> <strong>${data.message || 'Archivio cartella estratto con successo'}</strong> (${data.extracted_count} file acquisiti)</span>
+                        <span class="badge bg-success doc-status-indicator" data-status="uploaded">Decompresso (${data.extracted_count} file)</span>
                     </div>
-                    <small class="text-muted ms-2">Caricamento file in corso...</small>
-                </div>
-            `;
+                    <div class="upload-loading d-none mt-2">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Caricamento...</span>
+                        </div>
+                        <small class="text-muted ms-2">Caricamento file in corso...</small>
+                    </div>
+                `;
+            } else {
+                const fileName = data.filename || file.name;
+                const fileSizeFormatted = formatBytes(data.size || file.size);
+                uploadsDiv.innerHTML = `
+                    <div class="alert alert-success py-2 px-3 mb-2 d-flex align-items-center justify-content-between rounded-3">
+                        <span class="small"><i class="bi bi-check-circle-fill text-success me-2"></i> <strong>${fileName}</strong> (${fileSizeFormatted})</span>
+                        <span class="badge bg-success doc-status-indicator" data-status="uploaded">Salvato</span>
+                    </div>
+                    <div class="upload-loading d-none mt-2">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Caricamento...</span>
+                        </div>
+                        <small class="text-muted ms-2">Caricamento file in corso...</small>
+                    </div>
+                `;
+            }
         }
         // Re-validate button state
         updateNextButtonState();

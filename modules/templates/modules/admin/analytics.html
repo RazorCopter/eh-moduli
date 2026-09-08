@@ -1,0 +1,545 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Statistiche & Tempi di Gestione - Etichub Moduli{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analytics-hero {
+        background: linear-gradient(135deg, #FFFFFF 0%, #FAF8F6 100%);
+        border: 1px solid #EAE6E1;
+        border-radius: 18px;
+        padding: 2.2rem 2.75rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+    }
+    .analytics-hero::after {
+        content: '';
+        position: absolute;
+        top: -30px;
+        right: -30px;
+        width: 160px;
+        height: 160px;
+        background: radial-gradient(circle, rgba(127, 23, 24, 0.08) 0%, rgba(255,255,255,0) 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    .analytics-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: #7F1718;
+        background: #FDF2F1;
+        border: 1px solid #F8D7DA;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        margin-bottom: 0.8rem;
+    }
+    .analytics-hero h1 {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #1E293B;
+        margin: 0 0 0.5rem 0;
+        line-height: 1.2;
+    }
+    .analytics-hero p {
+        color: #64748B;
+        font-size: 0.95rem;
+        margin: 0;
+        max-width: 680px;
+    }
+
+    /* KPI Grid */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    .kpi-stat-card {
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    .kpi-stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    }
+    .kpi-stat-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.85rem;
+    }
+    .kpi-stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+    }
+    .kpi-icon-blue { background: #EFF6FF; color: #2563EB; }
+    .kpi-icon-purple { background: #F5F3FF; color: #7C3AED; }
+    .kpi-icon-green { background: #ECFDF5; color: #059669; }
+    .kpi-icon-amber { background: #FEF3C7; color: #D97706; }
+    .kpi-icon-rose { background: #FFF1F2; color: #E11D48; }
+
+    .kpi-stat-value {
+        font-size: 2.1rem;
+        font-weight: 800;
+        color: #0F172A;
+        line-height: 1;
+        margin-bottom: 0.35rem;
+        letter-spacing: -0.5px;
+    }
+    .kpi-stat-unit {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #64748B;
+        margin-left: 2px;
+    }
+    .kpi-stat-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748B;
+        margin: 0;
+    }
+    .kpi-stat-sub {
+        font-size: 0.76rem;
+        color: #94A3B8;
+        margin-top: 0.4rem;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    /* Charts Row */
+    .charts-row {
+        display: grid;
+        grid-template-columns: 3fr 2fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    @media (max-width: 992px) {
+        .charts-row {
+            grid-template-columns: 1fr;
+        }
+    }
+    .chart-panel {
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        padding: 1.75rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+    }
+    .chart-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.85rem;
+        border-bottom: 1px solid #F1F5F9;
+    }
+    .chart-panel-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #1E293B;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Customer Table Panel */
+    .data-table-panel {
+        background: white;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        padding: 1.75rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+    }
+    .analytics-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .analytics-table th {
+        background: #F8FAFC;
+        color: #475569;
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 12px 16px;
+        border-bottom: 1px solid #E2E8F0;
+    }
+    .analytics-table td {
+        padding: 14px 16px;
+        font-size: 0.9rem;
+        color: #334155;
+        border-bottom: 1px solid #F1F5F9;
+        vertical-align: middle;
+    }
+    .analytics-table tbody tr:hover {
+        background: #F8FAFC;
+    }
+</style>
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4" style="max-width: 1440px;">
+    <!-- Top Hero -->
+    <div class="analytics-hero">
+        <div>
+            <span class="analytics-badge">
+                <i class="bi bi-speedometer2"></i> Cruscotto di Controllo
+            </span>
+            <h1>Statistiche & Tempi di Gestione</h1>
+            <p>
+                Monitoraggio delle performance operative del flusso documentale: tempi di caricamento da parte dei clienti, lead-time di lavorazione dell'Ufficio Regolatorio, tasso di rework e compliance SLA.
+            </p>
+        </div>
+        <div class="d-none d-md-flex gap-2">
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary px-3 py-2 rounded-3 fw-semibold">
+                <i class="bi bi-arrow-left me-1"></i> Torna alla Dashboard
+            </a>
+            <button type="button" class="btn btn-primary px-3 py-2 rounded-3 fw-semibold" onclick="window.print()" style="background-color: #7F1718; border-color: #7F1718;">
+                <i class="bi bi-printer me-1"></i> Esporta Report
+            </button>
+        </div>
+    </div>
+
+    <!-- 6 KPI Grid Cards -->
+    <div class="kpi-grid">
+        <!-- 1. Tempo Medio Caricamento Cliente -->
+        <div class="kpi-stat-card">
+            <div class="kpi-stat-header">
+                <div class="kpi-stat-icon kpi-icon-blue">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                </div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 small">
+                    Cliente
+                </span>
+            </div>
+            <div class="kpi-stat-value">{{ avg_cust_upload_days }}<span class="kpi-stat-unit">gg</span></div>
+            <h6 class="kpi-stat-title">Upload Medio Cliente</h6>
+            <div class="kpi-stat-sub">
+                <i class="bi bi-stopwatch"></i> Dall'assegnazione all'invio
+            </div>
+        </div>
+
+        <!-- 2. Tempo Medio Lavorazione Regolatoria -->
+        <div class="kpi-stat-card">
+            <div class="kpi-stat-header">
+                <div class="kpi-stat-icon kpi-icon-purple">
+                    <i class="bi bi-gear-wide-connected"></i>
+                </div>
+                <span class="badge bg-purple-subtle text-purple border border-purple-subtle rounded-pill px-2 py-1 small" style="background: #ede9fe; color: #6d28d9;">
+                    Etichub
+                </span>
+            </div>
+            <div class="kpi-stat-value">{{ avg_op_proc_days }}<span class="kpi-stat-unit">gg</span></div>
+            <h6 class="kpi-stat-title">Lavorazione Media Ufficio</h6>
+            <div class="kpi-stat-sub">
+                <i class="bi bi-check-circle"></i> Dalla ricezione alla chiusura
+            </div>
+        </div>
+
+        <!-- 3. Cycle Time Totale Pratica -->
+        <div class="kpi-stat-card">
+            <div class="kpi-stat-header">
+                <div class="kpi-stat-icon kpi-icon-green">
+                    <i class="bi bi-calendar-check"></i>
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 small">
+                    End-to-End
+                </span>
+            </div>
+            <div class="kpi-stat-value">{{ avg_e2e_days }}<span class="kpi-stat-unit">gg</span></div>
+            <h6 class="kpi-stat-title">Lead Time Totale Chiusura</h6>
+            <div class="kpi-stat-sub">
+                <i class="bi bi-hourglass-bottom"></i> Ciclo di vita complessivo
+            </div>
+        </div>
+
+        <!-- 4. Tasso di Rework (Riaperture per integrazione) -->
+        <div class="kpi-stat-card">
+            <div class="kpi-stat-header">
+                <div class="kpi-stat-icon kpi-icon-amber">
+                    <i class="bi bi-arrow-repeat"></i>
+                </div>
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2 py-1 small">
+                    Integrazioni
+                </span>
+            </div>
+            <div class="kpi-stat-value">{{ rework_rate }}<span class="kpi-stat-unit">%</span></div>
+            <h6 class="kpi-stat-title">Tasso Rework Documentale</h6>
+            <div class="kpi-stat-sub">
+                <i class="bi bi-exclamation-circle"></i> {{ rework_count }} pratiche riaperte
+            </div>
+        </div>
+
+        <!-- 5. SLA Compliance (entro 5gg lavorativi) -->
+        <div class="kpi-stat-card">
+            <div class="kpi-stat-header">
+                <div class="kpi-stat-icon kpi-icon-green">
+                    <i class="bi bi-award"></i>
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 small">
+                    Target ≤{{ sla_target_days }}gg
+                </span>
+            </div>
+            <div class="kpi-stat-value">{{ sla_rate }}<span class="kpi-stat-unit">%</span></div>
+            <h6 class="kpi-stat-title">SLA Compliance Rate</h6>
+            <div class="kpi-stat-sub">
+                <i class="bi bi-shield-check"></i> Conformità tempistiche target
+            </div>
+        </div>
+
+        <!-- 6. Totale Pratiche Gestite -->
+        <div class="kpi-stat-card">
+            <div class="kpi-stat-header">
+                <div class="kpi-stat-icon kpi-icon-rose">
+                    <i class="bi bi-folder-fill"></i>
+                </div>
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1 small">
+                    Volume
+                </span>
+            </div>
+            <div class="kpi-stat-value">{{ total_assignments }}</div>
+            <h6 class="kpi-stat-title">Pratiche Totali</h6>
+            <div class="kpi-stat-sub">
+                <i class="bi bi-check2-all text-success"></i> {{ completed_count }} lavorate con successo
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="charts-row">
+        <!-- Chart 1: Tempi di Gestione a Confronto -->
+        <div class="chart-panel">
+            <div class="chart-panel-header">
+                <h5 class="chart-panel-title">
+                    <i class="bi bi-bar-chart-line text-primary"></i> Tempi Medi di Gestione (Giorni)
+                </h5>
+                <span class="badge bg-light text-dark border px-2 py-1 small">Analisi Lead Time</span>
+            </div>
+            <div style="height: 280px; position: relative;">
+                <canvas id="leadTimeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Chart 2: Distribuzione Stato Pratiche -->
+        <div class="chart-panel">
+            <div class="chart-panel-header">
+                <h5 class="chart-panel-title">
+                    <i class="bi bi-pie-chart text-success"></i> Distribuzione Pratiche
+                </h5>
+                <span class="badge bg-light text-dark border px-2 py-1 small">Stato Attuale</span>
+            </div>
+            <div style="height: 280px; position: relative;">
+                <canvas id="statusDoughnutChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Breakdown Table -->
+    <div class="data-table-panel">
+        <div class="chart-panel-header mb-3">
+            <h5 class="chart-panel-title">
+                <i class="bi bi-buildings text-secondary"></i> Performance e Tempi per Cliente
+            </h5>
+            <span class="text-muted small">Riepilogo per anagrafica cliente</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="analytics-table">
+                <thead>
+                    <tr>
+                        <th>Codice</th>
+                        <th>Cliente</th>
+                        <th>Cartella NAS</th>
+                        <th class="text-center">Pratiche Totali</th>
+                        <th class="text-center">Lavorate (✓)</th>
+                        <th class="text-center">Da Lavorare (⏳)</th>
+                        <th class="text-center">Rework (Richieste)</th>
+                        <th class="text-end">Tempo Medio Upload</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in customer_stats %}
+                    <tr>
+                        <td><code>{{ c.code }}</code></td>
+                        <td><strong>{{ c.name }}</strong></td>
+                        <td>
+                            <span class="badge bg-light text-dark border">
+                                <i class="bi bi-folder-fill text-warning me-1"></i> {{ c.nas_folder }}
+                            </span>
+                        </td>
+                        <td class="text-center fw-bold">{{ c.total_practices }}</td>
+                        <td class="text-center">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-pill">
+                                {{ c.completed }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            {% if c.to_work > 0 %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 rounded-pill">
+                                {{ c.to_work }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if c.reworks > 0 %}
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1 rounded-pill">
+                                {{ c.reworks }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-semibold text-primary">
+                            {{ c.avg_upload_time }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            Nessun dato statistico disponibile per i clienti al momento.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Lead Time Bar Chart
+    const ctxLead = document.getElementById('leadTimeChart');
+    if (ctxLead) {
+        const leadData = {{ chart_leadtime_data|safe }};
+        new Chart(ctxLead, {
+            type: 'bar',
+            data: {
+                labels: ['Caricamento Cliente', 'Lavorazione Regolatoria', 'Ciclo Totale End-to-End'],
+                datasets: [{
+                    label: 'Giorni Medi',
+                    data: leadData,
+                    backgroundColor: [
+                        'rgba(37, 99, 235, 0.75)',
+                        'rgba(124, 58, 237, 0.75)',
+                        'rgba(5, 150, 105, 0.85)'
+                    ],
+                    borderColor: [
+                        '#2563EB',
+                        '#7C3AED',
+                        '#059669'
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    maxBarThickness: 54
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1200,
+                    easing: 'easeOutQuart'
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.parsed.y} giorni medi`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(226, 232, 240, 0.6)' },
+                        ticks: {
+                            callback: function(val) { return val + ' gg'; },
+                            font: { family: 'inherit', size: 11 }
+                        }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: 'inherit', size: 12, weight: '500' } }
+                    }
+                }
+            }
+        });
+    }
+
+    // 2. Status Doughnut Chart
+    const ctxStatus = document.getElementById('statusDoughnutChart');
+    if (ctxStatus) {
+        const statusData = {{ chart_status_data|safe }};
+        new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: {
+                labels: ['Da Lavorare', 'In Lavorazione', 'In Attesa Documenti', 'Lavorate'],
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: [
+                        '#EF4444',
+                        '#F59E0B',
+                        '#EAB308',
+                        '#10B981'
+                    ],
+                    borderWidth: 3,
+                    borderColor: '#ffffff',
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                animation: {
+                    animateScale: true,
+                    animateRotate: true,
+                    duration: 1400
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 14,
+                            font: { family: 'inherit', size: 12 }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

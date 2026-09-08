@@ -239,20 +239,48 @@
     .badge-status-active {
         background: #E8F5E9;
         color: #2E7D32;
+        border: 1px solid #C8E6C9;
         font-size: 0.8rem;
-        padding: 4px 10px;
+        padding: 4px 12px;
         border-radius: 20px;
         font-weight: 600;
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        line-height: 1.2;
+        vertical-align: middle;
     }
     .badge-status-inactive {
         background: #FFEBEE;
         color: #C62828;
+        border: 1px solid #FFCDD2;
         font-size: 0.8rem;
-        padding: 4px 10px;
+        padding: 4px 12px;
         border-radius: 20px;
         font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        line-height: 1.2;
+        vertical-align: middle;
+    }
+    .badge-status-active .status-indicator-dot,
+    .badge-status-inactive .status-indicator-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
         display: inline-block;
+        flex-shrink: 0;
+    }
+    .badge-status-active .status-indicator-dot {
+        background-color: #2E7D32;
+        box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+    }
+    .badge-status-inactive .status-indicator-dot {
+        background-color: #C62828;
+        box-shadow: 0 0 0 2px rgba(198, 40, 40, 0.2);
     }
     .btn-action-delete {
         background: #FFF0F2;
@@ -267,6 +295,28 @@
         align-items: center;
         gap: 0.35rem;
         transition: all 0.2s ease;
+    }
+    .btn-action-edit {
+        background: #EFF6FF;
+        color: #1D4ED8;
+        border: 1px solid #BFDBFE;
+        padding: 0.45rem 0.85rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        transition: all 0.2s ease;
+        margin-right: 6px;
+    }
+    .btn-action-edit:hover {
+        background: #1D4ED8;
+        color: white;
+        border-color: #1D4ED8;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(29, 78, 216, 0.25);
     }
     .btn-action-key {
         background: #F0F7FF;
@@ -530,17 +580,27 @@
                     </td>
                     <td>
                         {% if customer.active %}
-                        <span class="badge-status-active"><i class="bi bi-dot"></i> Attivo</span>
+                        <span class="badge-status-active"><span class="status-indicator-dot"></span> Attivo</span>
                         {% else %}
-                        <span class="badge-status-inactive"><i class="bi bi-dot"></i> Inattivo</span>
+                        <span class="badge-status-inactive"><span class="status-indicator-dot"></span> Inattivo</span>
                         {% endif %}
                     </td>
                     <td style="text-align: right; white-space: nowrap;">
                         <button type="button" 
-                                class="btn-action-key"
-                                title="Reimposta password area personale per {{ customer.code }}"
-                                onclick="openResetPasswordModal('{{ customer.id }}', '{{ customer.first_name|escapejs }} {{ customer.last_name|escapejs }}', '{{ customer.code|escapejs }}')">
-                            <i class="bi bi-key-fill"></i> Password
+                                class="btn-action-edit"
+                                id="btn-edit-{{ customer.id }}"
+                                title="Modifica anagrafica e password per {{ customer.code }}"
+                                data-id="{{ customer.id }}"
+                                data-code="{{ customer.code|escape }}"
+                                data-first-name="{{ customer.first_name|escape }}"
+                                data-last-name="{{ customer.last_name|default:''|escape }}"
+                                data-email="{{ customer.email|escape }}"
+                                data-phone="{{ customer.phone|default:''|escape }}"
+                                data-nas="{{ customer.nas_folder_name|escape }}"
+                                data-notes="{{ customer.notes|default:''|escape }}"
+                                data-active="{% if customer.active %}true{% else %}false{% endif %}"
+                                onclick="openEditCustomerModal(this)">
+                            <i class="bi bi-pencil-square"></i> Modifica
                         </button>
                         <button type="button" 
                                 class="btn-action-delete"
@@ -563,6 +623,151 @@
         </a>
     </div>
     {% endif %}
+</div>
+
+<!-- Modal Modifica Anagrafica & Password Cliente -->
+<div class="modal-overlay" id="editCustomerModal" onclick="handleEditOverlayClick(event)">
+    <div class="modal-card" style="max-width: 680px;">
+        <div class="modal-header-delete" style="background: #F8FAFC; border-bottom: 1px solid #E2E8F0;">
+            <div class="modal-icon-danger" style="background: #EFF6FF; color: #2563EB;">
+                <i class="bi bi-pencil-square"></i>
+            </div>
+            <div>
+                <h3 style="color: #1E293B;">Modifica Cliente</h3>
+                <small style="color: #64748B;">Aggiorna anagrafica, contatti, parametri NAS e password di accesso</small>
+            </div>
+        </div>
+        <div class="modal-body" style="padding: 1.5rem 1.75rem; max-height: 78vh; overflow-y: auto;">
+            <form id="editCustomerForm" onsubmit="submitEditCustomer(event)">
+                <input type="hidden" id="editCustomerId" value="">
+
+                <!-- Sezione Dati Principali -->
+                <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #94A3B8; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+                    <i class="bi bi-person-badge"></i> Dati Principali & Riconciliazione
+                </div>
+
+                <div class="row g-3" style="margin-bottom: 0.85rem;">
+                    <div class="col-md-6">
+                        <label for="editCustomerCode" style="font-weight: 600; font-size: 0.88rem; color: #334155; margin-bottom: 0.3rem; display: block;">
+                            Codice Cliente <span style="color: #EF4444;">*</span>
+                        </label>
+                        <input type="text" id="editCustomerCode" name="code" class="form-control" required style="font-size: 0.92rem; border-color: #CBD5E1;">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="editCustomerNas" style="font-weight: 600; font-size: 0.88rem; color: #334155; margin-bottom: 0.3rem; display: block;">
+                            Cartella NAS <span style="color: #EF4444;">*</span>
+                        </label>
+                        <input type="text" id="editCustomerNas" name="nas_folder_name" class="form-control" pattern="[A-Za-z0-9_\-]+" required style="font-family: monospace; font-size: 0.92rem; border-color: #CBD5E1;">
+                    </div>
+                </div>
+
+                <div class="row g-3" style="margin-bottom: 0.85rem;">
+                    <div class="col-md-6">
+                        <label for="editCustomerFirstName" style="font-weight: 600; font-size: 0.88rem; color: #334155; margin-bottom: 0.3rem; display: block;">
+                            Nome Azienda / Ragione Sociale <span style="color: #EF4444;">*</span>
+                        </label>
+                        <input type="text" id="editCustomerFirstName" name="first_name" class="form-control" required style="font-size: 0.92rem; border-color: #CBD5E1;">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="editCustomerLastName" style="font-weight: 600; font-size: 0.88rem; color: #334155; margin-bottom: 0.3rem; display: block;">
+                            Referente Aziendale
+                        </label>
+                        <input type="text" id="editCustomerLastName" name="last_name" class="form-control" placeholder="es. Mario Rossi" style="font-size: 0.92rem; border-color: #CBD5E1;">
+                    </div>
+                </div>
+
+                <div class="row g-3" style="margin-bottom: 1.15rem;">
+                    <div class="col-md-6">
+                        <label for="editCustomerEmail" style="font-weight: 600; font-size: 0.88rem; color: #334155; margin-bottom: 0.3rem; display: block;">
+                            Indirizzo Email <span style="color: #EF4444;">*</span>
+                        </label>
+                        <input type="email" id="editCustomerEmail" name="email" class="form-control" required style="font-size: 0.92rem; border-color: #CBD5E1;">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="editCustomerPhone" style="font-weight: 600; font-size: 0.88rem; color: #334155; margin-bottom: 0.3rem; display: block;">
+                            Telefono
+                        </label>
+                        <input type="text" id="editCustomerPhone" name="phone" class="form-control" placeholder="es. +39 02 1234567" style="font-size: 0.92rem; border-color: #CBD5E1;">
+                    </div>
+                </div>
+
+                <!-- Sezione Password Area Personale -->
+                <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #94A3B8; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; padding-top: 0.5rem; border-top: 1px solid #F1F5F9;">
+                    <i class="bi bi-shield-lock"></i> Credenziali Accesso Area Personale
+                </div>
+
+                <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 1rem 1.1rem; margin-bottom: 1.15rem;">
+                    <label for="editCustomerPassword" style="font-weight: 600; font-size: 0.88rem; color: #334155; margin-bottom: 0.35rem; display: block;">
+                        Nuova Password Portale <span style="font-weight: normal; color: #64748B; font-size: 0.82rem;">(Opzionale - lascia vuoto per non modificarla)</span>
+                    </label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" 
+                               id="editCustomerPassword" 
+                               name="portal_password" 
+                               class="form-control" 
+                               placeholder="Lascia vuoto per mantenere la password attuale..." 
+                               minlength="6"
+                               autocomplete="new-password"
+                               style="font-family: 'Courier New', monospace; font-size: 0.95rem; letter-spacing: 0.5px; border-color: #CBD5E1;">
+                        <button type="button" 
+                                class="btn btn-outline-secondary" 
+                                onclick="generateEditModalPassword()" 
+                                style="white-space: nowrap; border-color: #CBD5E1; color: #475467; font-size: 0.88rem;">
+                            <i class="bi bi-magic"></i> Genera
+                        </button>
+                        <button type="button" 
+                                class="btn btn-outline-secondary" 
+                                id="btnCopyEditPwd" 
+                                onclick="copyEditPassword()" 
+                                style="white-space: nowrap; border-color: #CBD5E1; color: #475467; font-size: 0.88rem;">
+                            <i class="bi bi-clipboard" id="copyEditIcon"></i> <span id="copyEditText">Copia</span>
+                        </button>
+                    </div>
+                    <small style="color: #64748B; font-size: 0.8rem; margin-top: 5px; display: block;">
+                        Se inserita, la password deve avere almeno 6 caratteri. Verrà cifrata e salvata all'invio del form.
+                    </small>
+                </div>
+
+                <!-- Sezione Note e Stato -->
+                <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #94A3B8; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem; padding-top: 0.5rem; border-top: 1px solid #F1F5F9;">
+                    <i class="bi bi-gear"></i> Configurazione & Note
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label for="editCustomerNotes" style="font-weight: 600; font-size: 0.88rem; color: #334155; margin-bottom: 0.3rem; display: block;">
+                        Note Interne
+                    </label>
+                    <textarea id="editCustomerNotes" name="notes" rows="2" class="form-control" placeholder="Note visibili solo all'amministratore..." style="font-size: 0.9rem; border-color: #CBD5E1;"></textarea>
+                </div>
+
+                <div class="form-check-card" style="margin-bottom: 0.5rem; padding: 0.75rem 1rem;" onclick="document.getElementById('editCustomerActive').click()">
+                    <input type="checkbox" id="editCustomerActive" name="active" onclick="event.stopPropagation()" style="width: 1.15rem; height: 1.15rem; cursor: pointer; accent-color: #2563EB;">
+                    <label for="editCustomerActive" style="margin-left: 0.5rem; font-size: 0.92rem; font-weight: 600; cursor: pointer;">
+                        Cliente Attivo
+                        <span style="display: block; font-weight: normal; font-size: 0.82rem; color: #64748B;">
+                            I clienti attivi possono accedere al portale e ricevere pratiche.
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Box Errori -->
+                <div id="editCustomerErrorBox" style="display: none; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 0.75rem 1rem; color: #991B1B; font-size: 0.88rem; margin-top: 1rem;">
+                </div>
+
+                <!-- Box Successo -->
+                <div id="editCustomerSuccessBox" style="display: none; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; padding: 0.85rem 1rem; color: #065F46; font-size: 0.88rem; margin-top: 1rem;">
+                    <i class="bi bi-check-circle-fill me-1"></i> <span id="editSuccessMessage">Cliente aggiornato con successo!</span>
+                </div>
+
+                <div class="modal-footer" style="padding: 1.25rem 0 0 0; margin-top: 1.25rem; border-top: 1px solid #E2E8F0; display: flex; justify-content: flex-end; gap: 8px;">
+                    <button type="button" class="btn-modal-cancel" onclick="closeEditCustomerModal()">Annulla</button>
+                    <button type="submit" id="btnSubmitEditCustomer" class="btn-modal-confirm-delete" style="background: #2563EB; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);">
+                        <i class="bi bi-check2-circle"></i> Salva Modifiche
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Conferma Eliminazione -->
@@ -839,11 +1044,227 @@ function copyConfirmedPassword() {
     });
 }
 
+// Edit Customer Modal Logic
+function openEditCustomerModal(btn) {
+    const customerId = btn.getAttribute('data-id');
+    const code = btn.getAttribute('data-code') || '';
+    const firstName = btn.getAttribute('data-first-name') || '';
+    const lastName = btn.getAttribute('data-last-name') || '';
+    const email = btn.getAttribute('data-email') || '';
+    const phone = btn.getAttribute('data-phone') || '';
+    const nas = btn.getAttribute('data-nas') || '';
+    const notes = btn.getAttribute('data-notes') || '';
+    const active = btn.getAttribute('data-active') === 'true';
+
+    document.getElementById('editCustomerId').value = customerId;
+    document.getElementById('editCustomerCode').value = code;
+    document.getElementById('editCustomerNas').value = nas;
+    document.getElementById('editCustomerFirstName').value = firstName;
+    document.getElementById('editCustomerLastName').value = lastName;
+    document.getElementById('editCustomerEmail').value = email;
+    document.getElementById('editCustomerPhone').value = phone;
+    document.getElementById('editCustomerNotes').value = notes;
+    document.getElementById('editCustomerActive').checked = active;
+
+    // Reset password field and feedback boxes
+    document.getElementById('editCustomerPassword').value = '';
+    document.getElementById('editCustomerErrorBox').style.display = 'none';
+    document.getElementById('editCustomerSuccessBox').style.display = 'none';
+    const submitBtn = document.getElementById('btnSubmitEditCustomer');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Salva Modifiche';
+
+    document.getElementById('editCustomerModal').classList.add('active');
+}
+
+function closeEditCustomerModal() {
+    document.getElementById('editCustomerModal').classList.remove('active');
+}
+
+function handleEditOverlayClick(event) {
+    if (event.target === document.getElementById('editCustomerModal')) {
+        closeEditCustomerModal();
+    }
+}
+
+function generateEditModalPassword(length = 10) {
+    const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    let pwd = '';
+    const cryptoObj = window.crypto || window.msCrypto;
+    if (cryptoObj) {
+        const values = new Uint32Array(length);
+        cryptoObj.getRandomValues(values);
+        for (let i = 0; i < length; i++) {
+            pwd += charset[values[i] % charset.length];
+        }
+    } else {
+        for (let i = 0; i < length; i++) {
+            pwd += charset.charAt(Math.floor(Math.random() * charset.length));
+        }
+    }
+    const pwdInput = document.getElementById('editCustomerPassword');
+    pwdInput.value = pwd;
+    pwdInput.style.transition = 'background-color 0.3s';
+    pwdInput.style.backgroundColor = '#EFF6FF';
+    setTimeout(() => { pwdInput.style.backgroundColor = 'white'; }, 350);
+}
+
+function copyEditPassword() {
+    const pwdInput = document.getElementById('editCustomerPassword');
+    const pwd = pwdInput.value.trim();
+    if (!pwd) {
+        generateEditModalPassword();
+    }
+    navigator.clipboard.writeText(document.getElementById('editCustomerPassword').value).then(() => {
+        const textSpan = document.getElementById('copyEditText');
+        const iconSpan = document.getElementById('copyEditIcon');
+        textSpan.textContent = 'Copiato!';
+        iconSpan.className = 'bi bi-check-lg text-success';
+        setTimeout(() => {
+            textSpan.textContent = 'Copia';
+            iconSpan.className = 'bi bi-clipboard';
+        }, 2000);
+    }).catch(() => {
+        pwdInput.select();
+        document.execCommand('copy');
+        const textSpan = document.getElementById('copyEditText');
+        textSpan.textContent = 'Copiato!';
+        setTimeout(() => { textSpan.textContent = 'Copia'; }, 2000);
+    });
+}
+
+function submitEditCustomer(event) {
+    event.preventDefault();
+    const customerId = document.getElementById('editCustomerId').value;
+    const errorBox = document.getElementById('editCustomerErrorBox');
+    const successBox = document.getElementById('editCustomerSuccessBox');
+    const submitBtn = document.getElementById('btnSubmitEditCustomer');
+
+    errorBox.style.display = 'none';
+    successBox.style.display = 'none';
+
+    const code = document.getElementById('editCustomerCode').value.trim();
+    const firstName = document.getElementById('editCustomerFirstName').value.trim();
+    const lastName = document.getElementById('editCustomerLastName').value.trim();
+    const email = document.getElementById('editCustomerEmail').value.trim();
+    const phone = document.getElementById('editCustomerPhone').value.trim();
+    const nas = document.getElementById('editCustomerNas').value.trim();
+    const notes = document.getElementById('editCustomerNotes').value.trim();
+    const active = document.getElementById('editCustomerActive').checked;
+    const portalPassword = document.getElementById('editCustomerPassword').value.trim();
+
+    if (!code || !firstName || !email || !nas) {
+        errorBox.textContent = 'Compila tutti i campi obbligatori contrassegnati con asterisco.';
+        errorBox.style.display = 'block';
+        return;
+    }
+
+    if (portalPassword && portalPassword.length < 6) {
+        errorBox.textContent = 'Se inserita, la nuova password deve contenere almeno 6 caratteri.';
+        errorBox.style.display = 'block';
+        return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Salvataggio...';
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const formData = new FormData();
+    formData.append('code', code);
+    formData.append('first_name', firstName);
+    formData.append('last_name', lastName);
+    formData.append('email', email);
+    formData.append('phone', phone);
+    formData.append('nas_folder_name', nas);
+    formData.append('notes', notes);
+    formData.append('active', active ? 'true' : 'false');
+    if (portalPassword) {
+        formData.append('portal_password', portalPassword);
+    }
+
+    fetch(`/modules/admin/customers/${customerId}/edit/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => response.json().then(data => ({ status: response.status, body: data })))
+    .then(({ status, body }) => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Salva Modifiche';
+
+        if (body.success) {
+            // Update button data attributes on page
+            const btn = document.getElementById(`btn-edit-${customerId}`);
+            if (btn) {
+                btn.setAttribute('data-code', body.customer.code);
+                btn.setAttribute('data-first-name', body.customer.first_name);
+                btn.setAttribute('data-last-name', body.customer.last_name);
+                btn.setAttribute('data-email', body.customer.email);
+                btn.setAttribute('data-phone', body.customer.phone);
+                btn.setAttribute('data-nas', body.customer.nas_folder_name);
+                btn.setAttribute('data-notes', body.customer.notes);
+                btn.setAttribute('data-active', body.customer.active ? 'true' : 'false');
+
+                // Update table row dynamically
+                const row = btn.closest('tr.customer-row');
+                if (row) {
+                    row.setAttribute('data-search', `${body.customer.code} ${body.customer.first_name} ${body.customer.last_name} ${body.customer.email} ${body.customer.nas_folder_name}`);
+                    const codeCell = row.querySelector('.client-code');
+                    if (codeCell) codeCell.textContent = body.customer.code;
+
+                    const nameDiv = row.querySelector('td:nth-child(2) div');
+                    if (nameDiv) nameDiv.textContent = body.customer.first_name;
+
+                    const emailLink = row.querySelector('td:nth-child(3) a');
+                    if (emailLink) {
+                        emailLink.href = `mailto:${body.customer.email}`;
+                        emailLink.innerHTML = `<i class="bi bi-envelope text-muted"></i> ${body.customer.email}`;
+                    }
+
+                    const nasSpan = row.querySelector('.nas-badge');
+                    if (nasSpan) nasSpan.innerHTML = `<i class="bi bi-folder-fill"></i> ${body.customer.nas_folder_name}`;
+
+                    const statusCell = row.querySelector('td:nth-child(6)');
+                    if (statusCell) {
+                        statusCell.innerHTML = body.customer.active
+                            ? '<span class="badge-status-active"><span class="status-indicator-dot"></span> Attivo</span>'
+                            : '<span class="badge-status-inactive"><span class="status-indicator-dot"></span> Inattivo</span>';
+                    }
+                }
+            }
+
+            let msg = 'Cliente aggiornato con successo!';
+            if (body.password_updated) {
+                msg += ` Nuova password impostata: ${body.new_password}`;
+            }
+            document.getElementById('editSuccessMessage').textContent = msg;
+            successBox.style.display = 'block';
+
+            setTimeout(() => {
+                closeEditCustomerModal();
+            }, 1200);
+        } else {
+            errorBox.textContent = body.error || 'Errore durante il salvataggio del cliente.';
+            errorBox.style.display = 'block';
+        }
+    })
+    .catch(err => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check2-circle"></i> Salva Modifiche';
+        errorBox.textContent = 'Errore di comunicazione con il server. Riprova.';
+        errorBox.style.display = 'block';
+    });
+}
+
 // Close on Escape key
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         closeDeleteModal();
         closeResetPasswordModal();
+        closeEditCustomerModal();
     }
 });
 </script>

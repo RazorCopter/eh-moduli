@@ -24,10 +24,10 @@ from .upload_security import (
 from .views_admin import (
     admin_dashboard, form_template_list, form_template_create,
     form_template_edit, form_template_duplicate, customer_list,
-    customer_create, customer_delete, customer_reset_password,
+    customer_create, customer_edit, customer_delete, customer_reset_password,
     assignment_detail, assign_form_to_customer,
     builder_list, builder_create, builder_edit, builder_preview, operational_guide,
-    reopen_assignment_for_upload, assignment_delete, assignment_update_status
+    reopen_assignment_for_upload, assignment_delete, assignment_update_status, analytics_dashboard
 )
 import os
 import json
@@ -298,12 +298,18 @@ def get_form_by_token(request, token):
         first_step_order = steps[0].order if steps else 0
         project_name = safe_get_form_data(assignment.form_data, 'project_name', '')
 
+        # The animation is only for initial login or direct external landing page access,
+        # never during navigation of the client personal area.
+        is_client_portal = bool(request.session.get('customer_id')) or (request.GET.get('from') == 'portal')
+        show_intro = not is_client_portal
+
         context = {
             'assignment': assignment,
             'form_template': assignment.form_template,
             'first_step_order': first_step_order,
             'project_name': project_name,
             'is_public_form': True,
+            'show_intro': show_intro,
         }
 
         log_action(
@@ -600,6 +606,28 @@ def upload_document_view(request, assignment_id):
         nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
         os.makedirs(nas_project_path, exist_ok=True)
 
+        # Check if bulk ZIP archive (e.g. Materie Prime / Allegati con decine di file)
+        if file.name.lower().endswith('.zip'):
+            from .upload_security import extract_and_index_zip_archive
+            bulk_res = extract_and_index_zip_archive(
+                file,
+                assignment,
+                requirement,
+                nas_project_path,
+                request=request
+            )
+            assignment.status = 'in_progress'
+            assignment.last_access_date = timezone.now()
+            assignment.save(update_fields=['status', 'last_access_date'])
+
+            return JsonResponse({
+                'status': 'success',
+                'is_bulk': True,
+                'extracted_count': bulk_res['count'],
+                'message': bulk_res['message'],
+                'files': bulk_res['files']
+            })
+
         # SECURE SAVE: atomic write, safe paths, restrictive permissions
         upload = save_uploaded_file_secure(
             file,
@@ -609,13 +637,31 @@ def upload_document_view(request, assignment_id):
             request=request
         )
 
-        # Mark any previous valid uploads for this requirement as superseded, and update tracking and manifest atomically
+        # If max_files is 1, replace previous file; if max_files > 1, allow multiple files up to limit
         with transaction.atomic():
+            # Always supersede any previous 'not_available' justification records for this requirement
             DocumentUpload.objects.filter(
                 form_assignment=assignment,
                 document_requirement=requirement,
-                status='valid'
+                availability_status='not_available'
             ).exclude(id=upload.id).update(status='superseded')
+
+            if requirement.max_files == 1:
+                DocumentUpload.objects.filter(
+                    form_assignment=assignment,
+                    document_requirement=requirement,
+                    status='valid'
+                ).exclude(id=upload.id).update(status='superseded')
+            else:
+                valid_uploads = DocumentUpload.objects.filter(
+                    form_assignment=assignment,
+                    document_requirement=requirement,
+                    status='valid'
+                ).exclude(id=upload.id).order_by('upload_datetime')
+                if valid_uploads.count() >= requirement.max_files:
+                    excess = valid_uploads.count() - requirement.max_files + 1
+                    oldest_ids = list(valid_uploads.values_list('id', flat=True)[:excess])
+                    DocumentUpload.objects.filter(id__in=oldest_ids).update(status='superseded')
 
             # Update tracking info
             upload.uploaded_by_ip = get_client_ip(request)

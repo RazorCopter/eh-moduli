@@ -4,6 +4,7 @@
 {% block title %}{{ form_template.name }} — EticHUB{% endblock %}
 
 {% block content %}
+<div id="form-detail-content">
 <div class="row justify-content-center">
     <div class="col-lg-8 col-xl-7">
         <div class="card border-0 shadow-sm mt-3 mb-5" style="border-radius: 16px; overflow: hidden;">
@@ -57,4 +58,27 @@
         </div>
     </div>
 </div>
+</div>
+
+{% if show_intro %}
+<script>
+    // If user is navigating within personal area, immediately bypass intro
+    if (sessionStorage.getItem('eh_in_personal_area') === 'true') {
+        document.write('<style>etichub-intro { display: none !important; } #form-detail-content { opacity: 1 !important; visibility: visible !important; }</style>');
+    }
+</script>
+<etichub-intro duration="2600" reveal="#form-detail-content"></etichub-intro>
+
+<script>
+    if (sessionStorage.getItem('eh_in_personal_area') === 'true') {
+        var intro = document.querySelector('etichub-intro');
+        if (intro) intro.remove();
+        var content = document.querySelector('#form-detail-content');
+        if (content) { content.style.opacity = '1'; content.style.visibility = 'visible'; }
+    } else {
+        setTimeout(function(){var intro=document.querySelector('etichub-intro');if(intro&&!customElements.get('etichub-intro'))intro.remove();},3500);
+    }
+</script>
+<script src="{% static 'js/etichub-intro.js' %}"></script>
+{% endif %}
 {% endblock %}

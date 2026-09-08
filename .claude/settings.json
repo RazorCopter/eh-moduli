@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"logging.config\")",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

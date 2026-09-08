@@ -21,9 +21,12 @@ import json
 import logging
 import tempfile
 import unicodedata
+import zipfile
 from pathlib import Path
 from contextlib import contextmanager
 from typing import Tuple, List
+from django.db import transaction
+from django.utils import timezone
 from .models import DocumentUpload
 from .utils import get_client_ip, get_user_agent
 
@@ -310,13 +313,61 @@ def validate_file_content(file_obj, file_extension: str, detected_mime: str) -> 
     return errors
 
 
+def validate_zip_archive_safety(file_obj, max_uncompressed_bytes=250*1024*1024, max_files=500, max_ratio=100) -> List[str]:
+    """
+    Validate that an uploaded ZIP archive is safe to extract:
+    - Checks ZIP header & structure
+    - Protects against Zip Bomb (uncompressed size limit & ratio limit)
+    - Protects against Path Traversal (no ../ or absolute paths)
+    """
+    errors = []
+    file_obj.seek(0)
+    try:
+        with zipfile.ZipFile(file_obj, 'r') as zf:
+            infolist = zf.infolist()
+            if len(infolist) > max_files:
+                errors.append(f"L'archivio ZIP contiene troppi file ({len(infolist)}). Limite massimo: {max_files}.")
+                return errors
+
+            total_uncompressed = 0
+            for info in infolist:
+                # Path traversal check
+                norm_name = os.path.normpath(info.filename).replace('\\', '/')
+                if norm_name.startswith('../') or norm_name.startswith('/') or '..' in norm_name.split('/'):
+                    errors.append(f"Rilevato percorso non sicuro nel file ZIP: {info.filename}")
+                    return errors
+                if os.path.isabs(info.filename) or (len(info.filename) > 1 and info.filename[1] == ':'):
+                    errors.append(f"Percorso assoluto non consentito nel file ZIP: {info.filename}")
+                    return errors
+
+                total_uncompressed += info.file_size
+                if info.compress_size > 0:
+                    ratio = info.file_size / info.compress_size
+                    if ratio > max_ratio and info.file_size > 1024 * 1024:
+                        errors.append(f"Possibile Zip Bomb rilevata nel file {info.filename} (ratio {ratio:.1f}:1)")
+                        return errors
+
+            if total_uncompressed > max_uncompressed_bytes:
+                errors.append(f"La dimensione decompressa ({total_uncompressed / (1024*1024):.1f} MB) supera il limite consentito di {max_uncompressed_bytes / (1024*1024):.0f} MB.")
+                return errors
+
+    except zipfile.BadZipFile:
+        errors.append("File archivio ZIP corrotto o non valido.")
+    except Exception as e:
+        errors.append(f"Errore durante l'analisi del file ZIP: {str(e)}")
+    finally:
+        file_obj.seek(0)
+
+    return errors
+
+
 def validate_file_upload_secure(file_obj, requirement) -> List[str]:
     """
     Comprehensive file upload validation.
 
     Checks:
     1. File size
-    2. Single valid extension
+    2. Single valid extension (or ZIP bulk archive)
     3. No double extensions
     4. MIME type from content (not extension)
     5. Content validation
@@ -344,7 +395,9 @@ def validate_file_upload_secure(file_obj, requirement) -> List[str]:
     file_ext = filename.rsplit('.', 1)[-1].lower()
     allowed_exts = [e.strip().lower() for e in requirement.allowed_extensions.split(',')]
 
-    if file_ext not in allowed_exts:
+    is_bulk_zip = (file_ext == 'zip')
+
+    if not is_bulk_zip and file_ext not in allowed_exts:
         errors.append(f"Extension .{file_ext} not allowed. Allowed: {requirement.allowed_extensions}")
         return errors
 
@@ -355,6 +408,19 @@ def validate_file_upload_secure(file_obj, requirement) -> List[str]:
 
     # 4. MIME type from content
     detected_mime = get_mime_type_from_content(file_obj)
+
+    if is_bulk_zip:
+        valid_zip_mimes = [
+            'application/zip', 'application/x-zip-compressed',
+            'application/octet-stream', 'multipart/x-zip'
+        ]
+        if detected_mime not in valid_zip_mimes:
+            errors.append(f"File content MIME type {detected_mime} not recognized as ZIP.")
+            return errors
+        zip_safety_errors = validate_zip_archive_safety(file_obj)
+        errors.extend(zip_safety_errors)
+        return errors
+
     allowed_mimes = [m.strip() for m in requirement.mime_types.split(',') if m.strip()]
 
     if detected_mime not in allowed_mimes:
@@ -585,6 +651,149 @@ def save_uploaded_file_secure(file_obj, form_assignment, document_requirement,
     )
 
     return upload
+
+
+def extract_and_index_zip_archive(file_obj, assignment, requirement, nas_project_path: str, request=None) -> dict:
+    """
+    Safely extracts a ZIP archive into the requirement destination subfolder on NAS:
+    NOME_CLIENTE\\NOME_PRODOTTO\\ALLEGATO\\...
+    
+    1. Extracts all files and subfolders preserving directory hierarchy.
+    2. Deletes the original ZIP archive from disk/memory.
+    3. Recursively scans the extracted folder and creates DocumentUpload records for every file.
+    4. Updates manifest.json.
+    """
+    req_subfolder = requirement.destination_subfolder or f"Allegato{requirement.order}"
+    target_dir = Path(safe_join_paths(nas_project_path, req_subfolder))
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    file_obj.seek(0)
+    with zipfile.ZipFile(file_obj, 'r') as zf:
+        for member in zf.infolist():
+            clean_name = os.path.normpath(member.filename).replace('\\', '/').lstrip('/')
+            if not clean_name or clean_name.startswith('../'):
+                continue
+            
+            parts = clean_name.split('/')
+            if any(p.startswith('.') or p in ['__MACOSX', 'Thumbs.db', 'desktop.ini'] for p in parts):
+                continue
+
+            target_file_path = target_dir / clean_name
+            if member.is_dir():
+                target_file_path.mkdir(parents=True, exist_ok=True)
+            else:
+                target_file_path.parent.mkdir(parents=True, exist_ok=True)
+                with zf.open(member) as source, open(target_file_path, 'wb') as target:
+                    target.write(source.read())
+
+    # The ZIP has been extracted. We now scan the directory tree recursively.
+    created_uploads = []
+    client_ip = get_client_ip(request) if request else '127.0.0.1'
+    client_ua = get_user_agent(request) if request else 'System/BulkUpload'
+
+    with transaction.atomic():
+        for root, dirs, files in os.walk(str(target_dir)):
+            for fname in files:
+                if fname.startswith('.') or fname in ['Thumbs.db', 'desktop.ini']:
+                    continue
+
+                fpath = os.path.join(root, fname)
+                fsize = os.path.getsize(fpath)
+                fext = fname.rsplit('.', 1)[-1].lower() if '.' in fname else ''
+
+                sha256 = hashlib.sha256()
+                with open(fpath, 'rb') as f:
+                    for chunk in iter(lambda: f.read(65536), b''):
+                        sha256.update(chunk)
+                checksum = sha256.hexdigest()
+
+                try:
+                    rel_to_proj = os.path.relpath(fpath, nas_project_path).replace('\\', '/')
+                except ValueError:
+                    rel_to_proj = fname
+
+                guessed_mime, _ = mimetypes.guess_type(fname)
+                mime_detected = guessed_mime or 'application/octet-stream'
+
+                # Check if upload record already exists for this relative path
+                existing = DocumentUpload.objects.filter(
+                    form_assignment=assignment,
+                    document_requirement=requirement,
+                    relative_path=rel_to_proj
+                ).first()
+
+                if existing:
+                    existing.file_size = fsize
+                    existing.sha256_checksum = checksum
+                    existing.status = 'valid'
+                    existing.availability_status = 'uploaded'
+                    existing.save(update_fields=['file_size', 'sha256_checksum', 'status', 'availability_status'])
+                    upload = existing
+                else:
+                    upload = DocumentUpload.objects.create(
+                        form_assignment=assignment,
+                        document_requirement=requirement,
+                        original_filename=fname,
+                        stored_filename=fname,
+                        relative_path=rel_to_proj,
+                        file_extension=fext,
+                        mime_type_detected=mime_detected,
+                        file_size=fsize,
+                        sha256_checksum=checksum,
+                        uploaded_by_ip=client_ip,
+                        uploaded_by_user_agent=client_ua,
+                        status='valid',
+                        availability_status='uploaded'
+                    )
+
+                created_uploads.append({
+                    'id': str(upload.id),
+                    'name': fname,
+                    'relative_path': rel_to_proj,
+                    'size': fsize,
+                    'checksum': checksum
+                })
+
+        # Update manifest.json on NAS
+        try:
+            manifest_path = os.path.join(nas_project_path, 'manifest.json')
+            if os.path.exists(manifest_path):
+                with open(manifest_path, 'r', encoding='utf-8') as mf:
+                    manifest = json.load(mf)
+            else:
+                client_name = assignment.customer.nas_folder_name if assignment.customer else '_generic'
+                project_name = safe_get_form_data(assignment.form_data, 'project_name') or 'Progetto'
+                manifest = {
+                    'form_name': assignment.form_template.name if assignment.form_template else 'N/A',
+                    'customer': client_name,
+                    'project': project_name,
+                    'form_assignment_id': str(assignment.id),
+                    'uploads': []
+                }
+
+            for u in created_uploads:
+                manifest['uploads'].append({
+                    'requirement_name': requirement.name,
+                    'original_filename': u['name'],
+                    'stored_filename': u['name'],
+                    'relative_path': u['relative_path'],
+                    'file_size': u['size'],
+                    'sha256': u['checksum'],
+                    'upload_datetime': timezone.now().isoformat(),
+                    'uploaded_by_ip': client_ip,
+                    'status': 'uploaded'
+                })
+            save_manifest_atomic(manifest_path, manifest)
+        except Exception as e:
+            logger.warning(f"Could not update manifest.json for bulk zip upload: {e}")
+
+    return {
+        'status': 'success',
+        'is_bulk': True,
+        'count': len(created_uploads),
+        'files': created_uploads,
+        'message': f"Archivio decompresso con successo: {len(created_uploads)} file estratti e indicizzati."
+    }
 
 
 def delete_document_secure(upload_obj, storage_base_path: str) -> bool:

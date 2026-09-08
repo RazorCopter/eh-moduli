@@ -808,6 +808,9 @@
         <a href="{% url 'assign_form_to_customer' %}" class="btn-action-secondary">
             <i class="bi bi-send"></i> Assegna Modulo
         </a>
+        <a href="{% url 'analytics_dashboard' %}" class="btn-action-secondary" title="Visualizza tempi medi di gestione, rework e statistiche operative">
+            <i class="bi bi-speedometer2 text-primary"></i> Statistiche & Tempi
+        </a>
     </div>
 </div>
 
@@ -1006,23 +1009,23 @@
                 <span class="text-muted small fw-bold me-1" style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px;">Filtra:</span>
                 <button type="button" class="filter-pill active" data-filter="all">
                     <i class="bi bi-grid-fill"></i> Tutti
-                    <span class="pill-count">{{ filter_counts.all }}</span>
+                    <span class="pill-count">{{ filter_counts.practices_all|default:filter_counts.all }}</span>
                 </button>
-                <button type="button" class="filter-pill filter-pill-red" data-filter="to_work" title="Clienti con pratiche completate dal cliente in attesa dell'operatore">
+                <button type="button" class="filter-pill filter-pill-red" data-filter="to_work" title="Tutte le pratiche completate dal cliente in attesa dell'operatore">
                     <i class="bi bi-bell-fill text-danger"></i> Da Lavorare
-                    <span class="pill-count">{{ filter_counts.to_work }}</span>
+                    <span class="pill-count">{{ filter_counts.practices_to_work|default:filter_counts.to_work }}</span>
                 </button>
-                <button type="button" class="filter-pill filter-pill-orange" data-filter="in_processing" title="Clienti con pratiche attualmente in lavorazione regolatoria">
+                <button type="button" class="filter-pill filter-pill-orange" data-filter="in_processing" title="Tutte le pratiche attualmente in lavorazione regolatoria">
                     <i class="bi bi-gear-wide-connected text-warning"></i> In Lavorazione
-                    <span class="pill-count">{{ filter_counts.in_processing }}</span>
+                    <span class="pill-count">{{ filter_counts.practices_in_processing|default:filter_counts.in_processing }}</span>
                 </button>
-                <button type="button" class="filter-pill filter-pill-yellow" data-filter="waiting_docs" title="Clienti con pratiche aperte o con documentazione parziale">
+                <button type="button" class="filter-pill filter-pill-yellow" data-filter="waiting_docs" title="Tutte le pratiche aperte o con documentazione parziale">
                     <i class="bi bi-hourglass-split text-warning"></i> In Attesa Documenti
-                    <span class="pill-count">{{ filter_counts.waiting_docs }}</span>
+                    <span class="pill-count">{{ filter_counts.practices_waiting_docs|default:filter_counts.waiting_docs }}</span>
                 </button>
-                <button type="button" class="filter-pill filter-pill-green" data-filter="completed" title="Clienti con tutte le pratiche lavorate e archiviate">
+                <button type="button" class="filter-pill filter-pill-green" data-filter="completed" title="Tutti i prodotti e pratiche lavorate con successo">
                     <i class="bi bi-check2-all text-success"></i> Lavorati
-                    <span class="pill-count">{{ filter_counts.completed }}</span>
+                    <span class="pill-count">{{ filter_counts.practices_completed|default:filter_counts.completed }}</span>
                 </button>
             </div>
         </div>
@@ -1040,6 +1043,7 @@
                  data-has-to-work="{% if c.has_to_work %}true{% else %}false{% endif %}"
                  data-has-in-processing="{% if c.has_in_processing %}true{% else %}false{% endif %}"
                  data-has-waiting-docs="{% if c.has_waiting_docs %}true{% else %}false{% endif %}"
+                 data-has-completed="{% if c.has_completed %}true{% else %}false{% endif %}"
                  data-is-completed="{% if c.is_all_completed %}true{% else %}false{% endif %}"
                  data-timestamp="{{ c.latest_activity_timestamp }}"
                  data-products-count="{{ c.total_products }}">
@@ -1144,7 +1148,7 @@
                             </thead>
                             <tbody>
                                 {% for p in c.products %}
-                                <tr>
+                                <tr class="product-row" data-product-status="{{ p.status }}">
                                     <td>
                                         <div style="font-weight: 600; color: #2C2C2C;">
                                             <i class="bi bi-box-seam text-primary me-1"></i> {{ p.project_name }}
@@ -1364,14 +1368,34 @@
                 } else if (currentFilter === 'waiting_docs') {
                     matchesPill = card.getAttribute('data-has-waiting-docs') === 'true';
                 } else if (currentFilter === 'completed') {
-                    matchesPill = card.getAttribute('data-is-completed') === 'true';
+                    matchesPill = card.getAttribute('data-has-completed') === 'true' || card.getAttribute('data-is-completed') === 'true';
                 }
 
                 if (matchesSearch && matchesPill) {
                     card.style.display = '';
                     visibleCount++;
-                    // If user searched for a specific product name, automatically open the card so the product is visible
-                    if (term && prodNames.includes(term)) {
+
+                    // Filter nested product rows when a specific status filter is active
+                    const productRows = card.querySelectorAll('tr.product-row');
+                    if (productRows.length > 0) {
+                        productRows.forEach(row => {
+                            const pStatus = row.getAttribute('data-product-status');
+                            if (currentFilter === 'all') {
+                                row.style.display = '';
+                            } else if (currentFilter === 'to_work') {
+                                row.style.display = (pStatus === 'submitted') ? '' : 'none';
+                            } else if (currentFilter === 'in_processing') {
+                                row.style.display = (pStatus === 'in_processing') ? '' : 'none';
+                            } else if (currentFilter === 'waiting_docs') {
+                                row.style.display = (pStatus === 'draft' || pStatus === 'in_progress') ? '' : 'none';
+                            } else if (currentFilter === 'completed') {
+                                row.style.display = (pStatus === 'completed') ? '' : 'none';
+                            }
+                        });
+                    }
+
+                    // Automatically open card if filtering by a specific status or searching
+                    if (currentFilter !== 'all' || (term && prodNames.includes(term))) {
                         card.classList.add('open');
                     }
                 } else {
@@ -1407,6 +1431,10 @@
                 const allPill = document.querySelector('.filter-pill[data-filter="all"]');
                 if (allPill) allPill.classList.add('active');
                 currentFilter = 'all';
+                accordionCards.forEach(card => {
+                    const rows = card.querySelectorAll('tr.product-row');
+                    rows.forEach(r => r.style.display = '');
+                });
                 applyFilters();
             });
         }

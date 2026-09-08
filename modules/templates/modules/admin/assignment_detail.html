@@ -242,6 +242,38 @@
         height: 100%;
         border-radius: 10px;
     }
+
+    /* Prendi in Carico Button */
+    @keyframes pulse-icon {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+
+    .btn-prendi-carico {
+        background: linear-gradient(135deg, #1976d2, #1565c0) !important;
+        border: none;
+        font-size: 1rem;
+        font-weight: 700;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        color: white;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        cursor: pointer;
+        font-family: inherit;
+    }
+
+    .btn-prendi-carico:hover {
+        transform: scale(1.05);
+        box-shadow: 0 8px 24px rgba(25, 118, 210, 0.4);
+    }
+
+    .btn-prendi-carico:active {
+        transform: scale(0.98);
+    }
 </style>
 {% endblock %}
 
@@ -281,8 +313,11 @@
     <form method="post" action="{% url 'assignment_update_status' assignment.id %}">
         {% csrf_token %}
         <input type="hidden" name="status" value="in_processing">
-        <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold rounded-3 shadow-sm" style="background: #1976d2; border: none;">
-            <i class="bi bi-play-circle-fill me-1"></i> Prendi in Carico (Avvia Lavorazione)
+        <button type="submit" class="btn-prendi-carico"
+                onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 8px 24px rgba(25,118,210,0.4)'"
+                onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 12px rgba(25,118,210,0.2)'">
+            <i class="bi bi-play-circle-fill" style="animation: pulse-icon 1s infinite;"></i>
+            Prendi in Carico (Avvia Lavorazione)
         </button>
     </form>
 </div>

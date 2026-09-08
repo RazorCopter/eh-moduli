@@ -889,5 +889,10 @@
 
     // Set dashboard flag for upload guide auto-popup
     window.EH_IS_DASHBOARD = true;
+
+    // Mark session as active in personal area so intro animation is not replayed
+    try {
+        sessionStorage.setItem('eh_in_personal_area', 'true');
+    } catch(e) {}
 </script>
 {% endblock %}

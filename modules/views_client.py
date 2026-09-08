@@ -4,8 +4,10 @@ Handles authentication, dashboard, and product navigation for customers.
 """
 from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.http import HttpResponseForbidden
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.utils import timezone
 from django.db.models import Count, Q
 from .models import Customer, FormAssignment, DocumentRequirement, DocumentUpload
@@ -81,6 +83,7 @@ def set_client_language(request, lang_code=None):
 # Login
 # ---------------------------------------------------------------------------
 @require_http_methods(["GET", "POST"])
+@ensure_csrf_cookie
 def client_login(request):
     """Customer portal login — code + password."""
     # If already logged in, redirect to dashboard
@@ -91,6 +94,9 @@ def client_login(request):
     t = trans_ctx['t']
     error = None
     code_value = ''
+
+    if request.GET.get('error') == 'csrf':
+        error = t.get('error_session_expired', 'La sessione di sicurezza è scaduta. Riprova ad accedere.')
 
     if request.method == 'POST':
         code_value = (request.POST.get('code') or '').strip()
@@ -155,7 +161,8 @@ def client_login(request):
 # ---------------------------------------------------------------------------
 # Logout
 # ---------------------------------------------------------------------------
-@require_http_methods(["POST"])
+@require_http_methods(["GET", "POST"])
+@csrf_exempt
 def client_logout(request):
     """Customer portal logout — flush customer session data while preserving language preference."""
     customer_id = request.session.get('customer_id')
@@ -176,6 +183,33 @@ def client_logout(request):
     request.session['client_language'] = current_lang
     request.session.modified = True
     return redirect('client_login')
+
+
+# ---------------------------------------------------------------------------
+# CSRF Failure View
+# ---------------------------------------------------------------------------
+def csrf_failure_view(request, reason=""):
+    """
+    User-friendly CSRF failure handler.
+    Prevents abrupt 403 crashes and safely redirects or resets the security token.
+    """
+    logger.warning(
+        "CSRF verification failed: path=%s, reason=%s, origin=%s, referer=%s",
+        request.path, reason, request.META.get('HTTP_ORIGIN'), request.META.get('HTTP_REFERER')
+    )
+    # If logout was attempted, proceed with logout cleanly
+    if '/client/logout' in request.path:
+        return client_logout(request)
+
+    # If login was attempted, redirect back to login page with friendly message
+    if '/client/login' in request.path or '/clienti' in request.path:
+        return redirect(f"{redirect('client_login').url}?error=csrf")
+
+    trans_ctx = get_translation_context(request)
+    return render(request, 'modules/csrf_failure.html', {
+        'reason': reason,
+        **trans_ctx,
+    }, status=403)
 
 
 # ---------------------------------------------------------------------------
@@ -368,5 +402,6 @@ def client_product_detail(request, assignment_id):
         user_agent=get_user_agent(request)
     )
 
-    # Redirect to the existing form detail (token-based entry point)
-    return redirect('get_form_by_token', token=assignment.secure_token)
+    # Redirect to the existing form detail (token-based entry point) with portal marker
+    base_url = reverse('get_form_by_token', kwargs={'token': assignment.secure_token})
+    return redirect(f"{base_url}?from=portal")

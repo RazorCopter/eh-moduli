@@ -1,6 +1,6 @@
 {% extends "accounts/base.html" %}
 
-{% block title %}Nuovo Cliente - Admin{% endblock %}
+{% block title %}{% if is_edit %}Modifica Cliente - Admin{% else %}Nuovo Cliente - Admin{% endif %}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -226,11 +226,21 @@
         <div class="form-header-bar">
             <div class="form-header-bar-left">
                 <div class="header-icon-box">
-                    <i class="bi bi-person-plus-fill"></i>
+                    {% if is_edit %}
+                        <i class="bi bi-pencil-square"></i>
+                    {% else %}
+                        <i class="bi bi-person-plus-fill"></i>
+                    {% endif %}
                 </div>
                 <div>
-                    <h1 class="form-title">Nuovo Cliente</h1>
-                    <p class="form-subtitle">Configura il profilo cliente e la cartella NAS dedicata per la raccolta documentale</p>
+                    <h1 class="form-title">{% if is_edit %}Modifica Cliente{% else %}Nuovo Cliente{% endif %}</h1>
+                    <p class="form-subtitle">
+                        {% if is_edit %}
+                            Aggiorna il profilo aziendale, i parametri NAS e le credenziali di accesso
+                        {% else %}
+                            Configura il profilo cliente e la cartella NAS dedicata per la raccolta documentale
+                        {% endif %}
+                    </p>
                 </div>
             </div>
             <a href="{% url 'customer_list' %}" class="btn-back-link">
@@ -332,17 +342,24 @@
             </div>
 
             <div class="field-group">
-                <label for="portal_password">Password di Accesso Cliente <span class="req">*</span></label>
+                <label for="portal_password">
+                    Password di Accesso Cliente 
+                    {% if not is_edit %}
+                        <span class="req">*</span>
+                    {% else %}
+                        <small style="color: #64748B; font-weight: normal;">(Opzionale - lascia vuoto per non modificarla)</small>
+                    {% endif %}
+                </label>
                 <div style="display: flex; gap: 8px; align-items: stretch;">
                     <div style="position: relative; flex: 1;">
                         <input type="text" 
                                name="portal_password" 
                                id="portal_password" 
                                class="form-control" 
-                               placeholder="Inserisci o clicca su 'Genera Password'..." 
+                               placeholder="{% if is_edit %}Lascia vuoto per mantenere la password attuale...{% else %}Inserisci o clicca su 'Genera Password'...{% endif %}" 
                                value="{{ form_data.portal_password|default:'' }}" 
                                minlength="6"
-                               required
+                               {% if not is_edit %}required{% endif %}
                                autocomplete="new-password"
                                style="font-family: 'Courier New', monospace; font-size: 1rem; letter-spacing: 0.5px; padding-right: 40px;">
                         <button type="button" 
@@ -369,7 +386,12 @@
                     </button>
                 </div>
                 <div class="field-hint" style="margin-top: 6px;">
-                    <i class="bi bi-info-circle"></i> Il cliente utilizzerà il <strong>Codice Cliente</strong> come username e questa password per accedere all'Area Personale. Conserva o comunica questa password al cliente. (Minimo 6 caratteri)
+                    <i class="bi bi-info-circle"></i> 
+                    {% if is_edit %}
+                        Se lasci il campo vuoto, la password corrente del cliente rimane inalterata. Se inserisci o generi una nuova password, deve avere almeno 6 caratteri.
+                    {% else %}
+                        Il cliente utilizzerà il <strong>Codice Cliente</strong> come username e questa password per accedere all'Area Personale. Conserva o comunica questa password al cliente. (Minimo 6 caratteri)
+                    {% endif %}
                 </div>
             </div>
 
@@ -405,7 +427,11 @@
             <div class="actions-footer">
                 <a href="{% url 'customer_list' %}" class="btn-cancel">Annulla</a>
                 <button type="submit" class="btn-submit-cust">
-                    <i class="bi bi-check-lg"></i> Crea Cliente
+                    {% if is_edit %}
+                        <i class="bi bi-check2-circle"></i> Salva Modifiche
+                    {% else %}
+                        <i class="bi bi-check-lg"></i> Crea Cliente
+                    {% endif %}
                 </button>
             </div>
         </form>
@@ -492,12 +518,14 @@
         });
     }
 
-    // Auto-suggest password on new form if empty
+    // Auto-suggest password on new form if empty (only for creation)
+    {% if not is_edit %}
     window.addEventListener('DOMContentLoaded', () => {
         const pwdInput = document.getElementById('portal_password');
         if (!pwdInput.value.trim()) {
             generateRandomPassword();
         }
     });
+    {% endif %}
 </script>
 {% endblock %}

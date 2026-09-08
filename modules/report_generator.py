@@ -70,7 +70,7 @@ def format_file_size(bytes_val):
         return f"{bytes_val / 1048576:.2f} MB"
 
 
-def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, form_fields=None, logo_path=None):
+def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, form_fields=None, logo_path=None, timeline_events=None):
     """
     Generates a premium-quality PDF report for a submitted form.
 
@@ -80,6 +80,7 @@ def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, 
     :param uploads: list of upload records
     :param form_fields: list of submitted form field answers
     :param logo_path: optional path to SVG logo file
+    :param timeline_events: optional list of lifecycle events for timeline flowable
     """
     os.makedirs(os.path.dirname(output_pdf_path), exist_ok=True)
 
@@ -426,6 +427,57 @@ def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, 
     story.append(Spacer(1, 10))
 
     # ==========================================================
+    # 4b. Cronologia e Timeline di Lavorazione (Audit Trail)
+    # ==========================================================
+    if timeline_events:
+        story.append(Paragraph("CRONOLOGIA E TIMELINE DI LAVORAZIONE", s_section_hdr))
+
+        timeline_table_data = [[
+            Paragraph("Fase / Evento", s_th),
+            Paragraph("Data e Ora", s_th),
+            Paragraph("Attore / Canale", s_th),
+            Paragraph("Dettagli / Esito", s_th),
+        ]]
+
+        t_widths = [
+            content_width * 0.28,
+            content_width * 0.22,
+            content_width * 0.24,
+            content_width * 0.26
+        ]
+
+        t_styles = [
+            ('BACKGROUND', (0, 0), (-1, 0), c_primary),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('LEFTPADDING', (0, 0), (-1, -1), 5),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+            ('BOX', (0, 0), (-1, -1), 1, c_border),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, c_border),
+        ]
+
+        for t_idx, event in enumerate(timeline_events, start=1):
+            title = event.get('title', 'Evento')
+            dt_str = event.get('datetime', '—')
+            actor = event.get('actor', 'Sistema')
+            desc = event.get('details', '—')
+
+            e_title = Paragraph(f"<b>{title}</b>", s_tb_bold)
+            e_dt = Paragraph(dt_str, s_tb)
+            e_actor = Paragraph(actor, s_tb_muted)
+            e_desc = Paragraph(desc, s_tb)
+
+            timeline_table_data.append([e_title, e_dt, e_actor, e_desc])
+            if event.get('bg_color'):
+                t_styles.append(('BACKGROUND', (0, t_idx), (0, t_idx), colors.HexColor(event['bg_color'])))
+
+        t_table = Table(timeline_table_data, colWidths=t_widths)
+        t_table.setStyle(TableStyle(t_styles))
+        story.append(t_table)
+        story.append(Spacer(1, 10))
+
+    # ==========================================================
     # 5. Summary & Verification Statement
     # ==========================================================
     summary_html = f"""
@@ -515,31 +567,33 @@ def generate_form_receipt_pdf(form_template, assignment, pdf_path, client_ip=Non
         ).order_by('order'))
     ).get(id=form_template.id)
 
-    # Cache all document uploads for this assignment to avoid filtering in loop
-    uploads_by_req = {
-        up.document_requirement_id: up
-        for up in assignment.documentupload_set.filter(status='valid')
-    }
+    # Cache all document uploads for this assignment grouping by requirement
+    from collections import defaultdict
+    uploads_by_req = defaultdict(list)
+    for up in assignment.documentupload_set.filter(status='valid').order_by('upload_datetime'):
+        uploads_by_req[up.document_requirement_id].append(up)
 
     # Now iterate through prefetched steps and requirements
     for step in optimized_form.formstep_set.all():
         for req in step.documentrequirement_set.all():
-            up = uploads_by_req.get(req.id)
-            if up:
-                is_unavail = (up.availability_status == 'not_available')
-                has_file = bool(up.stored_filename and up.original_filename not in ['NON_DISPONIBILE', '—'])
-                uploads_data.append({
-                    'document_name': req.name,
-                    'required': req.required,
-                    'availability_status': up.availability_status,
-                    'indisponibile': is_unavail,
-                    'has_declaration_file': is_unavail and has_file,
-                    'motivazione_indisponibilita': up.motivazione_indisponibilita if is_unavail else '',
-                    'original_filename': up.original_filename if (not is_unavail or has_file) else '—',
-                    'stored_filename': up.stored_filename or '',
-                    'file_size': up.file_size or 0,
-                    'sha256': up.sha256_checksum or '—',
-                })
+            req_uploads = uploads_by_req.get(req.id, [])
+            if req_uploads:
+                for up in req_uploads:
+                    is_unavail = (up.availability_status == 'not_available')
+                    has_file = bool(up.stored_filename and up.original_filename not in ['NON_DISPONIBILE', '—'])
+                    disp_name = req.name if len(req_uploads) == 1 else f"{req.name} — {up.original_filename}"
+                    uploads_data.append({
+                        'document_name': disp_name,
+                        'required': req.required,
+                        'availability_status': up.availability_status,
+                        'indisponibile': is_unavail,
+                        'has_declaration_file': is_unavail and has_file,
+                        'motivazione_indisponibilita': up.motivazione_indisponibilita if is_unavail else '',
+                        'original_filename': up.relative_path or up.original_filename if (not is_unavail or has_file) else '—',
+                        'stored_filename': up.stored_filename or '',
+                        'file_size': up.file_size or 0,
+                        'sha256': up.sha256_checksum or '—',
+                    })
             else:
                 uploads_data.append({
                     'document_name': req.name,
@@ -553,4 +607,102 @@ def generate_form_receipt_pdf(form_template, assignment, pdf_path, client_ip=Non
                     'sha256': '—',
                 })
 
-    return generate_submission_pdf(pdf_path, form_data, customer_data, uploads_data)
+    # Construzione cronologia ed eventi di lavorazione per la Timeline
+    timeline_events = []
+
+    # 1. Assegnazione / Creazione Pratica
+    asgn_dt = assignment.assignment_date.strftime('%d/%m/%Y %H:%M') if getattr(assignment, 'assignment_date', None) else '—'
+    asgn_actor = assignment.operator.username if getattr(assignment, 'operator', None) else 'Ufficio Regolatorio'
+    timeline_events.append({
+        'title': 'Apertura e Assegnazione',
+        'datetime': asgn_dt,
+        'actor': asgn_actor,
+        'details': 'Fascicolo aperto e cartella NAS creata',
+        'bg_color': '#F8FAFC'
+    })
+
+    # 2. Primo Accesso Cliente
+    if assignment.last_access_date:
+        acc_dt = assignment.last_access_date.strftime('%d/%m/%Y %H:%M')
+        timeline_events.append({
+            'title': 'Accesso Cliente',
+            'datetime': acc_dt,
+            'actor': customer.code if customer else 'Cliente',
+            'details': 'Presa visione istruzioni e avvio caricamento',
+            'bg_color': '#F1F5F9'
+        })
+
+    # 3. Invio Documenti da parte del Cliente
+    if assignment.submission_date:
+        sub_dt = assignment.submission_date.strftime('%d/%m/%Y %H:%M')
+        valid_files_cnt = sum(1 for u in uploads_data if not u.get('indisponibile'))
+        unavail_cnt = sum(1 for u in uploads_data if u.get('indisponibile'))
+        timeline_events.append({
+            'title': 'Invio Documentazione',
+            'datetime': sub_dt,
+            'actor': f"Cliente (IP: {resolved_ip})",
+            'details': f"{valid_files_cnt} file caricati · {unavail_cnt} non disp./dichiarati",
+            'bg_color': '#ECFDF3'
+        })
+
+    # 4. Eventi intermedi e operatore tracciati in AuditLog
+    try:
+        from .models import AuditLog
+        audit_records = AuditLog.objects.filter(
+            object_type='FormAssignment',
+            object_id=str(assignment.id)
+        ).order_by('action_datetime')
+
+        for rec in audit_records:
+            det = rec.details or {}
+            action = det.get('action', '')
+            rec_dt = rec.action_datetime.strftime('%d/%m/%Y %H:%M')
+            actor_name = rec.actor_user.username if rec.actor_user else 'Operatore Etichub'
+
+            if action == 'status_updated_by_operator':
+                new_st = det.get('new_status')
+                if new_st == 'in_processing':
+                    timeline_events.append({
+                        'title': 'Presa in Carico Regolatoria',
+                        'datetime': rec_dt,
+                        'actor': actor_name,
+                        'details': 'Inizio revisione tecnica e istruttoria PIF',
+                        'bg_color': '#E0F2FE'
+                    })
+                elif new_st == 'completed':
+                    timeline_events.append({
+                        'title': 'Chiusura Pratica (Lavorata)',
+                        'datetime': rec_dt,
+                        'actor': actor_name,
+                        'details': 'Valutazione conformità completata con successo',
+                        'bg_color': '#D1FAE5'
+                    })
+            elif action == 'reopened_for_integrations':
+                timeline_events.append({
+                    'title': 'Richiesta Integrazioni (Rework)',
+                    'datetime': rec_dt,
+                    'actor': actor_name,
+                    'details': 'Riapertura fascicolo per caricamento nuovi documenti',
+                    'bg_color': '#FEF3C7'
+                })
+    except Exception:
+        pass
+
+    # 5. Se la pratica risulta completata ma l'evento non era presente nel log, aggiungi chiusura
+    has_completed_step = any('Chiusura Pratica' in e.get('title', '') for e in timeline_events)
+    if assignment.status == 'completed' and not has_completed_step:
+        comp_iso = (assignment.form_data or {}).get('completed_at')
+        try:
+            comp_dt = datetime.fromisoformat(comp_iso).strftime('%d/%m/%Y %H:%M') if comp_iso else datetime.now().strftime('%d/%m/%Y %H:%M')
+        except Exception:
+            comp_dt = datetime.now().strftime('%d/%m/%Y %H:%M')
+        comp_actor = (assignment.form_data or {}).get('completed_by') or (assignment.operator.username if assignment.operator else 'Ufficio Regolatorio')
+        timeline_events.append({
+            'title': 'Chiusura Pratica (Lavorata)',
+            'datetime': comp_dt,
+            'actor': comp_actor,
+            'details': 'Valutazione conformità completata con successo',
+            'bg_color': '#D1FAE5'
+        })
+
+    return generate_submission_pdf(pdf_path, form_data, customer_data, uploads_data, timeline_events=timeline_events)

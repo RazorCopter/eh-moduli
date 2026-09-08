@@ -5,7 +5,10 @@ import tempfile
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
-from .models import User, Customer, FormTemplate, FormStep, DocumentRequirement, FormAssignment, AuditLog, AwarenessDeclaration, NotificationLog
+from .models import (
+    User, Customer, FormTemplate, FormStep, DocumentRequirement,
+    DocumentUpload, FormAssignment, AuditLog, AwarenessDeclaration, NotificationLog
+)
 
 
 class CustomerDeleteTests(TestCase):
@@ -330,6 +333,7 @@ class PublicAssignmentFlowTests(TestCase):
         self.assertIn('Modulo Raccolta Fiscale', content)
         self.assertIn('Raccolta Documenti', content)
         self.assertIn('Inizia la Compilazione', content)
+        self.assertIn('etichub-intro', content)
         # Verify admin navbar items are NOT shown
         self.assertNotIn('href="/modules/admin/" class="navbar-link', content)
 
@@ -946,6 +950,138 @@ class CustomerCreateTests(TestCase):
         })
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "Errore di convalida")
+
+
+class CustomerEditTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin_user = User.objects.create_user(
+            username='admin_edit_test',
+            email='admin_edit@test.com',
+            password='password123',
+            role='admin',
+            is_staff=True
+        )
+        self.client.force_login(self.admin_user)
+        self.customer = Customer.objects.create(
+            code='CLI_EDIT_001',
+            first_name='Azienda Alfa',
+            last_name='Referente Alfa',
+            email='alfa@example.com',
+            phone='+39 02 111111',
+            nas_folder_name='ALFA_NAS',
+            notes='Note iniziali',
+            active=True
+        )
+        self.customer.set_portal_password('InitialPass123')
+        self.customer.save()
+        self.edit_url = reverse('customer_edit', kwargs={'pk': self.customer.id})
+
+    def test_customer_edit_get_html_and_ajax(self):
+        # Normal GET
+        resp = self.client.get(self.edit_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Azienda Alfa")
+
+        # AJAX GET
+        resp_ajax = self.client.get(self.edit_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp_ajax.status_code, 200)
+        data = resp_ajax.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['customer']['code'], 'CLI_EDIT_001')
+        self.assertEqual(data['customer']['first_name'], 'Azienda Alfa')
+
+    def test_customer_edit_updates_all_attributes(self):
+        resp = self.client.post(self.edit_url, {
+            'code': 'CLI_EDIT_MOD',
+            'first_name': 'Azienda Beta Srl',
+            'last_name': 'Referente Beta',
+            'email': 'beta@example.com',
+            'phone': '+39 02 222222',
+            'nas_folder_name': 'BETA_NAS',
+            'notes': 'Note aggiornate',
+            'active': 'on'
+        })
+        self.assertRedirects(resp, reverse('customer_list'))
+
+        self.customer.refresh_from_db()
+        self.assertEqual(self.customer.code, 'CLI_EDIT_MOD')
+        self.assertEqual(self.customer.first_name, 'Azienda Beta Srl')
+        self.assertEqual(self.customer.last_name, 'Referente Beta')
+        self.assertEqual(self.customer.email, 'beta@example.com')
+        self.assertEqual(self.customer.phone, '+39 02 222222')
+        self.assertEqual(self.customer.nas_folder_name, 'BETA_NAS')
+        self.assertEqual(self.customer.notes, 'Note aggiornate')
+        self.assertTrue(self.customer.active)
+
+    def test_customer_edit_without_password_preserves_existing_password(self):
+        self.client.post(self.edit_url, {
+            'code': 'CLI_EDIT_001',
+            'first_name': 'Azienda Alfa Modificata',
+            'last_name': 'Referente Alfa',
+            'email': 'alfa@example.com',
+            'nas_folder_name': 'ALFA_NAS',
+            'active': 'on'
+        })
+        self.customer.refresh_from_db()
+        self.assertEqual(self.customer.first_name, 'Azienda Alfa Modificata')
+        self.assertTrue(self.customer.check_portal_password('InitialPass123'))
+
+    def test_customer_edit_with_new_password_updates_portal_password(self):
+        resp = self.client.post(self.edit_url, {
+            'code': 'CLI_EDIT_001',
+            'first_name': 'Azienda Alfa',
+            'last_name': 'Referente Alfa',
+            'email': 'alfa@example.com',
+            'nas_folder_name': 'ALFA_NAS',
+            'portal_password': 'NuovaSuperPassword999!',
+            'active': 'on'
+        })
+        self.assertRedirects(resp, reverse('customer_list'))
+        self.customer.refresh_from_db()
+        self.assertFalse(self.customer.check_portal_password('InitialPass123'))
+        self.assertTrue(self.customer.check_portal_password('NuovaSuperPassword999!'))
+
+    def test_customer_edit_ajax_response(self):
+        resp = self.client.post(
+            self.edit_url,
+            {
+                'code': 'CLI_EDIT_001',
+                'first_name': 'Nome Aggiornato via AJAX',
+                'last_name': 'Cognome',
+                'email': 'alfa@example.com',
+                'nas_folder_name': 'ALFA_NAS',
+                'active': 'true',
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['customer']['first_name'], 'Nome Aggiornato via AJAX')
+        self.customer.refresh_from_db()
+        self.assertEqual(self.customer.first_name, 'Nome Aggiornato via AJAX')
+
+    def test_customer_edit_duplicate_code_or_nas_rejected(self):
+        Customer.objects.create(
+            code='CLI_OTHER',
+            first_name='Other',
+            email='other@example.com',
+            nas_folder_name='OTHER_NAS'
+        )
+
+        resp = self.client.post(
+            self.edit_url,
+            {
+                'code': 'CLI_OTHER',
+                'first_name': 'Azienda Alfa',
+                'email': 'alfa@example.com',
+                'nas_folder_name': 'ALFA_NAS',
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("esiste già", resp.json()['error'])
 
 
 class ApiCustomerCreateAndDashboardTests(TestCase):
@@ -1760,6 +1896,419 @@ class TestAdminDashboardCustomerGrouping(TestCase):
         self.assertIn('uploadGuideModal', content)
         self.assertIn('dontShowGuideAgain', content)
         self.assertIn('Guida Upload', content)
+        self.assertIn('btnStartUploadGuide', content)
+        self.assertIn('Inizia', content)
+
+
+class ClientLoginAndIntroAnimationTests(TestCase):
+    def setUp(self):
+        self.customer = Customer.objects.create(
+            first_name='Mario',
+            last_name='Rossi',
+            email='mario.rossi@example.com',
+            code='CLI-999',
+            active=True
+        )
+        self.customer.set_portal_password('Secr3tP@ss!')
+        self.customer.save()
+
+    def test_client_login_page_renders_with_intro_animation(self):
+        resp = self.client.get(reverse('client_login'))
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode('utf-8')
+        self.assertIn('etichub-intro', content)
+        self.assertIn('etichub-logo', content)
+        self.assertIn('id="id_code"', content)
+        self.assertIn('id="id_password"', content)
+        self.assertIn('name="code"', content)
+        self.assertIn('name="password"', content)
+        self.assertIn('Rivedi animazione', content)
+        self.assertIn('lang-selector-bar', content)
+        self.assertIn('Codice Cliente', content)
+        self.assertNotIn('type="email"', content)
+
+    def test_client_login_invalid_credentials_shows_error(self):
+        resp = self.client.post(reverse('client_login'), {
+            'code': 'CLI-999',
+            'password': 'wrongpassword'
+        })
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode('utf-8')
+        self.assertIn('Password errata. Riprova.', content)
+
+    def test_client_login_success_sets_session_and_redirects(self):
+        resp = self.client.post(reverse('client_login'), {
+            'code': 'CLI-999',
+            'password': 'Secr3tP@ss!'
+        })
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('client_dashboard'))
+        self.assertEqual(self.client.session.get('customer_id'), str(self.customer.id))
+        self.assertEqual(self.client.session.get('customer_code'), 'CLI-999')
+
+    def test_client_login_already_logged_in_redirects(self):
+        session = self.client.session
+        session['customer_id'] = str(self.customer.id)
+        session['customer_code'] = self.customer.code
+        session.save()
+
+        resp = self.client.get(reverse('client_login'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('client_dashboard'))
+
+    def test_client_login_ensures_csrf_cookie(self):
+        resp = self.client.get(reverse('client_login'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('csrftoken', resp.cookies)
+
+    def test_client_logout_clears_session_and_redirects(self):
+        session = self.client.session
+        session['customer_id'] = str(self.customer.id)
+        session['customer_code'] = self.customer.code
+        session.save()
+
+        # Test POST logout without CSRF token (csrf_exempt)
+        resp = self.client.post(reverse('client_logout'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('client_login'))
+        self.assertIsNone(self.client.session.get('customer_id'))
+
+        # Test GET logout as well
+        session = self.client.session
+        session['customer_id'] = str(self.customer.id)
+        session.save()
+        resp = self.client.get(reverse('client_logout'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertRedirects(resp, reverse('client_login'))
+        self.assertIsNone(self.client.session.get('customer_id'))
+
+
+class TestAnalyticsDashboardView(TestCase):
+    """Test suite for Admin Management Statistics & Analytics Dashboard."""
+
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_superuser(
+            username='admin_analytics',
+            email='admin_analytics@etichub.it',
+            password='Password123!'
+        )
+        self.client.force_login(self.admin)
+
+        self.customer = Customer.objects.create(
+            first_name='Test Analytics Pharma',
+            code='TAP-001',
+            nas_folder_name='tap_001',
+            email='pharma@example.com'
+        )
+
+        self.template = FormTemplate.objects.create(
+            name='Modulo Crema Solare',
+            project_name='Crema Solare SPF50',
+            status='published',
+            author=self.admin
+        )
+
+        # Create an assignment that was completed
+        now = timezone.now()
+        self.assignment_completed = FormAssignment.objects.create(
+            customer=self.customer,
+            form_template=self.template,
+            status='completed',
+            assignment_date=now - timezone.timedelta(days=5),
+            last_access_date=now - timezone.timedelta(days=4),
+            submission_date=now - timezone.timedelta(days=3),
+            expiry_date=now + timezone.timedelta(days=30),
+            form_data={
+                'project_name': 'Crema Solare SPF50',
+                'in_processing_at': (now - timezone.timedelta(days=2)).isoformat(),
+                'completed_at': (now - timezone.timedelta(days=1)).isoformat(),
+                'completed_by': 'admin_analytics'
+            }
+        )
+
+    def test_analytics_dashboard_view_success(self):
+        resp = self.client.get(reverse('analytics_dashboard'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'modules/admin/analytics.html')
+        self.assertIn('total_assignments', resp.context)
+        self.assertIn('completed_count', resp.context)
+        self.assertEqual(resp.context['total_assignments'], 1)
+        self.assertIn('avg_cust_upload_days', resp.context)
+        self.assertIn('avg_op_proc_days', resp.context)
+        self.assertIn('avg_e2e_days', resp.context)
+        self.assertIn('chart_status_data', resp.context)
+        self.assertEqual(resp.context['sla_target_days'], 30)
+        content = resp.content.decode('utf-8')
+        self.assertIn('Statistiche & Tempi di Gestione', content)
+        self.assertIn('Test Analytics Pharma', content)
+
+
+class TestBulkZipExtractionAndUpload(TestCase):
+    """Test suite for ZIP bulk extraction and indexing engine."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username='admin_zip',
+            email='admin_zip@etichub.it',
+            password='Password123!'
+        )
+        self.customer = Customer.objects.create(
+            first_name='Laboratorio Cosmetico SRL',
+            code='LDF-99',
+            nas_folder_name='ldf_99',
+            email='lab@example.com'
+        )
+        self.template = FormTemplate.objects.create(
+            name='Form Formule',
+            project_name='Crema Antietà',
+            status='published',
+            author=self.admin
+        )
+        self.step = FormStep.objects.create(
+            form_template=self.template,
+            order=1,
+            title='Upload Materie Prime'
+        )
+        self.req = DocumentRequirement.objects.create(
+            form_step=self.step,
+            name='Allegato1',
+            order=1,
+            destination_subfolder='Allegato1',
+            max_file_size=50 * 1024 * 1024,
+            allowed_extensions='pdf,zip,txt',
+            mime_types='application/pdf,application/zip,text/plain'
+        )
+        now = timezone.now()
+        self.assignment = FormAssignment.objects.create(
+            customer=self.customer,
+            form_template=self.template,
+            status='in_progress',
+            expiry_date=now + timezone.timedelta(days=30)
+        )
+
+    def test_validate_zip_safety_and_extraction(self):
+        import io
+        import zipfile
+        import tempfile
+        import shutil
+        from modules.upload_security import validate_zip_archive_safety, extract_and_index_zip_archive
+
+        # Build in-memory zip containing subfolders and files
+        zip_buf = io.BytesIO()
+        with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr('Materie Prime/olio_mandorle.pdf', b'%PDF-1.4 simulated pdf data')
+            zf.writestr('Materie Prime/Certificati/coaf.pdf', b'%PDF-1.4 simulated cert data')
+            zf.writestr('Materie Prime/scheda_sicurezza.txt', b'MSDS safe compound info')
+
+        zip_bytes = zip_buf.getvalue()
+
+        # Validate safety
+        zip_errors = validate_zip_archive_safety(io.BytesIO(zip_bytes))
+        self.assertEqual(len(zip_errors), 0, f"Safety check failed: {zip_errors}")
+
+        # Setup temporary directories simulating NAS structure
+        temp_dir = tempfile.mkdtemp()
+        project_dir = os.path.join(temp_dir, 'Laboratorio_Cosmetico', 'Crema_Antieta')
+        os.makedirs(project_dir, exist_ok=True)
+        manifest_path = os.path.join(project_dir, 'manifest.json')
+        with open(manifest_path, 'w') as f:
+            json.dump({'uploads': []}, f)
+
+        try:
+            with io.BytesIO(zip_bytes) as zf_obj:
+                res = extract_and_index_zip_archive(
+                    file_obj=zf_obj,
+                    assignment=self.assignment,
+                    requirement=self.req,
+                    nas_project_path=project_dir
+                )
+
+            # Check extracted count
+            self.assertEqual(res['count'], 3)
+
+            # Check files exist on disk
+            target_allegato_dir = os.path.join(project_dir, 'Allegato1')
+            extracted_f1 = os.path.join(target_allegato_dir, 'Materie Prime', 'olio_mandorle.pdf')
+            extracted_f2 = os.path.join(target_allegato_dir, 'Materie Prime', 'Certificati', 'coaf.pdf')
+            self.assertTrue(os.path.exists(extracted_f1))
+            self.assertTrue(os.path.exists(extracted_f2))
+
+            # Check DB records
+            uploads = DocumentUpload.objects.filter(form_assignment=self.assignment, document_requirement=self.req)
+            self.assertEqual(uploads.count(), 3)
+
+            # Check manifest updated
+            with open(manifest_path, 'r') as f:
+                manifest_data = json.load(f)
+            self.assertIn('uploads', manifest_data)
+            self.assertEqual(len(manifest_data['uploads']), 3)
+
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+class TestPdfReceiptWithTimeline(TestCase):
+    """Test suite for PDF report generation with Lifecycle Timeline and multiple uploads."""
+
+    def setUp(self):
+        self.admin = User.objects.create_superuser(
+            username='admin_pdf',
+            email='admin_pdf@etichub.it',
+            password='Password123!'
+        )
+        self.customer = Customer.objects.create(
+            first_name='Acme Cosmetics',
+            code='ACM-01',
+            nas_folder_name='acm_01',
+            email='acme@example.com'
+        )
+        self.template = FormTemplate.objects.create(
+            name='Modulo Crema Idratante',
+            project_name='Crema Idratante Notte',
+            status='published',
+            author=self.admin
+        )
+        self.step = FormStep.objects.create(
+            form_template=self.template,
+            order=1,
+            title='Documenti Prodotto'
+        )
+        self.req = DocumentRequirement.objects.create(
+            form_step=self.step,
+            name='Allegato1',
+            order=1,
+            destination_subfolder='Allegato1',
+            max_file_size=50 * 1024 * 1024,
+            allowed_extensions='pdf,zip,txt',
+            mime_types='application/pdf,application/zip,text/plain'
+        )
+        now = timezone.now()
+        self.assignment = FormAssignment.objects.create(
+            customer=self.customer,
+            form_template=self.template,
+            status='completed',
+            assignment_date=now - timezone.timedelta(days=4),
+            last_access_date=now - timezone.timedelta(days=3),
+            submission_date=now - timezone.timedelta(days=2),
+            expiry_date=now + timezone.timedelta(days=30),
+            form_data={
+                'project_name': 'Crema Idratante Notte',
+                'in_processing_at': (now - timezone.timedelta(days=1)).isoformat(),
+                'completed_at': now.isoformat(),
+                'completed_by': 'admin_pdf'
+            }
+        )
+
+        # Create two uploads for requirement
+        DocumentUpload.objects.create(
+            form_assignment=self.assignment,
+            document_requirement=self.req,
+            original_filename='olio_argan.pdf',
+            stored_filename='olio_argan.pdf',
+            relative_path='Allegato1/olio_argan.pdf',
+            file_size=10240,
+            sha256_checksum='abc123hash',
+            uploaded_by_ip='127.0.0.1',
+            uploaded_by_user_agent='Test',
+            status='valid'
+        )
+        DocumentUpload.objects.create(
+            form_assignment=self.assignment,
+            document_requirement=self.req,
+            original_filename='coaf_mandorle.pdf',
+            stored_filename='coaf_mandorle.pdf',
+            relative_path='Allegato1/coaf_mandorle.pdf',
+            file_size=20480,
+            sha256_checksum='def456hash',
+            uploaded_by_ip='127.0.0.1',
+            uploaded_by_user_agent='Test',
+            status='valid'
+        )
+
+    def test_generate_pdf_with_timeline_success(self):
+        import tempfile
+        from modules.report_generator import generate_form_receipt_pdf
+
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            generate_form_receipt_pdf(self.template, self.assignment, tmp_path)
+            self.assertTrue(os.path.exists(tmp_path))
+            self.assertGreater(os.path.getsize(tmp_path), 1000)
+
+            # Read PDF header
+            with open(tmp_path, 'rb') as f:
+                header = f.read(5)
+            self.assertEqual(header, b'%PDF-')
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+
+class TestIntroAnimationSuppressionInPersonalArea(TestCase):
+    """Test suite ensuring intro animation only runs on login or direct landing page, never during personal area navigation."""
+
+    def setUp(self):
+        self.client = Client()
+        self.customer = Customer.objects.create(
+            first_name='Federica',
+            last_name='Fusco',
+            code='CLI-FUSCO',
+            nas_folder_name='cli_fusco',
+            email='fusco@example.com'
+        )
+        self.template = FormTemplate.objects.create(
+            name='Upload Documentale',
+            project_name='Crema Viso Idratante',
+            status='published'
+        )
+        now = timezone.now()
+        self.assignment = FormAssignment.objects.create(
+            customer=self.customer,
+            form_template=self.template,
+            status='in_progress',
+            expiry_date=now + timezone.timedelta(days=30)
+        )
+
+    def test_external_access_shows_intro_animation(self):
+        # Direct external link without existing logged session
+        token_url = reverse('get_form_by_token', kwargs={'token': self.assignment.secure_token})
+        resp = self.client.get(token_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.context['show_intro'])
+        content = resp.content.decode('utf-8')
+        self.assertIn('<etichub-intro', content)
+
+    def test_personal_area_navigation_suppresses_intro_animation(self):
+        # User is logged in to personal area (customer_id in session)
+        session = self.client.session
+        session['customer_id'] = str(self.customer.id)
+        session['customer_code'] = self.customer.code
+        session.save()
+
+        # Access from client personal area product detail
+        product_detail_url = reverse('client_product_detail', kwargs={'assignment_id': self.assignment.id})
+        resp = self.client.get(product_detail_url, follow=True)
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.context['show_intro'])
+        content = resp.content.decode('utf-8')
+        self.assertNotIn('<etichub-intro', content)
+
+    def test_direct_form_url_with_logged_in_session_suppresses_intro(self):
+        # User is logged in to personal area and opens form directly
+        session = self.client.session
+        session['customer_id'] = str(self.customer.id)
+        session.save()
+
+        token_url = reverse('get_form_by_token', kwargs={'token': self.assignment.secure_token})
+        resp = self.client.get(token_url)
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.context['show_intro'])
+        content = resp.content.decode('utf-8')
+        self.assertNotIn('<etichub-intro', content)
+
 
 
 
