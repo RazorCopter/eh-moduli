@@ -638,12 +638,9 @@
         </a>
     </div>
     <div>
-        <form method="post" action="{% url 'assignment_delete' assignment.id %}" onsubmit="return confirm('Sei sicuro di voler disassociare ed eliminare questa pratica per il cliente {{ assignment.customer.first_name }} {{ assignment.customer.last_name }}?\n\n- Il modulo verrà disassociato dal cliente.\n- Il link di accesso riservato non sarà più attivo.\n- La cartella NAS e gli eventuali file caricati non verranno cancellati.');" style="display: inline-block;">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-outline-danger" style="border-radius: 8px; font-weight: 500;">
-                <i class="bi bi-trash me-1"></i> Disassocia / Elimina Assegnazione
-            </button>
-        </form>
+        <button type="button" class="btn btn-outline-danger" style="border-radius: 8px; font-weight: 500;" onclick="openConfirmActionModal({ title: 'Disassocia ed Elimina Pratica', subtitle: 'Cliente: {{ assignment.customer.first_name|escapejs }} {{ assignment.customer.last_name|escapejs }}', message: 'Sei sicuro di voler disassociare ed eliminare questa pratica per il cliente <strong>{{ assignment.customer.first_name }} {{ assignment.customer.last_name }}</strong>?<br><br><ul class=\'small text-muted mb-3\'><li>Il modulo verrà disassociato dal cliente.</li><li>Il link di accesso riservato non sarà più attivo.</li><li>La cartella NAS e i file caricati <strong>rimarranno intatti</strong>.</li></ul>', formAction: '{% url 'assignment_delete' assignment.id %}', isWarning: false, btnClass: 'btn btn-danger px-4 py-2 rounded-pill fw-medium d-inline-flex align-items-center gap-2', btnHtml: '<i class=\'bi bi-trash3-fill\'></i> Disassocia ed Elimina' })">
+            <i class="bi bi-trash me-1"></i> Disassocia / Elimina Assegnazione
+        </button>
     </div>
 </div>
 

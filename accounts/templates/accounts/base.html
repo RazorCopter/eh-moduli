@@ -10,568 +10,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Bootstrap 5.3 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
 
     <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" integrity="sha384-QuGBSgV5Im3DzL2z+8Ko9/hqNy/N0O7zwvXAtfd1MvPKWa/UbeLV65cfm4BV5Wgq" crossorigin="anonymous">
 
     <!-- Design System CSS (etichub style) -->
     <link rel="stylesheet" href="{% static 'css/design-system.css' %}">
 
-    <style>
-        * {
-            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        body {
-            background-color: #F8F7F5;
-            color: #2C2C2C;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Navbar Styling to match screenshot perfectly */
-        .navbar {
-            background: #FFFFFF;
-            border-bottom: 1px solid #EAE6E1;
-            padding: 14px 0;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-        }
-
-        .navbar-container {
-            max-width: 1360px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 0 28px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .navbar-left {
-            display: flex;
-            align-items: center;
-            gap: 48px;
-        }
-
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-            cursor: pointer;
-            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .navbar-brand:hover {
-            transform: translateY(-1px);
-        }
-
-        .navbar-brand img {
-            height: 38px;
-            width: auto;
-            max-width: 150px;
-            object-fit: contain;
-            display: block;
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .navbar-brand:hover img {
-            transform: scale(1.03);
-        }
-
-        .navbar-brand-badge {
-            font-size: 0.72rem;
-            font-weight: 700;
-            color: #6C757D;
-            background: #F8F9FA;
-            border: 1px solid #E5E7EB;
-            padding: 3px 9px;
-            border-radius: 6px;
-            letter-spacing: 0.6px;
-            text-transform: uppercase;
-            line-height: 1.2;
-            transition: all 0.25s ease;
-        }
-
-        .navbar-brand:hover .navbar-brand-badge {
-            background: #F2EFFB;
-            border-color: #D4CDED;
-            color: #4A3E72;
-            transform: translateY(-1px);
-        }
-
-        .navbar-nav {
-            list-style: none !important;
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 32px !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-
-        .navbar-nav li {
-            display: inline-flex !important;
-            align-items: center !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            list-style: none !important;
-        }
-
-        .navbar-link {
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: #4B5563;
-            text-decoration: none;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            position: relative;
-            padding: 6px 0;
-        }
-
-        .navbar-link:hover {
-            color: #111827;
-            transform: translateY(-1px);
-        }
-
-        .navbar-link::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: #E89BA7;
-            border-radius: 2px;
-            transform: scaleX(0);
-            transform-origin: center;
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .navbar-link:hover::after,
-        .navbar-link.active::after {
-            transform: scaleX(1);
-        }
-
-        .navbar-link.active {
-            color: #111827;
-            font-weight: 600;
-        }
-
-        .navbar-user {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .navbar-username {
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: #374151;
-            transition: color 0.2s;
-        }
-
-        .btn-logout-pill {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #D1D5DB;
-            border-radius: 9999px;
-            padding: 6px 20px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: #374151;
-            background: #FFFFFF;
-            text-decoration: none;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            line-height: 1.3;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-        }
-
-        .btn-logout-pill:hover {
-            border-color: #9CA3AF;
-            background: #F9FAFB;
-            color: #111827;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-        }
-
-        .btn-logout-pill:active {
-            transform: scale(0.96);
-        }
-
-        /* Global Premium Button Shimmer */
-        .btn-shimmer {
-            position: relative;
-            overflow: hidden;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .btn-shimmer::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(
-                60deg,
-                rgba(255, 255, 255, 0) 20%,
-                rgba(255, 255, 255, 0.28) 50%,
-                rgba(255, 255, 255, 0) 80%
-            );
-            transform: translateX(-100%) rotate(25deg);
-            transition: transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
-            pointer-events: none;
-        }
-        .btn-shimmer:hover::after {
-            transform: translateX(100%) rotate(25deg);
-        }
-        .btn-shimmer:active {
-            transform: scale(0.97);
-        }
-
-        /* Main Container & Page Transitions */
-        .main-container {
-            flex: 1;
-            padding: 32px 0 64px 0;
-        }
-
-        .content-container {
-            max-width: 1360px;
-            margin: 0 auto;
-            padding: 0 28px;
-            animation: appFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        @keyframes appFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
-            to {
-                opacity: 1;
-                transform: none;
-            }
-        }
-
-        /* Ensure Bootstrap Modals and Backdrops stack correctly */
-        .modal {
-            z-index: 1065 !important;
-        }
-        .modal-backdrop {
-            z-index: 1055 !important;
-        }
-        .modal-dialog {
-            z-index: 1066 !important;
-        }
-        .modal-content {
-            background-color: #ffffff !important;
-            position: relative !important;
-            z-index: 1067 !important;
-        }
-
-        .alerts-container {
-            max-width: 1360px;
-            margin: 0 auto 24px auto;
-            padding: 0 28px;
-        }
-
-        .alert {
-            animation: alertSlideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-            border-radius: 10px;
-        }
-
-        @keyframes alertSlideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-8px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Footer */
-        .footer {
-            background: #FFFFFF;
-            border-top: 1px solid #EAE6E1;
-            padding: 24px 0;
-            margin-top: auto;
-        }
-
-        .footer-content {
-            max-width: 1360px;
-            margin: 0 auto;
-            padding: 0 28px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-            color: #8C8C8C;
-            font-size: 0.85rem;
-        }
-
-        .footer-links {
-            display: flex;
-            gap: 20px;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        .footer-link {
-            color: #7A7A7A;
-            text-decoration: none;
-            transition: color 0.2s;
-        }
-
-        .footer-link:hover {
-            color: #E89BA7;
-        }
-
-        /* Help Modal */
-        .help-modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
-            z-index: 1050;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-        .help-modal-overlay.active {
-            display: flex;
-        }
-        .help-modal-card {
-            background: white;
-            border-radius: 16px;
-            max-width: 600px;
-            width: 100%;
-            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.16);
-            overflow: hidden;
-            animation: modalSpring 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        @keyframes modalSpring {
-            0% { opacity: 0; transform: scale(0.92) translateY(12px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        .help-modal-header {
-            padding: 1.5rem;
-            background: #FAF8F6;
-            border-bottom: 1px solid #EAE6E1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .help-modal-header h4 {
-            margin: 0;
-            font-weight: 700;
-            color: #2C2C2C;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .help-modal-body {
-            padding: 1.5rem;
-            max-height: 70vh;
-            overflow-y: auto;
-            font-size: 0.92rem;
-            line-height: 1.6;
-            color: #4A4A4A;
-        }
-        .help-item {
-            margin-bottom: 1.25rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid #F0ECE8;
-        }
-        .help-item:last-child {
-            margin-bottom: 0;
-            padding-bottom: 0;
-            border-bottom: none;
-        }
-        .help-item strong {
-            display: block;
-            color: #2C2C2C;
-            font-size: 0.95rem;
-            margin-bottom: 0.25rem;
-        }
-        .help-modal-footer {
-            padding: 1rem 1.5rem;
-            background: #FAF8F6;
-            border-top: 1px solid #EAE6E1;
-            text-align: right;
-        }
-
-        /* User Dropdown Menu */
-        .navbar-user {
-            position: relative;
-        }
-
-        .navbar-user-dropdown {
-            position: relative;
-        }
-
-        .navbar-user-toggle {
-            background: none;
-            border: none;
-            padding: 0.5rem 0.75rem;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #374151;
-            font-size: 0.95rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .navbar-user-toggle:hover {
-            background: #f3f4f6;
-            color: #1f2937;
-        }
-
-        .role-badge {
-            font-size: 0.7rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .role-badge.admin-badge {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .role-badge.operator-badge {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .navbar-user-menu {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            margin-top: 0.5rem;
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
-            min-width: 280px;
-            z-index: 1050;
-            animation: slideDown 0.2s ease-out;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .dropdown-header {
-            padding: 0.75rem 1rem;
-        }
-
-        .user-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .user-name {
-            font-weight: 600;
-            color: #1f2937;
-            font-size: 0.9rem;
-        }
-
-        .user-email {
-            color: #6b7280;
-            font-size: 0.8rem;
-        }
-
-        .dropdown-divider {
-            height: 1px;
-            background: #f3f4f6;
-            margin: 0.5rem 0;
-        }
-
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            color: #374151;
-            text-decoration: none;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            cursor: pointer;
-        }
-
-        .dropdown-item:hover {
-            background: #f9fafb;
-            color: #1976d2;
-        }
-
-        .dropdown-item i {
-            width: 18px;
-            height: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .dropdown-item.logout-item {
-            color: #dc2626;
-            border-top: 1px solid #f3f4f6;
-            margin-top: 0.5rem;
-            padding-top: 0.75rem;
-        }
-
-        .dropdown-item.logout-item:hover {
-            background: #fee2e2;
-        }
-
-        /* Responsive Navigation */
-        @media (max-width: 768px) {
-            .navbar-container {
-                padding: 0 16px;
-            }
-            .navbar-left {
-                gap: 16px;
-            }
-            .navbar-nav {
-                flex-direction: row !important;
-                gap: 14px !important;
-            }
-            .navbar-nav .navbar-link {
-                font-size: 0.85rem;
-            }
-            .content-container, .alerts-container {
-                padding: 0 16px;
-            }
-        }
-    </style>
+    <!-- Admin Layout & Navbar CSS (FE-01) -->
+    <link rel="stylesheet" href="{% static 'css/admin-layout.css' %}">
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -593,76 +41,118 @@
                     <span class="navbar-brand-badge">Moduli</span>
                 </a>
 
-                <ul class="navbar-nav flex-row">
-                    {% if user.is_authenticated %}
-                        {% if user.is_staff or user.role == 'admin' %}
+                <!-- Desktop Navigation Menu -->
+                <div class="d-none d-md-block">
+                    <ul class="navbar-nav flex-row">
+                        {% if user.is_authenticated %}
+                            {% if user.is_staff or user.role == 'admin' %}
+                                <li>
+                                    <a href="{% url 'admin_dashboard' %}" class="navbar-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                                        Dashboard
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{% url 'builder_list' %}" class="navbar-link {% if 'builder' in request.resolver_match.url_name or 'template' in request.resolver_match.url_name %}active{% endif %}">
+                                        Moduli
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{% url 'customer_list' %}" class="navbar-link {% if 'customer' in request.resolver_match.url_name %}active{% endif %}">
+                                        Clienti
+                                    </a>
+                                </li>
+                            {% endif %}
                             <li>
-                                <a href="{% url 'admin_dashboard' %}" class="navbar-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
-                                    Dashboard
-                                </a>
-                            </li>
-                            <li>
-                                <a href="{% url 'builder_list' %}" class="navbar-link {% if 'builder' in request.resolver_match.url_name or 'template' in request.resolver_match.url_name %}active{% endif %}">
-                                    Moduli
-                                </a>
-                            </li>
-                            <li>
-                                <a href="{% url 'customer_list' %}" class="navbar-link {% if 'customer' in request.resolver_match.url_name %}active{% endif %}">
-                                    Clienti
+                                <a href="javascript:void(0)" class="navbar-link" onclick="openHelpModal()">
+                                    Help
                                 </a>
                             </li>
                         {% endif %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="navbar-actions-group">
+                <div class="navbar-user">
+                    {% if not is_public_form %}
+                        {% if user.is_authenticated %}
+                            <div class="navbar-user-dropdown">
+                                <button class="navbar-user-toggle" onclick="toggleUserDropdown(event)">
+                                    <i class="bi bi-person-circle"></i>
+                                    <span class="navbar-username">{{ user.username }}</span>
+                                    {% if user.role == 'admin' %}
+                                        <span class="role-badge admin-badge">Admin</span>
+                                    {% elif user.role == 'operator' %}
+                                        <span class="role-badge operator-badge">Operator</span>
+                                    {% endif %}
+                                    <i class="bi bi-chevron-down"></i>
+                                </button>
+
+                                <div class="navbar-user-menu" id="userDropdownMenu" style="display: none;">
+                                    <div class="dropdown-header">
+                                        <div class="user-info">
+                                            <div class="user-name">{{ user.first_name|default:user.username }} {% if user.last_name %}{{ user.last_name }}{% endif %}</div>
+                                            <div class="user-email">{{ user.email }}</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="dropdown-divider"></div>
+
+                                    {% if user.is_superuser or user.role == 'admin' %}
+                                        <a href="#" class="dropdown-item" onclick="openUserManagementModal(event)">
+                                            <i class="bi bi-gear"></i> Gestione Utenti
+                                        </a>
+                                    {% endif %}
+
+                                    <a href="{% url 'logout' %}" class="dropdown-item logout-item btn-logout-pill">
+                                        <i class="bi bi-box-arrow-right"></i> Logout
+                                    </a>
+                                </div>
+                            </div>
+                        {% else %}
+                            <a href="{% url 'login' %}" class="btn btn-sm btn-primary" style="border-radius: 20px; padding: 5px 18px;">Login</a>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+                {% if not is_public_form and user.is_authenticated %}
+                <!-- Mobile Hamburger Toggler Button (UX-02) -->
+                <button class="navbar-toggler-custom" type="button" onclick="toggleMobileNav()" aria-label="Toggle navigation">
+                    <i class="bi bi-list"></i>
+                </button>
+                {% endif %}
+            </div>
+
+            {% if not is_public_form and user.is_authenticated %}
+            <!-- Mobile Collapsible Navigation Menu (UX-02) -->
+            <div class="navbar-collapse-custom" id="adminNavbarCollapse">
+                <ul class="navbar-nav">
+                    {% if user.is_staff or user.role == 'admin' %}
                         <li>
-                            <a href="javascript:void(0)" class="navbar-link" onclick="openHelpModal()">
-                                Help
+                            <a href="{% url 'admin_dashboard' %}" class="navbar-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'builder_list' %}" class="navbar-link {% if 'builder' in request.resolver_match.url_name or 'template' in request.resolver_match.url_name %}active{% endif %}">
+                                <i class="bi bi-ui-checks-grid"></i> Moduli
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'customer_list' %}" class="navbar-link {% if 'customer' in request.resolver_match.url_name %}active{% endif %}">
+                                <i class="bi bi-people"></i> Clienti
                             </a>
                         </li>
                     {% endif %}
+                    <li>
+                        <a href="javascript:void(0)" class="navbar-link" onclick="openHelpModal()">
+                            <i class="bi bi-question-circle"></i> Guida & Help
+                        </a>
+                    </li>
                 </ul>
-                {% endif %}
             </div>
-
-            <div class="navbar-user">
-                {% if not is_public_form %}
-                    {% if user.is_authenticated %}
-                        <div class="navbar-user-dropdown">
-                            <button class="navbar-user-toggle" onclick="toggleUserDropdown(event)">
-                                <i class="bi bi-person-circle"></i>
-                                <span class="navbar-username">{{ user.username }}</span>
-                                {% if user.role == 'admin' %}
-                                    <span class="role-badge admin-badge">Admin</span>
-                                {% elif user.role == 'operator' %}
-                                    <span class="role-badge operator-badge">Operator</span>
-                                {% endif %}
-                                <i class="bi bi-chevron-down"></i>
-                            </button>
-
-                            <div class="navbar-user-menu" id="userDropdownMenu" style="display: none;">
-                                <div class="dropdown-header">
-                                    <div class="user-info">
-                                        <div class="user-name">{{ user.first_name|default:user.username }} {% if user.last_name %}{{ user.last_name }}{% endif %}</div>
-                                        <div class="user-email">{{ user.email }}</div>
-                                    </div>
-                                </div>
-
-                                <div class="dropdown-divider"></div>
-
-                                {% if user.is_superuser or user.role == 'admin' %}
-                                    <a href="#" class="dropdown-item" onclick="openUserManagementModal(event)">
-                                        <i class="bi bi-gear"></i> Gestione Utenti
-                                    </a>
-                                {% endif %}
-
-                                <a href="{% url 'logout' %}" class="dropdown-item logout-item">
-                                    <i class="bi bi-box-arrow-right"></i> Logout
-                                </a>
-                            </div>
-                        </div>
-                    {% else %}
-                        <a href="{% url 'login' %}" class="btn btn-sm btn-primary" style="border-radius: 20px; padding: 5px 18px;">Login</a>
-                    {% endif %}
-                {% endif %}
-            </div>
+            {% endif %}
         </div>
     </nav>
     {% endblock %}
@@ -732,7 +222,7 @@
     </div>
 
     <!-- Bootstrap 5.3 Bundle JS (with Popper) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
 
     <!-- Accessibility Utilities - WCAG AA Compliance (Focus Management & Focus Trapping) -->
     <script src="{% static 'js/accessibility.js' %}"></script>
@@ -783,16 +273,76 @@
             }
         }
 
-        // Close dropdown when clicking outside
+        // Mobile navbar toggler (UX-02)
+        function toggleMobileNav() {
+            const collapseEl = document.getElementById('adminNavbarCollapse');
+            if (collapseEl) {
+                collapseEl.classList.toggle('show');
+            }
+        }
+
+        // Close mobile nav when clicking outside
         document.addEventListener('click', function(event) {
-            const userDropdown = document.querySelector('.navbar-user-dropdown');
-            const userMenu = document.getElementById('userDropdownMenu');
-            if (userDropdown && !userDropdown.contains(event.target)) {
-                if (userMenu) {
-                    userMenu.style.display = 'none';
+            const collapseEl = document.getElementById('adminNavbarCollapse');
+            const toggler = document.querySelector('.navbar-toggler-custom');
+            if (collapseEl && collapseEl.classList.contains('show')) {
+                if (!collapseEl.contains(event.target) && toggler && !toggler.contains(event.target)) {
+                    collapseEl.classList.remove('show');
                 }
             }
         });
+
+        // Universal Confirmation Modal Handler (UX-03)
+        function openConfirmActionModal(options) {
+            const modalEl = document.getElementById('universalConfirmModal');
+            if (!modalEl) {
+                if (confirm(options.message || 'Sei sicuro di procedere?')) {
+                    if (options.formAction) {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = options.formAction;
+                        const csrf = document.createElement('input');
+                        csrf.type = 'hidden';
+                        csrf.name = 'csrfmiddlewaretoken';
+                        csrf.value = (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
+                        form.appendChild(csrf);
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                }
+                return;
+            }
+
+            document.getElementById('confirmModalTitle').textContent = options.title || 'Conferma Operazione';
+            document.getElementById('confirmModalSubtitle').textContent = options.subtitle || 'Operazione sul sistema';
+            document.getElementById('confirmModalMessage').innerHTML = options.message || 'Sei sicuro di voler procedere?';
+
+            const form = document.getElementById('confirmModalForm');
+            if (options.formAction) {
+                form.action = options.formAction;
+                form.style.display = 'inline-block';
+            } else {
+                form.style.display = 'none';
+            }
+
+            const iconEl = document.getElementById('confirmModalIcon');
+            if (options.isWarning) {
+                iconEl.style.background = 'rgba(234, 179, 8, 0.15)';
+                iconEl.style.color = '#CA8A04';
+                iconEl.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
+            } else {
+                iconEl.style.background = 'rgba(220, 53, 69, 0.12)';
+                iconEl.style.color = '#DC2626';
+                iconEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+            }
+
+            const submitBtn = document.getElementById('confirmModalSubmitBtn');
+            submitBtn.className = options.btnClass || 'btn btn-danger px-4 py-2 rounded-pill fw-medium d-inline-flex align-items-center gap-2';
+            submitBtn.innerHTML = options.btnHtml || '<i class="bi bi-check2"></i> Conferma';
+
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
 
         {% if user.is_authenticated and user.is_superuser or user.is_authenticated and user.role == 'admin' %}
         // Open user management modal
@@ -1089,6 +639,36 @@
         });
         {% endif %}
     </script>
+
+    <!-- Universal Confirmation Modal (UX-03) -->
+    <div class="modal fade" id="universalConfirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 460px;">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+                <div class="modal-header border-0 pb-0 pt-4 px-4 d-flex align-items-center">
+                    <div id="confirmModalIcon" class="me-3 d-flex align-items-center justify-content-center rounded-circle flex-shrink-0" style="width: 46px; height: 46px; background: rgba(220, 53, 69, 0.12); color: #DC2626; font-size: 1.35rem;">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark m-0" id="confirmModalTitle">Conferma Operazione</h5>
+                        <small class="text-muted" id="confirmModalSubtitle">Operazione sul sistema</small>
+                    </div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body px-4 py-3 text-secondary" id="confirmModalMessage" style="font-size: 0.95rem; line-height: 1.55;">
+                    Sei sicuro di voler procedere?
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4 pt-2 d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-light px-3 py-2 rounded-pill fw-medium" data-bs-dismiss="modal">Annulla</button>
+                    <form id="confirmModalForm" method="POST" action="" style="margin: 0;">
+                        {% csrf_token %}
+                        <button type="submit" id="confirmModalSubmitBtn" class="btn btn-danger px-4 py-2 rounded-pill fw-medium d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-check2"></i> Conferma
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
     {% block modals %}{% endblock %}
 

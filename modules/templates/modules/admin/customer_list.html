@@ -797,12 +797,19 @@
                     e tutti i file/sottocartelle già archiviati <strong>rimarranno intatti sul file system</strong>.
                 </div>
             </div>
+
+            <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #E5E7EB;">
+                <label for="confirmCustCodeInput" style="font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 0.4rem; display: block;">
+                    Per confermare, digita il codice cliente <code id="modalRequiredCode" style="font-weight: 700; color: #DC2626; background: #FEE2E2; padding: 2px 6px; border-radius: 4px;"></code>:
+                </label>
+                <input type="text" id="confirmCustCodeInput" placeholder="Digita codice cliente..." autocomplete="off" oninput="checkDeleteCodeMatch()" style="font-size: 0.9rem; padding: 8px 12px; border-radius: 6px; border: 1px solid #D1D5DB; width: 100%; box-sizing: border-box;">
+            </div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn-modal-cancel" onclick="closeDeleteModal()">Annulla</button>
             <form id="deleteForm" method="POST" action="" style="margin: 0;">
                 {% csrf_token %}
-                <button type="submit" class="btn-modal-confirm-delete">
+                <button type="submit" id="btnConfirmDeleteCustomer" class="btn-modal-confirm-delete" disabled style="opacity: 0.5; cursor: not-allowed;">
                     <i class="bi bi-trash3-fill"></i> Sì, Elimina dal Database
                 </button>
             </form>
@@ -911,16 +918,42 @@ function filterCustomers() {
     }
 }
 
+let currentCustomerCodeToDelete = '';
+
 function openDeleteModal(customerId, customerName, customerCode, nasFolderName) {
     document.getElementById('modalCustName').textContent = customerName.trim() || customerCode;
     document.getElementById('modalCustCode').textContent = customerCode;
+    document.getElementById('modalRequiredCode').textContent = customerCode;
     document.getElementById('modalCustNas').textContent = '/' + nasFolderName + '/';
     
+    currentCustomerCodeToDelete = (customerCode || '').trim();
+    const input = document.getElementById('confirmCustCodeInput');
+    if (input) {
+        input.value = '';
+    }
+    const btn = document.getElementById('btnConfirmDeleteCustomer');
+    if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+    }
+
     // Set form action dynamically
     const form = document.getElementById('deleteForm');
     form.action = `/modules/admin/customers/${customerId}/delete/`;
 
     document.getElementById('deleteModal').classList.add('active');
+    setTimeout(() => { if (input) input.focus(); }, 120);
+}
+
+function checkDeleteCodeMatch() {
+    const input = document.getElementById('confirmCustCodeInput');
+    const btn = document.getElementById('btnConfirmDeleteCustomer');
+    if (!input || !btn) return;
+    const match = input.value.trim().toLowerCase() === currentCustomerCodeToDelete.toLowerCase();
+    btn.disabled = !match;
+    btn.style.opacity = match ? '1' : '0.5';
+    btn.style.cursor = match ? 'pointer' : 'not-allowed';
 }
 
 function closeDeleteModal() {
@@ -1018,7 +1051,8 @@ function submitResetPassword(event) {
     .then(({ status, body }) => {
         submitBtn.disabled = false;
         if (body.success) {
-            document.getElementById('confirmedPasswordText').textContent = body.new_password;
+            const pwdInput = document.getElementById('new_password_input');
+            document.getElementById('confirmedPasswordText').textContent = (pwdInput ? pwdInput.value.trim() : '') || '••••••••';
             successBox.style.display = 'block';
             submitBtn.style.display = 'none';
         } else {
@@ -1238,7 +1272,7 @@ function submitEditCustomer(event) {
 
             let msg = 'Cliente aggiornato con successo!';
             if (body.password_updated) {
-                msg += ` Nuova password impostata: ${body.new_password}`;
+                msg += ' Nuova password aggiornata.';
             }
             document.getElementById('editSuccessMessage').textContent = msg;
             successBox.style.display = 'block';

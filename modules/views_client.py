@@ -7,8 +7,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.http import HttpResponseForbidden
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils import timezone
+try:
+    from django_ratelimit.decorators import ratelimit
+except ImportError:
+    def ratelimit(*args, **kwargs):
+        def decorator(fn):
+            return fn
+        return decorator
 from django.db.models import Count, Q
 from .models import Customer, FormAssignment, DocumentRequirement, DocumentUpload
 from .utils import get_client_ip, get_user_agent, log_action, safe_get_form_data
@@ -84,6 +91,7 @@ def set_client_language(request, lang_code=None):
 # ---------------------------------------------------------------------------
 @require_http_methods(["GET", "POST"])
 @ensure_csrf_cookie
+@ratelimit(key='ip', rate='10/m', method='POST', block=False)
 def client_login(request):
     """Customer portal login — code + password."""
     # If already logged in, redirect to dashboard
@@ -94,6 +102,15 @@ def client_login(request):
     t = trans_ctx['t']
     error = None
     code_value = ''
+
+    if getattr(request, 'limited', False):
+        error = t.get('error_too_many_requests', 'Troppi tentativi di accesso. Per motivi di sicurezza attendi qualche istante prima di riprovare.')
+        context = {
+            'error': error,
+            'code_value': (request.POST.get('code') or '').strip(),
+            **trans_ctx,
+        }
+        return render(request, 'modules/client/login.html', context, status=429)
 
     if request.GET.get('error') == 'csrf':
         error = t.get('error_session_expired', 'La sessione di sicurezza è scaduta. Riprova ad accedere.')
@@ -162,7 +179,6 @@ def client_login(request):
 # Logout
 # ---------------------------------------------------------------------------
 @require_http_methods(["GET", "POST"])
-@csrf_exempt
 def client_logout(request):
     """Customer portal logout — flush customer session data while preserving language preference."""
     customer_id = request.session.get('customer_id')

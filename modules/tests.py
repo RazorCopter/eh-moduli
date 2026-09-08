@@ -2380,3 +2380,286 @@ class UserManagementRolePermissionTests(TestCase):
         self.assertIn('Gestione Utenti', content)
         self.assertIn('openUserManagementModal', content)
         self.assertIn('userManagementModal', content)
+
+
+class SecurityHardeningTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin_user = User.objects.create_user(
+            username='sec_admin',
+            email='sec_admin@example.com',
+            password='password123',
+            role='admin',
+            is_staff=True,
+            is_superuser=True
+        )
+        self.customer = Customer.objects.create(
+            code="SEC_CLI_01",
+            first_name="Sec Corp",
+            last_name="Owner",
+            email="sec@example.com",
+            nas_folder_name="SEC_CLI_01"
+        )
+        self.customer.set_portal_password("SecretPass123")
+        self.customer.save()
+
+    def test_customer_edit_json_does_not_expose_plaintext_password(self):
+        self.client.force_login(self.admin_user)
+        url = reverse('customer_edit', kwargs={'pk': self.customer.id})
+        response = self.client.post(
+            url,
+            {
+                'code': self.customer.code,
+                'first_name': self.customer.first_name,
+                'last_name': self.customer.last_name,
+                'email': self.customer.email,
+                'nas_folder_name': self.customer.nas_folder_name,
+                'portal_password': 'BrandNewSuperSecret!',
+                'active': 'true'
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data.get('password_updated'))
+        # Ensure plaintext password is NOT leaked in JSON
+        self.assertNotIn('new_password', data)
+        self.assertNotIn('BrandNewSuperSecret!', response.content.decode('utf-8'))
+
+    def test_customer_reset_password_json_does_not_expose_plaintext_password(self):
+        self.client.force_login(self.admin_user)
+        url = reverse('customer_reset_password', kwargs={'pk': self.customer.id})
+        response = self.client.post(
+            url,
+            {'new_password': 'ResetPass999!'},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest'
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data.get('password_updated'))
+        # Ensure plaintext password is NOT leaked in JSON
+        self.assertNotIn('new_password', data)
+        self.assertNotIn('ResetPass999!', response.content.decode('utf-8'))
+
+    def test_is_ajax_request_helper(self):
+        from modules.utils import is_ajax_request
+        from django.test import RequestFactory
+        rf = RequestFactory()
+
+        req1 = rf.get('/test/', HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertTrue(is_ajax_request(req1))
+
+        req2 = rf.get('/test/', HTTP_ACCEPT='application/json')
+        self.assertTrue(is_ajax_request(req2))
+
+        req3 = rf.get('/test/?format=json')
+        self.assertTrue(is_ajax_request(req3))
+
+        req4 = rf.get('/test/')
+        self.assertFalse(is_ajax_request(req4))
+
+    def test_log_action_normalizes_string_details_and_action(self):
+        from modules.utils import log_action
+        from modules.models import AuditLog
+
+        log_action(
+            self.admin_user,
+            action='create_user',
+            object_type='User',
+            object_id='999',
+            details='User created successfully'
+        )
+        log = AuditLog.objects.filter(object_id='999').first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.action, 'create')
+        self.assertIsInstance(log.details, dict)
+        self.assertEqual(log.details.get('message'), 'User created successfully')
+
+
+class Sprint4AdvancedTestingAndValidationTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+        self.admin_user = User.objects.create_user(
+            username='admin_sprint4',
+            email='admin_s4@example.com',
+            password='Password123!',
+            role='admin',
+            is_staff=True,
+            is_superuser=True
+        )
+        self.customer = Customer.objects.create(
+            code="CUST_S4_01",
+            first_name="Mario",
+            last_name="Rossi",
+            email="mario.rossi@example.com",
+            nas_folder_name="MARIO_ROSSI_S4",
+            active=True
+        )
+        self.template = FormTemplate.objects.create(
+            name="Template Sprint 4",
+            intro_text="Intro",
+            status="published",
+            project_name="Sprint4Proj"
+        )
+
+    def test_customer_form_valid(self):
+        from modules.forms import CustomerForm
+        form_data = {
+            'code': 'NEW_CODE_01',
+            'first_name': 'Luigi',
+            'last_name': 'Verdi',
+            'email': 'luigi.verdi@example.com',
+            'phone': '123456789',
+            'nas_folder_name': 'LUIGI_VERDI_NAS',
+            'active': True
+        }
+        form = CustomerForm(data=form_data)
+        self.assertTrue(form.is_valid(), form.errors)
+        saved = form.save()
+        self.assertEqual(saved.code, 'NEW_CODE_01')
+
+    def test_customer_form_duplicate_code_case_insensitive(self):
+        from modules.forms import CustomerForm
+        form_data = {
+            'code': 'cust_s4_01',  # same code, different case
+            'first_name': 'Another',
+            'last_name': 'User',
+            'email': 'another@example.com',
+            'nas_folder_name': 'ANOTHER_NAS',
+            'active': True
+        }
+        form = CustomerForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('code', form.errors)
+
+    def test_customer_form_invalid_code_characters(self):
+        from modules.forms import CustomerForm
+        form_data = {
+            'code': 'INVALID CODE!!',
+            'first_name': 'Test',
+            'last_name': 'Invalid',
+            'email': 'invalid@example.com',
+            'nas_folder_name': 'VALID_NAS',
+            'active': True
+        }
+        form = CustomerForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('code', form.errors)
+
+    def test_customer_form_duplicate_nas_folder(self):
+        from modules.forms import CustomerForm
+        form_data = {
+            'code': 'CODE_UNIQUE_1',
+            'first_name': 'Duplicate',
+            'last_name': 'Folder',
+            'email': 'dup@example.com',
+            'nas_folder_name': 'mario_rossi_s4',  # duplicate of self.customer.nas_folder_name
+            'active': True
+        }
+        form = CustomerForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('nas_folder_name', form.errors)
+
+    def test_form_assignment_form_valid(self):
+        from modules.forms import FormAssignmentForm
+        form_data = {
+            'template_id': str(self.template.id),
+            'customer_id': str(self.customer.id),
+            'project_name': 'Legal_Docs_2026',
+        }
+        form = FormAssignmentForm(data=form_data)
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data['template_id'], self.template)
+        self.assertEqual(form.cleaned_data['customer_id'], self.customer)
+        self.assertEqual(form.cleaned_data['project_name'], 'Legal_Docs_2026')
+
+    def test_form_assignment_form_invalid_project_name_characters(self):
+        from modules.forms import FormAssignmentForm
+        form_data = {
+            'template_id': str(self.template.id),
+            'customer_id': str(self.customer.id),
+            'project_name': 'Invalid/Project:Name*?',
+        }
+        form = FormAssignmentForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('project_name', form.errors)
+
+    def test_form_assignment_form_rejects_archived_template(self):
+        from modules.forms import FormAssignmentForm
+        self.template.status = 'archived'
+        self.template.save()
+
+        form_data = {
+            'template_id': str(self.template.id),
+            'customer_id': str(self.customer.id),
+            'project_name': 'Valid_Project',
+        }
+        form = FormAssignmentForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('template_id', form.errors)
+
+    def test_form_assignment_form_rejects_inactive_customer(self):
+        from modules.forms import FormAssignmentForm
+        self.customer.active = False
+        self.customer.save()
+
+        form_data = {
+            'template_id': str(self.template.id),
+            'customer_id': str(self.customer.id),
+            'project_name': 'Valid_Project',
+        }
+        form = FormAssignmentForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('customer_id', form.errors)
+
+    def test_admin_user_form_valid_and_duplicate_username(self):
+        from modules.forms import AdminUserForm
+        form_data = {
+            'username': 'admin_sprint4',  # already exists
+            'email': 'test@test.com',
+            'role': 'operator',
+            'is_active': True,
+        }
+        form = AdminUserForm(data=form_data)
+        self.assertFalse(form.is_valid())
+        self.assertIn('username', form.errors)
+
+        # Now with unique username
+        form_data['username'] = 'operator_unique'
+        form2 = AdminUserForm(data=form_data)
+        self.assertTrue(form2.is_valid(), form2.errors)
+
+    def test_assignment_delete_view(self):
+        self.client.force_login(self.admin_user)
+        assignment = FormAssignment.objects.create(
+            form_template=self.template,
+            customer=self.customer,
+            status='in_progress',
+            expiry_date=timezone.now() + timezone.timedelta(days=30),
+            form_data={'project_name': 'Project_To_Delete'},
+            secure_token='deltoken123456789012345678901234'
+        )
+        url = reverse('assignment_delete', kwargs={'pk': assignment.id})
+
+        # GET request should be rejected (require_http_methods POST)
+        response_get = self.client.get(url)
+        self.assertEqual(response_get.status_code, 405)
+
+        # POST request should succeed and redirect
+        response_post = self.client.post(url, follow=True)
+        self.assertEqual(response_post.status_code, 200)
+
+        # FormAssignment should be deleted
+        self.assertFalse(FormAssignment.objects.filter(id=assignment.id).exists())
+        # Customer and template should still exist
+        self.assertTrue(Customer.objects.filter(id=self.customer.id).exists())
+        self.assertTrue(FormTemplate.objects.filter(id=self.template.id).exists())
+
+        # AuditLog should record the deletion
+        audit = AuditLog.objects.filter(action='delete', object_type='FormAssignment', object_id=str(assignment.id)).first()
+        self.assertIsNotNone(audit)
+        self.assertEqual(audit.actor_user, self.admin_user)
+
+

@@ -8,3 +8,4 @@ python-magic==0.4.27
 whitenoise==6.7.0
 reportlab>=4.2.0
 svglib>=2.2.0
+django-ratelimit==4.1.0

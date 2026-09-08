@@ -237,13 +237,66 @@ SECURE_CONTENT_SECURITY_POLICY = {
 }
 
 # Session and CSRF security
-# For HTTPS reverse proxy: uncomment SESSION_COOKIE_SECURE and CSRF_COOKIE_SECURE
 is_production = ENVIRONMENT == 'production'
 
+# Robust ALLOWED_HOSTS parsing: split, strip, discard empties
+_raw_hosts = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+ALLOWED_HOSTS = [h.strip() for h in _raw_hosts.split(',') if h.strip()]
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+    logger.warning('ALLOWED_HOSTS was empty after parsing, using defaults: %s', ALLOWED_HOSTS)
+elif '*' in ALLOWED_HOSTS and is_production:
+    logger.warning('SECURITY WARNING: ALLOWED_HOSTS contains "*" in production! Sanitizing.')
+    ALLOWED_HOSTS = [h for h in ALLOWED_HOSTS if h != '*']
+    if not ALLOWED_HOSTS:
+        ALLOWED_HOSTS = ['service.etichub.it', 'moduli.etichub.it', '172.17.135.184', '172.27.100.2', 'localhost', '127.0.0.1']
+
+# Robust CSRF_TRUSTED_ORIGINS parsing:
+_raw_csrf = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+_csrf_set = set()
+for origin in _raw_csrf.split(','):
+    origin = origin.strip()
+    if origin and (origin.startswith('http://') or origin.startswith('https://')):
+        _csrf_set.add(origin)
+
+# Always trust standard loopback / local dev origins
+_csrf_set.update([
+    'http://localhost:6060',
+    'http://127.0.0.1:6060',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://localhost',
+    'http://127.0.0.1',
+])
+CSRF_TRUSTED_ORIGINS = sorted(list(_csrf_set))
+
+# ==========================================================
+# Caches & Rate Limiting
+# ==========================================================
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'ehmoduli-cache',
+    }
+}
+
+import sys
+_is_running_tests = 'test' in sys.argv
+RATELIMIT_ENABLE = (not _is_running_tests) and (os.getenv('RATELIMIT_ENABLE', 'True' if is_production else 'False').lower() == 'true')
+
+# ==========================================================
+# Session & Cookie Security
+# ==========================================================
 SESSION_COOKIE_SECURE = is_production and os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_AGE = 60 * 60 * 24 * 365  # 1 year - keeps public form access alive
+
+# Configurable session cookie age (default: 14 days instead of 1 year)
+_default_session_age = 60 * 60 * 24 * 14
+try:
+    SESSION_COOKIE_AGE = int(os.getenv('SESSION_COOKIE_AGE', str(_default_session_age)))
+except (ValueError, TypeError):
+    SESSION_COOKIE_AGE = _default_session_age
 
 CSRF_COOKIE_SECURE = is_production and os.getenv('CSRF_COOKIE_SECURE', 'False').lower() == 'true'
 CSRF_COOKIE_HTTPONLY = False  # Allows standard Django CSRF token synchronization
@@ -257,7 +310,7 @@ LOGIN_REDIRECT_URL = 'admin_dashboard'
 # ==========================================================
 # Version & Build Info
 # ==========================================================
-APP_VERSION = os.getenv('APP_VERSION', 'unknown')
+APP_VERSION = os.getenv('APP_VERSION', '2.0.0')
 GIT_COMMIT = os.getenv('GIT_COMMIT', 'unknown')
 BUILD_DATE = os.getenv('BUILD_DATE', 'unknown')
 

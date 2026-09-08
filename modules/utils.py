@@ -5,13 +5,9 @@ import string
 import logging
 from datetime import datetime
 from django.utils import timezone
-from .models import AuditLog
+from .models import AuditLog, generate_secure_token
 
 logger = logging.getLogger(__name__)
-
-def generate_secure_token():
-    alphabet = string.ascii_letters + string.digits
-    return ''.join(secrets.choice(alphabet) for i in range(40))
 
 def safe_get_form_data(form_data, key, default=None):
     """
@@ -84,17 +80,68 @@ def calculate_checksum(file_obj):
         sha256_hash.update(chunk)
     return sha256_hash.hexdigest()
 
+def is_ajax_request(request) -> bool:
+    """
+    Standardized check to determine if an HTTP request is an AJAX or JSON-expecting request.
+    """
+    if not request:
+        return False
+    return bool(
+        request.headers.get('x-requested-with') == 'XMLHttpRequest'
+        or 'application/json' in request.headers.get('Accept', '')
+        or request.GET.get('format') == 'json'
+    )
+
+def get_nas_base_path() -> str:
+    """Return the configured base NAS path for customer documents."""
+    return os.getenv(
+        'CUSTOMER_DOCUMENTS_CONTAINER_PATH',
+        os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti')
+    )
+
 def log_action(user, action, object_type, object_id, details=None, ip='', user_agent='', success=True):
     try:
+        # Standardize and validate details payload for JSONField
+        if details is None:
+            details_payload = {}
+        elif isinstance(details, dict):
+            details_payload = details
+        else:
+            details_payload = {'message': str(details)}
+
+        # Canonical action mapping to comply with AuditLog.ACTION_CHOICES and max_length=20
+        action_str = str(action).strip() if action else 'view'
+        canonical_actions = {'create', 'update', 'delete', 'submit', 'view', 'upload', 'login'}
+
+        if action_str not in canonical_actions:
+            # Map common variants to canonical choices while preserving original action in details
+            action_lower = action_str.lower()
+            if 'create' in action_lower:
+                canonical = 'create'
+            elif 'delete' in action_lower or 'remove' in action_lower:
+                canonical = 'delete'
+            elif 'upload' in action_lower:
+                canonical = 'upload'
+            elif 'submit' in action_lower:
+                canonical = 'submit'
+            elif 'login' in action_lower or 'logout' in action_lower:
+                canonical = 'login'
+            else:
+                canonical = 'update'
+
+            if 'original_action' not in details_payload:
+                details_payload['original_action'] = action_str
+            action_str = canonical
+
         AuditLog.objects.create(
             actor_user=user,
-            action=action,
-            object_type=object_type,
-            object_id=str(object_id),
-            details=details or {},
-            actor_ip=ip,
-            actor_user_agent=user_agent[:500],
-            success=success
+            action=action_str[:20],
+            object_type=str(object_type)[:100],
+            object_id=str(object_id)[:100],
+            details=details_payload,
+            actor_ip=ip or '127.0.0.1',
+            actor_user_agent=(user_agent or '')[:500],
+            success=bool(success)
         )
     except Exception as e:
         logger.error(f"Failed to log action: {e}", exc_info=True)

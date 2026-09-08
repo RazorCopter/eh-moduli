@@ -6,7 +6,7 @@
 
 {% block extra_css %}
 <!-- JSZip for client-side seamless folder bundling into ZIP -->
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
 {% endblock %}
 
 {% block content %}
@@ -535,6 +535,20 @@ function getCsrfToken() {
     return '{{ csrf_token }}';
 }
 
+// Cache last failed file objects for instant retry (UX-01)
+const lastFailedUploads = {};
+
+function retryUpload(reqId) {
+    const file = lastFailedUploads[reqId];
+    if (file) {
+        uploadSingleFile(reqId, file);
+    } else {
+        // Trigger file input dialog if file reference lost
+        const input = document.getElementById(`file-${reqId}`);
+        if (input) input.click();
+    }
+}
+
 // Upload a single file via multipart POST
 function uploadSingleFile(reqId, file) {
     const assignmentId = '{{ assignment.id }}';
@@ -554,14 +568,20 @@ function uploadSingleFile(reqId, file) {
         if (loadingEl) loadingEl.classList.remove('d-none');
     }
 
+    // Set 60-second abort controller for network timeout detection
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+
     fetch(uploadUrl, {
         method: 'POST',
         headers: {
             'X-CSRFToken': getCsrfToken()
         },
-        body: formData
+        body: formData,
+        signal: controller.signal
     })
     .then(async response => {
+        clearTimeout(timeoutId);
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
             const msg = data.error || (data.errors ? (Array.isArray(data.errors) ? data.errors.join(', ') : JSON.stringify(data.errors)) : null) || `Errore caricamento (${response.status})`;
@@ -570,6 +590,8 @@ function uploadSingleFile(reqId, file) {
         return data;
     })
     .then(data => {
+        delete lastFailedUploads[reqId];
+
         // Update document status indicator
         if (container) {
             container.setAttribute('data-status', 'uploaded');
@@ -611,12 +633,44 @@ function uploadSingleFile(reqId, file) {
         updateNextButtonState();
     })
     .catch(error => {
+        clearTimeout(timeoutId);
         console.error('Upload error:', error);
+        lastFailedUploads[reqId] = file;
+
         if (container) {
+            container.setAttribute('data-status', 'failed');
             const loadingEl = container.querySelector('.upload-loading');
             if (loadingEl) loadingEl.classList.add('d-none');
         }
-        alert('Errore durante il caricamento del file: ' + error.message);
+
+        let friendlyError = error.message;
+        if (error.name === 'AbortError') {
+            friendlyError = 'Timeout di connessione: il caricamento ha impiegato troppo tempo.';
+        } else if (friendlyError.includes('Failed to fetch') || friendlyError.includes('NetworkError')) {
+            friendlyError = 'Connessione interrotta o errore di rete. Verifica il collegamento.';
+        }
+
+        if (uploadsDiv) {
+            uploadsDiv.innerHTML = `
+                <div class="alert alert-danger py-2 px-3 mb-2 d-flex align-items-center justify-content-between rounded-3 flex-wrap gap-2">
+                    <span class="small">
+                        <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i>
+                        <strong>Caricamento fallito:</strong> <span class="upload-err-text"></span>
+                    </span>
+                    <button type="button" class="btn btn-sm btn-outline-danger px-3 py-1 rounded-pill d-inline-flex align-items-center gap-1" onclick="retryUpload('${reqId}')">
+                        <i class="bi bi-arrow-clockwise"></i> Riprova
+                    </button>
+                </div>
+                <div class="upload-loading d-none mt-2">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <small class="text-muted ms-2">Caricamento file in corso...</small>
+                </div>
+            `;
+            uploadsDiv.querySelector('.upload-err-text').textContent = friendlyError;
+        }
+        updateNextButtonState();
     });
 }
 

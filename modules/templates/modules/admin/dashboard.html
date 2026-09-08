@@ -1202,19 +1202,13 @@
                                             <i class="bi bi-eye"></i> Visualizza
                                         </a>
                                         {% if p.can_reopen %}
-                                        <form method="post" action="{{ p.reopen_url }}" onsubmit="return confirm('Riaprire la pratica per consentire l\'upload di ulteriori documenti integrativi mantenendo la stessa cartella NAS?');" style="display: inline-block; margin-left: 3px;">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-outline-warning" style="border-radius: 6px; font-size: 0.8rem; padding: 3px 7px;" title="Riapri per integrazioni documentali">
-                                                <i class="bi bi-arrow-repeat"></i> Riapri
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-outline-warning" style="border-radius: 6px; font-size: 0.8rem; padding: 3px 7px; margin-left: 3px;" title="Riapri per integrazioni documentali" onclick="openConfirmActionModal({ title: 'Riapri Pratica per Integrazioni', subtitle: 'Pratica: {{ p.project_name|escapejs }}', message: 'Vuoi riaprire questa pratica per consentire al cliente il caricamento di ulteriori documenti integrativi?<br><br><small class=\'text-muted\'>La cartella NAS e i file già caricati rimarranno intatti.</small>', formAction: '{{ p.reopen_url }}', isWarning: true, btnClass: 'btn btn-warning px-4 py-2 rounded-pill fw-medium d-inline-flex align-items-center gap-2 text-dark', btnHtml: '<i class=\'bi bi-arrow-repeat\'></i> Riapri Pratica' })">
+                                            <i class="bi bi-arrow-repeat"></i> Riapri
+                                        </button>
                                         {% endif %}
-                                        <form method="post" action="{{ p.delete_url }}" onsubmit="return confirm('Disassociare ed eliminare l\'assegnazione di questo prodotto per il cliente?');" style="display: inline-block; margin-left: 3px;">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 6px; font-size: 0.8rem; padding: 3px 7px;" title="Disassocia / Elimina assegnazione">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" style="border-radius: 6px; font-size: 0.8rem; padding: 3px 7px; margin-left: 3px;" title="Disassocia / Elimina assegnazione" onclick="openConfirmActionModal({ title: 'Disassocia ed Elimina Pratica', subtitle: 'Progetto: {{ p.project_name|escapejs }}', message: 'Sei sicuro di voler disassociare ed eliminare questa pratica dal cliente?<br><br><div class=\'alert alert-warning py-2 px-3 small border-0 mb-0\'><i class=\'bi bi-shield-check me-1\'></i> I file fisici archiviati sulla cartella NAS del cliente rimarranno intatti.</div>', formAction: '{{ p.delete_url }}', isWarning: false, btnClass: 'btn btn-danger px-4 py-2 rounded-pill fw-medium d-inline-flex align-items-center gap-2', btnHtml: '<i class=\'bi bi-trash3-fill\'></i> Elimina Pratica' })">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
