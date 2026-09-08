@@ -13,6 +13,56 @@ def generate_secure_token():
     alphabet = string.ascii_letters + string.digits
     return ''.join(secrets.choice(alphabet) for i in range(40))
 
+def safe_get_form_data(form_data, key, default=None):
+    """
+    Safely access form_data dictionary with defensive fallback.
+
+    Standardized pattern for all form_data access to prevent KeyError and ensure
+    consistent None-safe behavior throughout the codebase.
+
+    Args:
+        form_data: The form_data dict (may be None, empty, or valid dict)
+        key: The key to retrieve from form_data
+        default: Default value if key not found or form_data is None
+
+    Returns:
+        Value from form_data[key] or default if not found/None
+
+    Schema of common form_data keys:
+        - 'client_name': str | None (NAS folder name or customer code)
+        - 'project_name': str | None (Project identifier for NAS structure)
+        - 'access_password': str | None (Hashed password for form access)
+        - 'form_id': str | None (Form template ID)
+        - 'transaction_id': str | None (Transaction/assignment ID)
+        - 'submission_datetime': str | None (ISO datetime of submission)
+        - 'client_ip': str | None (IP address of submitter)
+        - 'name': str | None (Form template name)
+        - 'user_agent': str | None (User agent of submitter)
+        - 'email': str | None (Customer email)
+        - 'phone': str | None (Customer phone)
+        - 'vat': str | None (VAT/fiscal code)
+        - 'id': str | None (Generic ID field)
+        - 'assignment_id': str | None (FormAssignment UUID)
+        - 'submission_time': str | None (Alternative datetime field)
+        - 'ip': str | None (Alternative IP field)
+        - 'ip_address': str | None (Alternative IP field)
+        - 'vat_number': str | None (Alternative VAT field)
+        - 'fiscal_code': str | None (Alternative fiscal code field)
+
+    Examples:
+        >>> safe_get_form_data(None, 'project_name', 'Progetto')
+        'Progetto'
+
+        >>> safe_get_form_data({'project_name': 'MyProject'}, 'project_name', 'Progetto')
+        'MyProject'
+
+        >>> safe_get_form_data({'client_name': 'test'}, 'project_name', 'N/A')
+        'N/A'
+    """
+    if not form_data:
+        return default
+    return form_data.get(key, default)
+
 def get_client_ip(request):
     if not request or not hasattr(request, 'META'):
         return '127.0.0.1'

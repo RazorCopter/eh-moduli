@@ -13,6 +13,8 @@ from reportlab.platypus import (
 )
 from reportlab.pdfgen import canvas
 from svglib.svglib import svg2rlg
+from django.db.models import Prefetch
+from .utils import safe_get_form_data
 
 
 class NumberedCanvas(canvas.Canvas):
@@ -219,15 +221,15 @@ def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, 
         left_logo = Paragraph("<b>ETICHUB</b><br/><font size=7 color='#64748B'>DOCUMENT SYSTEM</font>", s_title)
 
     trans_id = (
-        form_data.get('form_id')
-        or form_data.get('transaction_id')
-        or form_data.get('id')
-        or form_data.get('assignment_id')
+        safe_get_form_data(form_data, 'form_id')
+        or safe_get_form_data(form_data, 'transaction_id')
+        or safe_get_form_data(form_data, 'id')
+        or safe_get_form_data(form_data, 'assignment_id')
         or '—'
     )
     sub_date = (
-        form_data.get('submission_datetime')
-        or form_data.get('submission_time')
+        safe_get_form_data(form_data, 'submission_datetime')
+        or safe_get_form_data(form_data, 'submission_time')
         or datetime.now().strftime('%d/%m/%Y %H:%M:%S')
     )
 
@@ -265,9 +267,9 @@ def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, 
         or '—'
     )
     ip_addr = (
-        form_data.get('client_ip')
-        or form_data.get('ip')
-        or form_data.get('ip_address')
+        safe_get_form_data(form_data, 'client_ip')
+        or safe_get_form_data(form_data, 'ip')
+        or safe_get_form_data(form_data, 'ip_address')
         or '—'
     )
 
@@ -277,11 +279,11 @@ def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, 
             Paragraph("<b>ANAGRAFICA CLIENTE</b>", s_tb_bold)
         ],
         [
-            Paragraph(f"<b>Modulo:</b> {form_data.get('name', '—')}", s_tb),
+            Paragraph(f"<b>Modulo:</b> {safe_get_form_data(form_data, 'name', '—')}", s_tb),
             Paragraph(f"<b>Cliente:</b> {cust_display}", s_tb)
         ],
         [
-            Paragraph(f"<b>Progetto:</b> {form_data.get('project_name', '—') or 'Standard'}", s_tb),
+            Paragraph(f"<b>Progetto:</b> {safe_get_form_data(form_data, 'project_name', '—') or 'Standard'}", s_tb),
             Paragraph(f"<b>Codice Cliente:</b> {cust_code}", s_tb)
         ],
         [
@@ -504,10 +506,25 @@ def generate_form_receipt_pdf(form_template, assignment, pdf_path, client_ip=Non
     }
 
     uploads_data = []
-    # Collect all requirements from template steps
-    for step in form_template.formstep_set.all().order_by('order'):
-        for req in step.documentrequirement_set.all().order_by('order'):
-            up = assignment.documentupload_set.filter(document_requirement=req, status='valid').first()
+    # Prefetch all steps and requirements to avoid N+1 queries
+    # Re-fetch form_template with prefetch to ensure nested relationships are loaded
+    from .models import DocumentRequirement
+    optimized_form = form_template.__class__.objects.prefetch_related(
+        Prefetch('formstep_set', queryset=form_template.formstep_set.all().prefetch_related(
+            Prefetch('documentrequirement_set', queryset=DocumentRequirement.objects.order_by('order'))
+        ).order_by('order'))
+    ).get(id=form_template.id)
+
+    # Cache all document uploads for this assignment to avoid filtering in loop
+    uploads_by_req = {
+        up.document_requirement_id: up
+        for up in assignment.documentupload_set.filter(status='valid')
+    }
+
+    # Now iterate through prefetched steps and requirements
+    for step in optimized_form.formstep_set.all():
+        for req in step.documentrequirement_set.all():
+            up = uploads_by_req.get(req.id)
             if up:
                 is_unavail = (up.availability_status == 'not_available')
                 has_file = bool(up.stored_filename and up.original_filename not in ['NON_DISPONIBILE', '—'])

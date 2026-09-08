@@ -9,7 +9,7 @@ from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.db.models import Count, Q
 from .models import Customer, FormAssignment, DocumentRequirement, DocumentUpload
-from .utils import get_client_ip, get_user_agent, log_action
+from .utils import get_client_ip, get_user_agent, log_action, safe_get_form_data
 from .client_i18n import (
     SUPPORTED_LANGUAGES,
     SUPPORTED_LANGUAGE_CODES,
@@ -224,9 +224,7 @@ def client_dashboard(request):
     # Enrich each assignment with computed properties for the template
     products = []
     for assignment in assignments:
-        project_name = ''
-        if assignment.form_data:
-            project_name = assignment.form_data.get('project_name', '')
+        project_name = safe_get_form_data(assignment.form_data, 'project_name', '')
 
         is_expired = assignment.is_expired()
         total_reqs = req_counts.get(assignment.form_template_id, 0)

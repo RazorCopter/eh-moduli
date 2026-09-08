@@ -177,7 +177,14 @@ class FormTemplate(models.Model):
             access_password=self.access_password,
             default_expiry_days=self.default_expiry_days
         )
-        for step in self.formstep_set.all():
+        # Prefetch all steps with their related elements and requirements to avoid N+1 queries
+        from django.db.models import Prefetch
+        steps = self.formstep_set.all().prefetch_related(
+            Prefetch('documentrequirement_set'),
+            Prefetch('formelement_set')
+        ).order_by('order')
+
+        for step in steps:
             new_step = FormStep.objects.create(
                 form_template=new_form,
                 title=step.title,
@@ -371,6 +378,30 @@ class FormAssignment(models.Model):
         if pwd:
             return True
         return bool(self.customer and self.customer.portal_password)
+
+    def get_form_data_value(self, key, default=None):
+        """
+        Safely retrieve a value from form_data dictionary.
+
+        Standardized defensive method for accessing form_data without KeyError risk.
+        Delegates to safe_get_form_data() utility for consistent pattern.
+
+        Args:
+            key: The key to retrieve from form_data
+            default: Default value if key not found or form_data is None
+
+        Returns:
+            Value from form_data[key] or default if not found/None
+
+        Examples:
+            >>> assignment.get_form_data_value('project_name', 'N/A')
+            'MyProject' or 'N/A' (default)
+
+            >>> assignment.get_form_data_value('client_ip', '')
+            '192.168.1.1' or '' (default)
+        """
+        from .utils import safe_get_form_data
+        return safe_get_form_data(self.form_data, key, default)
 
 class DocumentUpload(models.Model):
     STATUS_CHOICES = [

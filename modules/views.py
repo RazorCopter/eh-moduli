@@ -12,7 +12,7 @@ from .models import (
     AwarenessDeclaration, FormTemplate, NotificationLog, FormElement
 )
 from .client_i18n import get_translation_context
-from .utils import get_client_ip, get_user_agent, log_action
+from .utils import get_client_ip, get_user_agent, log_action, safe_get_form_data
 from .upload_security import (
     validate_file_upload_secure,
     validate_absence_declaration_file,
@@ -140,7 +140,7 @@ def form_success_view(request):
             form_id = str(assignment.form_template_id)
             if assignment.customer:
                 customer_name = f"{assignment.customer.first_name} {assignment.customer.last_name}"
-            project_name = (assignment.form_data or {}).get('project_name', '')
+            project_name = safe_get_form_data(assignment.form_data, 'project_name', '')
             if assignment.expiry_date:
                 expiry_date_str = assignment.expiry_date.strftime('%d/%m/%Y')
         except (FormAssignment.DoesNotExist, ValueError):
@@ -220,8 +220,8 @@ def assignment_receipt(request, assignment_id):
         return HttpResponseForbidden("Accesso non autorizzato. Effettua prima l'accesso con password.")
 
     nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
-    client_name = (assignment.form_data or {}).get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
-    project_name = (assignment.form_data or {}).get('project_name') or ''
+    client_name = safe_get_form_data(assignment.form_data, 'client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+    project_name = safe_get_form_data(assignment.form_data, 'project_name') or ''
     nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
     pdf_path = str(safe_join_paths(nas_project_path, 'Report_Ricezione_Documenti.pdf'))
 
@@ -296,7 +296,7 @@ def get_form_by_token(request, token):
 
         steps = list(assignment.form_template.formstep_set.all().order_by('order'))
         first_step_order = steps[0].order if steps else 0
-        project_name = assignment.form_data.get('project_name', '') if assignment.form_data else ''
+        project_name = safe_get_form_data(assignment.form_data, 'project_name', '')
 
         context = {
             'assignment': assignment,
@@ -340,11 +340,17 @@ def form_step_view(request, assignment_id, step_order):
         Prefetch('documentrequirement_set', queryset=DocumentRequirement.objects.order_by('order'))
     ).order_by('order'))
     if not steps:
+        logger.warning(f'Empty form steps for assignment {assignment_id}, form_template {assignment.form_template_id}')
         return render(request, 'modules/form_empty.html', {'assignment': assignment, 'is_public_form': True})
 
-    # Resilient step lookup: match order, fallback to index
+    # Resilient step lookup: match order, fallback to index with defensive guard
     step = next((s for s in steps if s.order == step_order), None)
     if not step:
+        # EDGE CASE: Prevent IndexError on empty or invalid index access
+        if not steps:
+            logger.error(f'Empty steps list despite earlier check for assignment {assignment_id}')
+            return render(request, 'modules/form_empty.html', {'assignment': assignment, 'is_public_form': True})
+
         if 1 <= step_order <= len(steps):
             step = steps[step_order - 1]
         elif 0 <= step_order < len(steps):
@@ -369,7 +375,13 @@ def form_step_view(request, assignment_id, step_order):
         return JsonResponse({'status': 'ok'})
 
     # GET: Prepare context
-    current_index = steps.index(step) + 1
+    # EDGE CASE: Defensive check to ensure step is actually in steps list before .index()
+    try:
+        current_index = steps.index(step) + 1
+    except ValueError:
+        logger.error(f'Step {step.id} not found in steps list for assignment {assignment_id}. Using fallback index 1.')
+        current_index = 1
+
     step_count = len(steps)
     progress_pct = int((current_index / max(step_count, 1)) * settings.COMPLETION_PERCENTAGE_MULTIPLIER)
     prev_step = steps[current_index - 2] if current_index > 1 else None
@@ -582,8 +594,8 @@ def upload_document_view(request, assignment_id):
 
     try:
         # Get NAS path from form_data (Step 0)
-        client_name = (assignment.form_data or {}).get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
-        project_name = (assignment.form_data or {}).get('project_name') or (getattr(assignment.form_template, 'project_name', None) if assignment.form_template else None) or (assignment.form_template.name if assignment.form_template else None) or 'Progetto'
+        client_name = safe_get_form_data(assignment.form_data, 'client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+        project_name = safe_get_form_data(assignment.form_data, 'project_name') or (getattr(assignment.form_template, 'project_name', None) if assignment.form_template else None) or (assignment.form_template.name if assignment.form_template else None) or 'Progetto'
         nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
         nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
         os.makedirs(nas_project_path, exist_ok=True)
@@ -655,14 +667,21 @@ def upload_document_view(request, assignment_id):
             user_agent=get_user_agent(request)
         )
 
-        # Aggiorna lo stato a in_progress e ricalcola avanzamento parziale (< 50%)
+        # EDGE CASE: Update status and completion percentage with defensive guards
         try:
-            total_reqs = DocumentRequirement.objects.filter(form_step__form_template=assignment.form_template).count()
-            valid_count = assignment.documentupload_set.filter(status='valid').count()
+            total_reqs_qs = DocumentRequirement.objects.filter(form_step__form_template=assignment.form_template)
+            total_reqs = total_reqs_qs.count() if total_reqs_qs.exists() else 0
+
+            valid_uploads_qs = assignment.documentupload_set.filter(status='valid')
+            valid_count = valid_uploads_qs.count() if valid_uploads_qs.exists() else 0
+
             if assignment.status == 'draft':
                 assignment.status = 'in_progress'
             if assignment.status == 'in_progress':
-                assignment.completion_percentage = min(45, max(10, int((valid_count / total_reqs) * 50))) if total_reqs > 0 else 10
+                if total_reqs > 0:
+                    assignment.completion_percentage = min(45, max(10, int((valid_count / total_reqs) * 50)))
+                else:
+                    assignment.completion_percentage = 10
             assignment.save(update_fields=['status', 'completion_percentage'])
         except Exception as st_err:
             logger.warning(f"Could not update assignment progress: {st_err}")
@@ -731,8 +750,8 @@ def skip_optional_document(request, assignment_id, requirement_id):
         if validation_errors:
             return JsonResponse({'error': ' '.join(validation_errors), 'errors': validation_errors}, status=400)
 
-        client_name = (assignment.form_data or {}).get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
-        project_name = (assignment.form_data or {}).get('project_name') or (getattr(assignment.form_template, 'project_name', None) if assignment.form_template else None) or (assignment.form_template.name if assignment.form_template else None) or 'Progetto'
+        client_name = safe_get_form_data(assignment.form_data, 'client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+        project_name = safe_get_form_data(assignment.form_data, 'project_name') or (getattr(assignment.form_template, 'project_name', None) if assignment.form_template else None) or (assignment.form_template.name if assignment.form_template else None) or 'Progetto'
         nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
         nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
         os.makedirs(nas_project_path, exist_ok=True)
@@ -847,8 +866,8 @@ def skip_optional_document(request, assignment_id, requirement_id):
         )
 
         # Update manifest.json on NAS if it exists atomically
-        client_name = (assignment.form_data or {}).get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
-        project_name = (assignment.form_data or {}).get('project_name') or ''
+        client_name = safe_get_form_data(assignment.form_data, 'client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+        project_name = safe_get_form_data(assignment.form_data, 'project_name') or ''
         nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
         manifest_path = os.path.join(nas_base, client_name, project_name, 'manifest.json')
         if os.path.exists(manifest_path):
@@ -929,8 +948,12 @@ def form_submission_view(request, assignment_id):
         try:
             if assignment.status != 'submitted':
                 assignment.status = 'in_progress'
-                total_reqs = DocumentRequirement.objects.filter(form_step__form_template=assignment.form_template).count()
-                valid_count = assignment.documentupload_set.filter(status='valid').count()
+                # EDGE CASE: Defensive calculation of completion percentage
+                total_reqs_qs = DocumentRequirement.objects.filter(form_step__form_template=assignment.form_template)
+                total_reqs = total_reqs_qs.count() if total_reqs_qs.exists() else 0
+                valid_uploads_qs = assignment.documentupload_set.filter(status='valid')
+                valid_count = valid_uploads_qs.count() if valid_uploads_qs.exists() else 0
+
                 if total_reqs > 0:
                     assignment.completion_percentage = min(45, max(10, int((valid_count / total_reqs) * 50)))
                 else:
@@ -1004,8 +1027,8 @@ def form_submission_view(request, assignment_id):
         # Generate official PDF receipt on submission (non-blocking if NAS or PDF generation has issues)
         try:
             nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
-            client_name = (assignment.form_data or {}).get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
-            project_name = (assignment.form_data or {}).get('project_name') or ''
+            client_name = safe_get_form_data(assignment.form_data, 'client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
+            project_name = safe_get_form_data(assignment.form_data, 'project_name') or ''
             nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
             os.makedirs(nas_project_path, exist_ok=True)
             pdf_path = str(safe_join_paths(nas_project_path, 'Report_Ricezione_Documenti.pdf'))
@@ -1079,12 +1102,15 @@ def published_form_submit(request, form_id):
                 'uploads': []
             }
 
-        # Process each document requirement and doc_upload FormElement across all steps
+        # EDGE CASE: Process each document requirement with defensive empty check
         # Prefetched steps, requirements, and elements to avoid N+1 queries (H8-2, H8-3)
-        steps = form.formstep_set.all().prefetch_related(
+        steps = list(form.formstep_set.all().prefetch_related(
             Prefetch('formelement_set', queryset=FormElement.objects.order_by('order')),
             Prefetch('documentrequirement_set', queryset=DocumentRequirement.objects.order_by('order'))
-        ).order_by('order')
+        ).order_by('order'))
+
+        if not steps:
+            logger.info(f'No form steps found for form {form_id} in published_form_submit')
 
         all_requirements = []
         for step in steps:

@@ -21,7 +21,7 @@ from .models import (
     FormTemplate, FormStep, DocumentRequirement, Customer,
     FormAssignment, DocumentUpload, FormElement
 )
-from .utils import log_action, get_client_ip, get_user_agent, generate_secure_token
+from .utils import log_action, get_client_ip, get_user_agent, generate_secure_token, safe_get_form_data
 from .upload_security import safe_join_paths, save_manifest_atomic
 
 logger = logging.getLogger('modules')
@@ -126,7 +126,7 @@ def admin_dashboard(request):
 
         products = []
         for a in assignments:
-            p_name = (a.form_data or {}).get('project_name') or getattr(a.form_template, 'project_name', None) or a.form_template.name
+            p_name = safe_get_form_data(a.form_data, 'project_name') or getattr(a.form_template, 'project_name', None) or a.form_template.name
             products.append({
                 'id': str(a.id),
                 'project_name': p_name,
@@ -308,7 +308,11 @@ def form_template_edit(request, pk):
 
         return redirect('form_template_list')
 
-    steps = template.formstep_set.all().order_by('order')
+    # Prefetch steps with their elements and requirements to avoid N+1 queries
+    steps = template.formstep_set.all().prefetch_related(
+        Prefetch('formelement_set', queryset=FormElement.objects.order_by('order')),
+        Prefetch('documentrequirement_set', queryset=DocumentRequirement.objects.order_by('order'))
+    ).order_by('order')
     context = {'template': template, 'steps': steps}
     return render(request, 'modules/admin/form_template_edit.html', context)
 
@@ -877,15 +881,27 @@ def reopen_assignment_for_upload(request, pk):
     # Extend validity
     assignment.expiry_date = timezone.now() + timezone.timedelta(days=settings.FORM_ASSIGNMENT_EXPIRY_DAYS)
 
-    # Recalculate completion percentage based on valid uploaded files vs total requirements
-    total_reqs = DocumentRequirement.objects.filter(form_step__form_template=assignment.form_template).count()
-    if total_reqs > 0:
-        valid_uploaded_count = assignment.documentupload_set.filter(
-            status='valid',
-            availability_status='uploaded'
-        ).count()
-        assignment.completion_percentage = int((valid_uploaded_count / total_reqs) * settings.COMPLETION_PERCENTAGE_MULTIPLIER)
-    else:
+    # EDGE CASE: Recalculate completion percentage with explicit guards for empty querysets
+    try:
+        # Get total requirements for this form template
+        total_reqs_queryset = DocumentRequirement.objects.filter(form_step__form_template=assignment.form_template)
+        if not total_reqs_queryset.exists():
+            logger.info(f'No document requirements found for assignment {pk}, form_template {assignment.form_template_id}')
+            assignment.completion_percentage = 0
+        else:
+            total_reqs = total_reqs_queryset.count()
+            valid_uploaded_queryset = assignment.documentupload_set.filter(
+                status='valid',
+                availability_status='uploaded'
+            )
+            valid_uploaded_count = valid_uploaded_queryset.count() if valid_uploaded_queryset.exists() else 0
+
+            if total_reqs > 0:
+                assignment.completion_percentage = int((valid_uploaded_count / total_reqs) * settings.COMPLETION_PERCENTAGE_MULTIPLIER)
+            else:
+                assignment.completion_percentage = 0
+    except Exception as e:
+        logger.warning(f'Error calculating completion percentage for assignment {pk}: {e}')
         assignment.completion_percentage = 0
 
     assignment.save()

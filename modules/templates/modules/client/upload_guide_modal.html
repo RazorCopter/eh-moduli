@@ -35,6 +35,12 @@
         transform: scale(0.97);
     }
 
+    /* WCAG AA: Focus indicators for FAB */
+    .eh-guide-fab:focus-visible {
+        outline: 3px solid #0284c7;
+        outline-offset: 2px;
+    }
+
     .eh-guide-fab .fab-icon {
         font-size: 1.15rem;
         color: #E8847D;
@@ -121,6 +127,12 @@
         border-color: #CBD5E1;
         box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
         transform: translateY(-1px);
+    }
+
+    /* WCAG AA: Focus styles for cards and interactive elements */
+    .guide-ack-container:focus-visible {
+        outline: 3px solid #0284c7;
+        outline-offset: 2px;
     }
 
     .guide-step-icon-wrap {
@@ -357,10 +369,15 @@
     window.openUploadGuideModal = function(isAutoOpen) {
         const modalEl = document.getElementById('uploadGuideModal');
         if (!modalEl) return;
-        
+
         // Ensure modal element is in document.body for correct z-index & backdrop behavior
         if (modalEl.parentElement !== document.body) {
             document.body.appendChild(modalEl);
+        }
+
+        // Use accessibility utilities if available for focus management
+        if (window.openAccessibleModal) {
+            window.openAccessibleModal(modalEl, true);
         }
 
         const modal = getGuideModalInstance();
@@ -376,6 +393,12 @@
     window.closeUploadGuideModal = function() {
         const modalEl = document.getElementById('uploadGuideModal');
         if (!modalEl) return;
+
+        // Use accessibility utilities if available for focus restoration
+        if (window.closeAccessibleModal) {
+            window.closeAccessibleModal(modalEl, true);
+        }
+
         const modal = getGuideModalInstance();
         if (modal) {
             modal.hide();

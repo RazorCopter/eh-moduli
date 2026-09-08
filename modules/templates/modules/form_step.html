@@ -559,6 +559,11 @@ function openAbsenceDeclarationModal(reqId, reqName, isRequired) {
     alertDiv.innerHTML = '';
     document.getElementById('btnSubmitAbsence').disabled = true;
 
+    // Apply accessibility focus management if available
+    if (window.openAccessibleModal) {
+        window.openAccessibleModal('absenceDeclarationModal', true);
+    }
+
     // Show modal
     getAbsenceModal().show();
 }
