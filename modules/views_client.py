@@ -233,6 +233,7 @@ def client_dashboard(request):
         uploaded_count = getattr(assignment, 'valid_uploads_count', 0)
 
         status_label = t.get(f'status_{assignment.status}', assignment.status)
+        badge_label = t.get(f'badge_{assignment.status}', status_label)
 
         # Build timeline history milestones for this assignment
         is_submitted_or_beyond = assignment.status in ('submitted', 'in_processing', 'completed')
@@ -276,10 +277,11 @@ def client_dashboard(request):
 
         products.append({
             'assignment': assignment,
-            'project_name': project_name or assignment.form_template.name,
-            'module_name': assignment.form_template.name,
+            'project_name': project_name or (assignment.form_template.name if assignment.form_template else 'N/A'),
+            'module_name': assignment.form_template.name if assignment.form_template else 'N/A',
             'status': assignment.status,
             'status_label': status_label,
+            'badge_label': badge_label,
             'is_expired': is_expired,
             'completion_pct': assignment.completion_percentage,
             'total_requirements': total_reqs,

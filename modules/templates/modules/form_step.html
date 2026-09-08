@@ -5,6 +5,7 @@
 {% block title %}{{ step.title }} — {{ assignment.form_template.name }}{% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="row justify-content-center">
     <div class="col-lg-8 col-xl-7">
         
@@ -201,9 +202,9 @@
                             Avanti (Passaggio {{ current_index|add:1 }}) <i class="bi bi-arrow-right ms-1"></i>
                         </button>
                     {% else %}
-                        <a href="{% url 'form_summary_view' assignment.id %}" class="btn btn-success px-4 py-2 rounded-3 fw-semibold" style="box-shadow: 0 4px 12px rgba(25, 135, 84, 0.25);">
+                        <button type="button" class="btn btn-success px-4 py-2 rounded-3 fw-semibold" id="nextStepBtn" onclick="proceedToNextStep('{% url 'form_summary_view' assignment.id %}')" style="box-shadow: 0 4px 12px rgba(25, 135, 84, 0.25);">
                             Vai al Riepilogo e Invia <i class="bi bi-check2-circle ms-1"></i>
-                        </a>
+                        </button>
                     {% endif %}
                 </div>
 
@@ -212,11 +213,13 @@
 
     </div>
 </div>
+{% endblock %}
 
+{% block modals %}
 <!-- Modal per Upload Dichiarazione Formale di Assenza Documento -->
-<div class="modal fade" id="absenceDeclarationModal" tabindex="-1" aria-labelledby="absenceModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+<div class="modal fade" id="absenceDeclarationModal" tabindex="-1" aria-labelledby="absenceModalLabel" aria-hidden="true" style="z-index: 1065;">
+    <div class="modal-dialog modal-dialog-centered" style="z-index: 1066;">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden" style="background: #ffffff !important; position: relative; z-index: 1067;">
             <div class="modal-header bg-light border-bottom py-3 px-4">
                 <div class="d-flex align-items-center gap-2">
                     <div class="rounded-circle bg-warning bg-opacity-25 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
@@ -268,12 +271,24 @@
                     <textarea id="absenceNotesInput" class="form-control form-control-sm rounded-3" rows="2" placeholder="Es. Documento non applicabile per specifica formulazione / estremi della dichiarazione..." oninput="validateAbsenceForm()"></textarea>
                 </div>
 
-                <!-- Checkbox attestazione legale -->
-                <div class="form-check p-3 rounded-3 mb-2" id="absenceCheckContainer" style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
-                    <input class="form-check-input" type="checkbox" id="absenceLegalCheck" onchange="validateAbsenceForm()">
-                    <label class="form-check-label small text-dark" for="absenceLegalCheck">
-                        <strong>Dichiaro e attesto</strong> che il documento allegato costituisce formalizzazione su <strong>carta intestata aziendale</strong>, provvisto di <strong>timbro e firma</strong> valida del referente autorizzato.
-                    </label>
+                <!-- Checkbox attestazione legale ad Alta Visibilità -->
+                <div class="p-3 rounded-3 mb-2" id="absenceCheckContainer" 
+                     onclick="toggleAbsenceLegalCheck(event)"
+                     style="background-color: #fffbeb; border: 2px solid #f59e0b; cursor: pointer; transition: all 0.25s ease; display: flex; align-items: flex-start; gap: 14px; position: relative;">
+                    <div style="flex: 0 0 24px; width: 24px; height: 24px; margin-top: 1px; display: flex; align-items: center; justify-content: center;">
+                        <input type="checkbox" id="absenceLegalCheck" 
+                               style="width: 22px; height: 22px; cursor: pointer; accent-color: #2D8A4E; border-radius: 5px; margin: 0; display: block;"
+                               onclick="event.stopPropagation(); validateAbsenceForm();"
+                               onchange="validateAbsenceForm()">
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <label class="small text-dark m-0 d-block" for="absenceLegalCheck" style="cursor: pointer; user-select: none; line-height: 1.5; font-size: 0.86rem;">
+                            <strong>Dichiaro e attesto</strong> che il documento allegato costituisce formalizzazione su <strong>carta intestata aziendale</strong>, provvisto di <strong>timbro e firma</strong> valida del referente autorizzato.
+                        </label>
+                        <div id="absenceCheckBadge" class="mt-2 small fw-semibold text-warning" style="font-size: 0.74rem;">
+                            <i class="bi bi-info-circle me-1"></i> Spunta la casella o clicca sul riquadro per confermare
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Status alert for errors / upload -->
@@ -288,7 +303,9 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
 // Prevent default drag and drop behavior across window
 window.addEventListener('dragover', function(e) {
@@ -338,10 +355,21 @@ function handleFileUpload(reqId, inputElement) {
     }
 }
 
+// CSRF Helper with multiple safe fallbacks
+function getCsrfToken() {
+    const input = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (input && input.value) return input.value;
+    const match = document.cookie.match(/csrftoken=([^;]+)/);
+    if (match) return match[1];
+    return '{{ csrf_token }}';
+}
+
 // Upload a single file via multipart POST
 function uploadSingleFile(reqId, file) {
     const assignmentId = '{{ assignment.id }}';
     const formData = new FormData();
+    formData.append('file', file);
+    formData.append('requirement_id', reqId);
     formData.append('file_' + reqId, file);
     formData.append('availability_' + reqId, 'uploaded');
 
@@ -349,6 +377,7 @@ function uploadSingleFile(reqId, file) {
 
     // Show loading state
     const container = document.querySelector(`[data-req-id="${reqId}"]`);
+    const uploadsDiv = document.getElementById(`uploads-${reqId}`);
     if (container) {
         const loadingEl = container.querySelector('.upload-loading');
         if (loadingEl) loadingEl.classList.remove('d-none');
@@ -357,25 +386,40 @@ function uploadSingleFile(reqId, file) {
     fetch(uploadUrl, {
         method: 'POST',
         headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            'X-CSRFToken': getCsrfToken()
         },
         body: formData
     })
-    .then(response => {
-        if (!response.ok) throw new Error('Upload failed');
-        return response.json();
+    .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            const msg = data.error || (data.errors ? (Array.isArray(data.errors) ? data.errors.join(', ') : JSON.stringify(data.errors)) : null) || `Errore caricamento (${response.status})`;
+            throw new Error(msg);
+        }
+        return data;
     })
     .then(data => {
         // Update document status indicator
         if (container) {
             container.setAttribute('data-status', 'uploaded');
-            const statusIndicator = container.querySelector('.doc-status-indicator');
-            if (statusIndicator) {
-                statusIndicator.textContent = 'uploaded';
-                statusIndicator.className = 'doc-status-indicator badge bg-success';
-            }
             const loadingEl = container.querySelector('.upload-loading');
             if (loadingEl) loadingEl.classList.add('d-none');
+        }
+        if (uploadsDiv) {
+            const fileName = data.filename || file.name;
+            const fileSizeFormatted = formatBytes(data.size || file.size);
+            uploadsDiv.innerHTML = `
+                <div class="alert alert-success py-2 px-3 mb-2 d-flex align-items-center justify-content-between rounded-3">
+                    <span class="small"><i class="bi bi-check-circle-fill text-success me-2"></i> <strong>${fileName}</strong> (${fileSizeFormatted})</span>
+                    <span class="badge bg-success doc-status-indicator" data-status="uploaded">Salvato</span>
+                </div>
+                <div class="upload-loading d-none mt-2">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <small class="text-muted ms-2">Caricamento file in corso...</small>
+                </div>
+            `;
         }
         // Re-validate button state
         updateNextButtonState();
@@ -386,26 +430,36 @@ function uploadSingleFile(reqId, file) {
             const loadingEl = container.querySelector('.upload-loading');
             if (loadingEl) loadingEl.classList.add('d-none');
         }
-        alert('Errore durante il caricamento del file. Riprova.');
+        alert('Errore durante il caricamento del file: ' + error.message);
     });
 }
 
-// Validate if all mandatory documents are satisfied
+// Validate if all mandatory documents and required inputs on this step are satisfied
 function validateMandatoryDocuments() {
+    // 1. Check required documents
     const requiredDocs = document.querySelectorAll('[data-required="true"]');
-    let allValid = true;
-
-    requiredDocs.forEach(docEl => {
-        const status = docEl.getAttribute('data-status') || '';
+    for (let i = 0; i < requiredDocs.length; i++) {
+        const status = requiredDocs[i].getAttribute('data-status') || '';
         if (status !== 'uploaded' && status !== 'not_available') {
-            allValid = false;
+            return false;
         }
-    });
+    }
 
-    return allValid;
+    // 2. Check required form inputs (text, email, phone, date, awareness checkboxes)
+    const requiredInputs = document.querySelectorAll('.card-body input[required], .card-body select[required], .card-body textarea[required]');
+    for (let i = 0; i < requiredInputs.length; i++) {
+        const el = requiredInputs[i];
+        if (el.type === 'checkbox') {
+            if (!el.checked) return false;
+        } else if (!el.value || !el.value.trim()) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
-// Update next button state based on document validation
+// Update next/summary button state based on document and field validation
 function updateNextButtonState() {
     const btn = document.getElementById('nextStepBtn');
     if (!btn) return;
@@ -416,7 +470,7 @@ function updateNextButtonState() {
     if (!isValid) {
         btn.classList.add('disabled');
         btn.style.cursor = 'not-allowed';
-        btn.title = 'Carica tutti i documenti obbligatori prima di procedere';
+        btn.title = 'Completa tutti i documenti e i campi obbligatori prima di procedere';
     } else {
         btn.classList.remove('disabled');
         btn.style.cursor = 'pointer';
@@ -424,18 +478,23 @@ function updateNextButtonState() {
     }
 }
 
-// Navigate to next step after validation
+// Navigate to next step or summary after validation
 function proceedToNextStep(nextUrl) {
     if (!validateMandatoryDocuments()) {
-        alert('Carica tutti i documenti obbligatori prima di procedere.');
+        alert('Carica tutti i documenti obbligatori o compila i campi richiesti prima di procedere.');
         return;
     }
     window.location.href = nextUrl;
 }
 
-// Initialize button state on page load
+// Initialize button state on page load and attach input listeners
 document.addEventListener('DOMContentLoaded', function() {
     updateNextButtonState();
+
+    document.querySelectorAll('.card-body input, .card-body select, .card-body textarea').forEach(input => {
+        input.addEventListener('input', updateNextButtonState);
+        input.addEventListener('change', updateNextButtonState);
+    });
 });
 
 // Helpers per formattazione e modale dichiarazione assenza
@@ -451,13 +510,25 @@ let absenceModalInstance = null;
 
 function getAbsenceModal() {
     const el = document.getElementById('absenceDeclarationModal');
+    if (el && el.parentElement !== document.body) {
+        document.body.appendChild(el);
+    }
     if (!absenceModalInstance && el) {
-        absenceModalInstance = new bootstrap.Modal(el);
+        absenceModalInstance = new bootstrap.Modal(el, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
     }
     return absenceModalInstance;
 }
 
 function openAbsenceDeclarationModal(reqId, reqName, isRequired) {
+    const el = document.getElementById('absenceDeclarationModal');
+    if (el && el.parentElement !== document.body) {
+        document.body.appendChild(el);
+    }
+
     document.getElementById('absenceReqId').value = reqId;
     document.getElementById('absenceIsRequired').value = isRequired ? 'true' : 'false';
     document.getElementById('absenceModalReqName').innerText = reqName + (isRequired ? ' · Obbligatorio' : ' · Facoltativo');
@@ -470,6 +541,17 @@ function openAbsenceDeclarationModal(reqId, reqName, isRequired) {
     document.getElementById('absenceNotesInput').value = '';
     const legalCheck = document.getElementById('absenceLegalCheck');
     legalCheck.checked = false;
+    const checkContainer = document.getElementById('absenceCheckContainer');
+    if (checkContainer) {
+        checkContainer.style.backgroundColor = '#fffbeb';
+        checkContainer.style.borderColor = '#f59e0b';
+        checkContainer.style.boxShadow = 'none';
+    }
+    const checkBadge = document.getElementById('absenceCheckBadge');
+    if (checkBadge) {
+        checkBadge.className = 'mt-2 small fw-semibold text-warning';
+        checkBadge.innerHTML = '<i class="bi bi-info-circle me-1"></i> Spunta la casella o clicca sul riquadro per confermare';
+    }
 
     // Reset alert & button
     const alertDiv = document.getElementById('absenceStatusAlert');
@@ -479,6 +561,15 @@ function openAbsenceDeclarationModal(reqId, reqName, isRequired) {
 
     // Show modal
     getAbsenceModal().show();
+}
+
+function toggleAbsenceLegalCheck(event) {
+    if (event && event.target && event.target.id === 'absenceLegalCheck') return;
+    const check = document.getElementById('absenceLegalCheck');
+    if (check) {
+        check.checked = !check.checked;
+        validateAbsenceForm();
+    }
 }
 
 function handleAbsenceFileSelected(input) {
@@ -531,6 +622,28 @@ function validateAbsenceForm() {
     const isRequired = document.getElementById('absenceIsRequired').value === 'true';
     const notes = document.getElementById('absenceNotesInput').value.trim();
     const btn = document.getElementById('btnSubmitAbsence');
+
+    const checkContainer = document.getElementById('absenceCheckContainer');
+    const checkBadge = document.getElementById('absenceCheckBadge');
+    if (checkContainer && legalCheck) {
+        if (legalCheck.checked) {
+            checkContainer.style.backgroundColor = '#f0fdf4';
+            checkContainer.style.borderColor = '#10b981';
+            checkContainer.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.15)';
+            if (checkBadge) {
+                checkBadge.className = 'mt-2 small fw-semibold text-success';
+                checkBadge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Attestazione confermata';
+            }
+        } else {
+            checkContainer.style.backgroundColor = '#fffbeb';
+            checkContainer.style.borderColor = '#f59e0b';
+            checkContainer.style.boxShadow = 'none';
+            if (checkBadge) {
+                checkBadge.className = 'mt-2 small fw-semibold text-warning';
+                checkBadge.innerHTML = '<i class="bi bi-info-circle me-1"></i> Spunta la casella o clicca sul riquadro per confermare';
+            }
+        }
+    }
 
     const hasFile = fileInput.files && fileInput.files.length > 0;
 
@@ -594,7 +707,7 @@ async function submitAbsenceDeclaration() {
         const res = await fetch(`/modules/form/{{ assignment.id }}/skip-document/${reqId}/`, {
             method: 'POST',
             headers: {
-                'X-CSRFToken': '{{ csrf_token }}'
+                'X-CSRFToken': getCsrfToken()
             },
             body: formData
         });

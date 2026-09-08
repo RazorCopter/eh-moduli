@@ -1,0 +1,440 @@
+<!-- Floating Action Button (FAB) & Universal Upload Guide Modal -->
+<style>
+    /* ─── Floating Action Button (FAB) ─── */
+    .eh-guide-fab {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 1060;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #2C2C2C 0%, #1A1A1A 100%);
+        color: #FFFFFF !important;
+        border: 2px solid rgba(232, 132, 125, 0.7);
+        border-radius: 50px;
+        padding: 10px 18px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22), 0 0 12px rgba(232, 132, 125, 0.25);
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        user-select: none;
+    }
+
+    .eh-guide-fab:hover {
+        transform: translateY(-2px) scale(1.03);
+        background: linear-gradient(135deg, #3A3A3A 0%, #222222 100%);
+        border-color: #E8847D;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), 0 0 16px rgba(232, 132, 125, 0.4);
+        color: #FFFFFF !important;
+    }
+
+    .eh-guide-fab:active {
+        transform: scale(0.97);
+    }
+
+    .eh-guide-fab .fab-icon {
+        font-size: 1.15rem;
+        color: #E8847D;
+        display: flex;
+        align-items: center;
+    }
+
+    .eh-guide-fab .fab-label {
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+    }
+
+    /* ─── Modal Overlay & Cards ─── */
+    #uploadGuideModal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 1070;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        overflow-y: auto;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+        box-sizing: border-box;
+    }
+
+    #uploadGuideModal.active,
+    #uploadGuideModal.show {
+        display: flex !important;
+        opacity: 1 !important;
+    }
+
+    #uploadGuideModal .modal-dialog {
+        width: 100%;
+        max-width: 780px;
+        margin: auto;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        transform: translateY(12px);
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #uploadGuideModal.active .modal-dialog,
+    #uploadGuideModal.show .modal-dialog {
+        transform: translateY(0);
+    }
+
+    #uploadGuideModal .modal-content {
+        background: #FFFFFF;
+        border-radius: 16px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        max-height: 88vh;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+    }
+
+    #uploadGuideModal .modal-body {
+        overflow-y: auto;
+    }
+
+    .guide-step-card {
+        background: #FFFFFF;
+        border: 1px solid #EAE6E1;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+    }
+
+    .guide-step-card:hover {
+        border-color: #CBD5E1;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+        transform: translateY(-1px);
+    }
+
+    .guide-step-icon-wrap {
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .guide-step-body {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .guide-step-badge {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 3px 8px;
+        border-radius: 6px;
+        display: inline-block;
+        margin-bottom: 4px;
+    }
+
+    .guide-step-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        margin-bottom: 4px;
+    }
+
+    .guide-step-desc {
+        font-size: 0.835rem;
+        color: #555555;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .guide-ack-container {
+        background: #FFF8F7;
+        border: 1.5px solid #F3C5C0;
+        border-radius: 10px;
+        padding: 12px 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: all 0.2s ease;
+    }
+
+    .guide-ack-container:hover {
+        background: #FFF1F0;
+        border-color: #E8847D;
+    }
+
+    @media (max-width: 576px) {
+        .eh-guide-fab {
+            bottom: 16px;
+            right: 16px;
+            padding: 10px 14px;
+        }
+        .eh-guide-fab .fab-label {
+            display: none;
+        }
+        .guide-step-card {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+</style>
+
+<!-- Floating Helper Button (always visible across all client pages) -->
+<div id="btnFloatingUploadGuide" class="eh-guide-fab" onclick="openUploadGuideModal(false)" title="{{ t.guide_modal_title|default:'Guida al Caricamento Documentale' }}">
+    <span class="fab-icon"><i class="bi bi-question-circle-fill"></i></span>
+    <span class="fab-label">{{ t.guide_fab_label|default:'Guida Upload' }}</span>
+</div>
+
+<!-- Upload Guide Modal Dialog -->
+<div class="modal fade" id="uploadGuideModal" tabindex="-1" aria-labelledby="uploadGuideModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0">
+            
+            <!-- Header with soft branding banner -->
+            <div class="modal-header border-0 pb-3 pt-4 px-4 px-md-5" style="background: linear-gradient(180deg, #FFFFFF 0%, #FAFAF9 100%);">
+                <div class="d-flex align-items-center justify-content-between w-100">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width: 44px; height: 44px; flex: 0 0 44px; background: rgba(232, 132, 125, 0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi bi-book-half" style="font-size: 1.4rem; color: #E8847D;"></i>
+                        </div>
+                        <div>
+                            <h4 class="modal-title fw-bold text-dark m-0" id="uploadGuideModalLabel" style="font-size: 1.25rem;">
+                                {{ t.guide_modal_title|default:'Guida al Caricamento Documentale' }}
+                            </h4>
+                            <div class="text-muted small mt-1" style="font-size: 0.84rem;">
+                                {{ t.guide_modal_subtitle|default:'Istruzioni chiare e semplici per completare la raccolta documenti in pochi minuti.' }}
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" onclick="closeUploadGuideModal()" aria-label="Close" style="cursor: pointer;"></button>
+                </div>
+            </div>
+
+            <!-- Body with 5 Step Cards + Assistance Alert -->
+            <div class="modal-body px-4 px-md-5 py-3" style="background: #FAFAF9;">
+                
+                <!-- Step 1: Prepara i Documenti -->
+                <div class="guide-step-card">
+                    <div class="guide-step-icon-wrap" style="background: #EBF5FF; color: #2563EB;">
+                        <i class="bi bi-file-earmark-pdf-fill"></i>
+                    </div>
+                    <div class="guide-step-body">
+                        <span class="guide-step-badge" style="background: #DBEAFE; color: #1D4ED8;">
+                            {{ t.guide_step1_badge|default:'1. Prepara i Documenti' }}
+                        </span>
+                        <div class="guide-step-title">{{ t.guide_step1_title|default:'Formati ammessi e limiti' }}</div>
+                        <p class="guide-step-desc">{{ t.guide_step1_desc|safe|default:'Puoi caricare file in formato PDF, Word (.doc, .docx) o immagini JPG/PNG fino a 10 MB per file.' }}</p>
+                    </div>
+                </div>
+
+                <!-- Step 2: Come Caricare i File -->
+                <div class="guide-step-card">
+                    <div class="guide-step-icon-wrap" style="background: #ECFDF5; color: #059669;">
+                        <i class="bi bi-cloud-arrow-up-fill"></i>
+                    </div>
+                    <div class="guide-step-body">
+                        <span class="guide-step-badge" style="background: #D1FAE5; color: #047857;">
+                            {{ t.guide_step2_badge|default:'2. Come Caricare i File' }}
+                        </span>
+                        <div class="guide-step-title">{{ t.guide_step2_title|default:'Trascina o seleziona con un click' }}</div>
+                        <p class="guide-step-desc">{{ t.guide_step2_desc|safe|default:'Trascina il file nel riquadro tratteggiato o clicca per cercarlo dal tuo dispositivo. Il caricamento è immediato.' }}</p>
+                    </div>
+                </div>
+
+                <!-- Step 3: Documenti Obbligatori -->
+                <div class="guide-step-card">
+                    <div class="guide-step-icon-wrap" style="background: #FEF2F2; color: #DC2626;">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                    <div class="guide-step-body">
+                        <span class="guide-step-badge" style="background: #FEE2E2; color: #B91C1C;">
+                            {{ t.guide_step3_badge|default:'3. Documenti Obbligatori' }}
+                        </span>
+                        <div class="guide-step-title">{{ t.guide_step3_title|default:'Avanzamento tra i passaggi' }}</div>
+                        <p class="guide-step-desc">{{ t.guide_step3_desc|safe|default:'I documenti con contrassegno Obbligatorio devono essere caricati o giustificati prima di poter cliccare su Avanti.' }}</p>
+                    </div>
+                </div>
+
+                <!-- Step 4: Documento Non Disponibile? -->
+                <div class="guide-step-card">
+                    <div class="guide-step-icon-wrap" style="background: #FFFBEB; color: #D97706;">
+                        <i class="bi bi-file-earmark-text-fill"></i>
+                    </div>
+                    <div class="guide-step-body">
+                        <span class="guide-step-badge" style="background: #FEF3C7; color: #B45309;">
+                            {{ t.guide_step4_badge|default:'4. Documento Non Disponibile?' }}
+                        </span>
+                        <div class="guide-step-title">{{ t.guide_step4_title|default:'Carica la Dichiarazione Formale' }}</div>
+                        <p class="guide-step-desc">{{ t.guide_step4_desc|safe|default:'Se un documento manca, clicca su Carica dichiarazione formale: allega lettera su carta intestata timbrata e firmata.' }}</p>
+                    </div>
+                </div>
+
+                <!-- Step 5: Conclusione della Sessione -->
+                <div class="guide-step-card">
+                    <div class="guide-step-icon-wrap" style="background: #F3E8FF; color: #7C3AED;">
+                        <i class="bi bi-send-check-fill"></i>
+                    </div>
+                    <div class="guide-step-body">
+                        <span class="guide-step-badge" style="background: #EDE9FE; color: #6D28D9;">
+                            {{ t.guide_step5_badge|default:'5. Conclusione della Sessione' }}
+                        </span>
+                        <div class="guide-step-title">{{ t.guide_step5_title|default:'Invia Documenti vs Salva Bozza' }}</div>
+                        <p class="guide-step-desc">{{ t.guide_step5_desc|safe|default:'Invia Documenti trasmette la pratica completa a Etichub; Salva Bozza salva il lavoro parziale per concluderlo in seguito.' }}</p>
+                    </div>
+                </div>
+
+                <!-- Support Box -->
+                <div class="alert alert-light border p-3 rounded-3 mt-3 d-flex align-items-center gap-3" style="background: #FFFFFF;">
+                    <div style="font-size: 1.5rem; color: #E8847D;"><i class="bi bi-headset"></i></div>
+                    <div class="small text-muted" style="line-height: 1.45;">
+                        <strong class="text-dark">{{ t.guide_help_box_title|default:'Serve ulteriore assistenza?' }}</strong><br>
+                        {{ t.guide_help_box_desc|safe|default:'I nostri esperti regolatori sono sempre a disposizione. Puoi riaprire questa guida in qualunque momento tramite il pulsante ? in basso a destra.' }}
+                    </div>
+                </div>
+
+                <!-- Checkbox Presa Visione -->
+                <div class="guide-ack-container mt-3" onclick="toggleGuideAckCheckbox(event)">
+                    <input type="checkbox" id="dontShowGuideAgain" 
+                           style="width: 20px; height: 20px; accent-color: #2D8A4E; cursor: pointer; margin: 0; flex: 0 0 20px;"
+                           onclick="event.stopPropagation()">
+                    <label for="dontShowGuideAgain" class="m-0 text-dark" style="cursor: pointer; font-size: 0.86rem; line-height: 1.4; user-select: none;">
+                        <strong>{{ t.guide_dont_show_again|default:'Ho preso visione delle istruzioni (non mostrare più automaticamente all\'accesso)' }}</strong>
+                    </label>
+                </div>
+
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="modal-footer border-0 px-4 px-md-5 py-3 bg-white d-flex justify-content-between">
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3 rounded-3" onclick="closeUploadGuideModal()">
+                    {{ t.guide_btn_close|default:'Chiudi Guida' }}
+                </button>
+                <button type="button" class="btn btn-sm btn-primary px-4 fw-bold rounded-3 shadow-sm" onclick="confirmUploadGuide()" style="background: linear-gradient(135deg, #2D8A4E 0%, #236B3D 100%); border: none;">
+                    <i class="bi bi-check2-circle me-1"></i> {{ t.guide_btn_start|default:'Ho capito, Inizia!' }}
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    function getCustomerStorageKey() {
+        const custCode = window.EH_CUSTOMER_CODE || 'default_client';
+        return 'eh_upload_guide_ack_' + custCode;
+    }
+
+    function getGuideModalInstance() {
+        const el = document.getElementById('uploadGuideModal');
+        if (!el) return null;
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            try {
+                return bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+            } catch(e) {}
+        }
+        return null;
+    }
+
+    window.openUploadGuideModal = function(isAutoOpen) {
+        const modalEl = document.getElementById('uploadGuideModal');
+        if (!modalEl) return;
+        
+        // Ensure modal element is in document.body for correct z-index & backdrop behavior
+        if (modalEl.parentElement !== document.body) {
+            document.body.appendChild(modalEl);
+        }
+
+        const modal = getGuideModalInstance();
+        if (modal) {
+            modal.show();
+        } else {
+            // Standalone fallback
+            modalEl.classList.add('show', 'active');
+            document.body.style.overflow = 'hidden';
+        }
+    };
+
+    window.closeUploadGuideModal = function() {
+        const modalEl = document.getElementById('uploadGuideModal');
+        if (!modalEl) return;
+        const modal = getGuideModalInstance();
+        if (modal) {
+            modal.hide();
+        }
+        modalEl.classList.remove('show', 'active');
+        document.body.style.overflow = '';
+    };
+
+    window.toggleGuideAckCheckbox = function(e) {
+        if (e && e.target && e.target.id === 'dontShowGuideAgain') return;
+        const cb = document.getElementById('dontShowGuideAgain');
+        if (cb) {
+            cb.checked = !cb.checked;
+        }
+    };
+
+    window.confirmUploadGuide = function() {
+        const cb = document.getElementById('dontShowGuideAgain');
+        if (cb && cb.checked) {
+            try {
+                localStorage.setItem(getCustomerStorageKey(), 'true');
+            } catch (e) {
+                console.warn('localStorage unavailable:', e);
+            }
+        }
+        closeUploadGuideModal();
+    };
+
+    // Close on backdrop click (if clicking outside modal dialog)
+    document.addEventListener('click', function(e) {
+        const modalEl = document.getElementById('uploadGuideModal');
+        if (modalEl && modalEl.classList.contains('active') && e.target === modalEl) {
+            closeUploadGuideModal();
+        }
+    });
+
+    // Auto-open on client dashboard if not acknowledged
+    document.addEventListener('DOMContentLoaded', function() {
+        const modalEl = document.getElementById('uploadGuideModal');
+        if (modalEl && modalEl.parentElement !== document.body) {
+            document.body.appendChild(modalEl);
+        }
+
+        const key = getCustomerStorageKey();
+        let isAck = false;
+        try {
+            isAck = (localStorage.getItem(key) === 'true');
+        } catch(e) {}
+
+        // Check if we are on the dashboard (first landing after login)
+        const isDashboard = window.location.pathname.includes('/client/dashboard') || 
+                            document.getElementById('clientDashboardPage') !== null ||
+                            window.EH_IS_DASHBOARD === true;
+
+        if (!isAck && isDashboard) {
+            setTimeout(function() {
+                openUploadGuideModal(true);
+            }, 450);
+        }
+    });
+})();
+</script>

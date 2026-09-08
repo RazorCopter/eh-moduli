@@ -244,7 +244,7 @@
             max-width: 1360px;
             margin: 0 auto;
             padding: 0 28px;
-            animation: appFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+            animation: appFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         @keyframes appFadeIn {
@@ -254,8 +254,24 @@
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: none;
             }
+        }
+
+        /* Ensure Bootstrap Modals and Backdrops stack correctly */
+        .modal {
+            z-index: 1065 !important;
+        }
+        .modal-backdrop {
+            z-index: 1055 !important;
+        }
+        .modal-dialog {
+            z-index: 1066 !important;
+        }
+        .modal-content {
+            background-color: #ffffff !important;
+            position: relative !important;
+            z-index: 1067 !important;
         }
 
         .alerts-container {
@@ -578,8 +594,26 @@
                 closeHelpModal();
             }
         });
+        // Automatically move Bootstrap modals directly to document.body to prevent stacking context/backdrop issues
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.modal').forEach(function(m) {
+                if (m.parentElement && m.parentElement !== document.body) {
+                    document.body.appendChild(m);
+                }
+            });
+        });
     </script>
+
+    {% block modals %}{% endblock %}
+
+    {% if is_public_form or request.session.customer_id or assignment %}
+    <script>
+    window.EH_CUSTOMER_CODE = "{{ request.session.customer_code|default:'' }}";
+    </script>
+    {% include "modules/client/upload_guide_modal.html" %}
+    {% endif %}
 
     {% block extra_js %}{% endblock %}
 </body>
 </html>
+

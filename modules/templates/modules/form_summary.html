@@ -88,17 +88,28 @@
 
                 <form method="post" id="finalSubmissionForm" action="{% url 'form_submission_view' assignment.id %}">
                     {% csrf_token %}
+                    <input type="hidden" name="action_type" id="action_type" value="complete">
 
-                    <!-- Dichiarazione di Consapevolezza -->
-                    <div class="card border-warning-subtle bg-light-subtle rounded-3 p-3 mb-4" style="border: 1px solid #ffc107 !important;">
-                        <div class="form-check d-flex align-items-start gap-3">
-                            <input class="form-check-input mt-1" type="checkbox" id="awareness_declaration" name="awareness_declaration" value="true" required style="width: 22px; height: 22px; cursor: pointer;">
-                            <label class="form-check-label text-dark" for="awareness_declaration" style="cursor: pointer; font-size: 0.95rem; line-height: 1.5;">
-                                <strong class="d-block mb-1 text-dark">
-                                    <i class="bi bi-patch-check-fill text-warning me-1"></i> {{ t.awareness_declaration_title|default:"Dichiarazione di Consapevolezza Documentale" }}
-                                </strong>
-                                {{ t.awareness_declaration_text|default:"Dichiaro formalmente di aver trasmesso tutti i documenti e le informazioni in mio possesso necessari per la lavorazione del prodotto da parte dell'ufficio regolatorio Etichub. Sono consapevole che la conferma attesterà il completamento dell'acquisizione documentale e notificherà il team tecnico per l'avvio della lavorazione." }}
-                            </label>
+                    <!-- Dichiarazione di Consapevolezza (Box ad alta visibilità) -->
+                    <div id="awarenessCard" class="card rounded-3 p-3 mb-4" style="border: 2px solid #f59e0b !important; background-color: #fffdf5; transition: all 0.25s ease; box-shadow: 0 2px 10px rgba(245, 158, 11, 0.12); cursor: pointer;">
+                        <div class="d-flex align-items-start gap-3">
+                            <div style="flex: 0 0 28px; width: 28px; height: 28px; min-width: 28px; min-height: 28px; display: flex; align-items: center; justify-content: center; margin-top: 2px;">
+                                <input type="checkbox" id="awareness_declaration" name="awareness_declaration" value="true"
+                                       style="width: 24px; height: 24px; min-width: 24px; min-height: 24px; max-width: 24px; max-height: 24px; flex-shrink: 0; cursor: pointer; accent-color: #2D8A4E; border: 2.5px solid #d97706; border-radius: 6px; margin: 0; display: block;">
+                            </div>
+                            <div class="flex-grow-1" style="user-select: none;">
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                                    <strong class="text-dark d-flex align-items-center gap-2" style="font-size: 1.02rem;">
+                                        <i class="bi bi-patch-check-fill text-warning fs-5"></i> {{ t.awareness_declaration_title|default:"Dichiarazione di Consapevolezza Documentale" }}
+                                    </strong>
+                                    <span id="awarenessBadge" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1" style="font-size: 0.78rem; font-weight: 600;">
+                                        <i class="bi bi-exclamation-circle me-1"></i> Da spuntare per invio finale
+                                    </span>
+                                </div>
+                                <div class="text-dark opacity-75" style="font-size: 0.93rem; line-height: 1.55;">
+                                    {{ t.awareness_declaration_text|default:"Dichiaro formalmente di aver trasmesso tutti i documenti e le informazioni in mio possesso necessari per la lavorazione del prodotto da parte dell'ufficio regolatorio Etichub. Sono consapevole che la conferma attesterà il completamento dell'acquisizione documentale e notificherà il team tecnico per l'avvio della lavorazione." }}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -107,91 +118,224 @@
                             <i class="bi bi-arrow-left me-1"></i> {{ t.btn_back|default:"Indietro" }}
                         </a>
 
-                        <button type="button" id="btnOpenConfirmModal" class="btn btn-success btn-lg px-4 py-2 rounded-3 fw-semibold" style="box-shadow: 0 4px 14px rgba(45, 138, 78, 0.3);">
-                            <i class="bi bi-send-check me-2"></i> {{ t.btn_confirm_submit|default:t.btn_confirm_submit_50|default:"Conferma e Invia Documenti" }}
-                        </button>
-                    </div>
-                </form>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <!-- Tasto Invio Parziale / Salva Bozza (Sempre Attivo) -->
+                            <button type="button" id="btnOpenPartialModal" class="btn btn-outline-secondary px-3 py-2 rounded-3 fw-semibold" style="border-width: 1.5px;" title="Salva lo stato attuale della documentazione e completa l'invio in un secondo momento">
+                                <i class="bi bi-floppy me-1"></i> {{ t.btn_partial_submit|default:"Salva Bozza / Invio Parziale" }}
+                            </button>
 
-                <!-- Modal di Conferma Alert -->
-                <div class="modal fade" id="confirmFinalSubmissionModal" tabindex="-1" aria-labelledby="confirmFinalSubmissionModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content rounded-4 border-0 shadow-lg">
-                            <div class="modal-header border-bottom-0 pb-0">
-                                <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="confirmFinalSubmissionModalLabel">
-                                    <span class="rounded-circle p-2 bg-warning-subtle text-warning d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
-                                    </span>
-                                    {{ t.alert_confirm_submission_title|default:"Conferma Invio Finale" }}
-                                </h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
-                            </div>
-                            <div class="modal-body py-3">
-                                <div class="alert alert-warning border-0 rounded-3 p-3 text-dark mb-0" style="background: #fff8e6; border: 1px solid #ffeeba !important;">
-                                    <p class="mb-0 fw-semibold" style="font-size: 0.95rem; line-height: 1.55;">
-                                        {{ t.alert_confirm_submission_body|default:"Confermi di aver caricato tutta la documentazione in tuo possesso? L'invio notificherà l'Ufficio Regolatorio di Etichub per l'avvio della lavorazione. Non sarà più possibile modificare i documenti caricati." }}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="modal-footer border-top-0 pt-0">
-                                <button type="button" class="btn btn-outline-secondary px-3 rounded-3" data-bs-dismiss="modal">
-                                    {{ t.alert_confirm_btn_cancel|default:"Annulla e Ricontrolla" }}
-                                </button>
-                                <button type="button" id="btnConfirmSubmit" class="btn btn-success px-4 rounded-3 fw-semibold">
-                                    <i class="bi bi-check2-circle me-1"></i> {{ t.alert_confirm_btn_submit|default:"Sì, Confermo e Invia" }}
-                                </button>
-                            </div>
+                            <!-- Tasto Invia Documenti (Attivo solo se checkbox flaggata) -->
+                            <button type="button" id="btnOpenConfirmModal" class="btn btn-success px-4 py-2 rounded-3 fw-semibold" disabled style="opacity: 0.5; cursor: not-allowed; box-shadow: none;" title="Spunta la dichiarazione di consapevolezza per abilitare l'invio definitivo">
+                                <i class="bi bi-send-check me-2"></i> {{ t.btn_send_docs|default:t.btn_confirm_submit|default:"Invia Documenti" }}
+                            </button>
                         </div>
                     </div>
-                </div>
-
-                <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const btnOpenModal = document.getElementById('btnOpenConfirmModal');
-                        const btnConfirmSubmit = document.getElementById('btnConfirmSubmit');
-                        const awarenessCheckbox = document.getElementById('awareness_declaration');
-                        const form = document.getElementById('finalSubmissionForm');
-                        const modalEl = document.getElementById('confirmFinalSubmissionModal');
-                        let bsModal = null;
-
-                        const awarenessAlertText = "{{ t.awareness_declaration_alert_js|default:'Attenzione: è necessario spuntare la dichiarazione formale di consapevolezza prima di procedere con l\'invio.'|escapejs }}";
-                        const confirmPromptText = "{{ t.alert_confirm_submission_body|default:'Confermi di aver caricato tutta la documentazione in tuo possesso? L\'invio notificherà l\'Ufficio Regolatorio di Etichub per l\'avvio della lavorazione. Non sarà più possibile modificare i documenti caricati.'|escapejs }}";
-                        const submittingText = "{{ t.submitting_spinner|default:'Invio in corso...'|escapejs }}";
-
-                        if (typeof bootstrap !== 'undefined' && modalEl) {
-                            bsModal = new bootstrap.Modal(modalEl);
-                        }
-
-                        if (btnOpenModal) {
-                            btnOpenModal.addEventListener('click', function(e) {
-                                if (!awarenessCheckbox.checked) {
-                                    awarenessCheckbox.focus();
-                                    alert(awarenessAlertText);
-                                    return;
-                                }
-                                if (bsModal) {
-                                    bsModal.show();
-                                } else {
-                                    if (confirm(confirmPromptText)) {
-                                        form.submit();
-                                    }
-                                }
-                            });
-                        }
-
-                        if (btnConfirmSubmit) {
-                            btnConfirmSubmit.addEventListener('click', function() {
-                                btnConfirmSubmit.disabled = true;
-                                btnConfirmSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + submittingText;
-                                form.submit();
-                            });
-                        }
-                    });
-                </script>
+                </form>
 
             </div>
         </div>
 
     </div>
 </div>
+{% endblock %}
+
+{% block modals %}
+<!-- Modal di Conferma Invio Finale -->
+<div class="modal fade" id="confirmFinalSubmissionModal" tabindex="-1" aria-labelledby="confirmFinalSubmissionModalLabel" aria-hidden="true" style="z-index: 1065 !important;">
+    <div class="modal-dialog modal-dialog-centered" style="z-index: 1066 !important;">
+        <div class="modal-content rounded-4 border-0 shadow-lg" style="background-color: #ffffff !important; position: relative !important; z-index: 1067 !important;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="confirmFinalSubmissionModalLabel">
+                    <span class="rounded-circle p-2 bg-warning-subtle text-warning d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                    </span>
+                    {{ t.alert_confirm_submission_title|default:"Conferma Invio Finale" }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="alert alert-warning border-0 rounded-3 p-3 text-dark mb-0" style="background: #fff8e6; border: 1px solid #ffeeba !important;">
+                    <p class="mb-0 fw-semibold" style="font-size: 0.95rem; line-height: 1.55;">
+                        {{ t.alert_confirm_submission_body|default:"Confermi di aver caricato tutta la documentazione in tuo possesso? L'invio notificherà l'Ufficio Regolatorio di Etichub per l'avvio della lavorazione. Non sarà più possibile modificare i documenti caricati." }}
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary px-3 rounded-3" data-bs-dismiss="modal">
+                    {{ t.alert_confirm_btn_cancel|default:"Annulla e Ricontrolla" }}
+                </button>
+                <button type="button" id="btnConfirmSubmit" class="btn btn-success px-4 rounded-3 fw-semibold">
+                    <i class="bi bi-check2-circle me-1"></i> {{ t.alert_confirm_btn_submit|default:"Sì, Confermo e Invia" }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Salva Bozza / Invio Parziale -->
+<div class="modal fade" id="partialSubmissionModal" tabindex="-1" aria-labelledby="partialSubmissionModalLabel" aria-hidden="true" style="z-index: 1065 !important;">
+    <div class="modal-dialog modal-dialog-centered" style="z-index: 1066 !important;">
+        <div class="modal-content rounded-4 border-0 shadow-lg" style="background-color: #ffffff !important; position: relative !important; z-index: 1067 !important;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="partialSubmissionModalLabel">
+                    <span class="rounded-circle p-2 bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-clock-history fs-5"></i>
+                    </span>
+                    {{ t.partial_save_modal_title|default:"Salva Bozza e Concludi Sessione" }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+            </div>
+            <div class="modal-body py-3">
+                <div class="alert alert-info border-0 rounded-3 p-3 text-dark mb-0" style="background: #eff6ff; border: 1px solid #bfdbfe !important;">
+                    <p class="mb-2 fw-semibold" style="font-size: 0.95rem; line-height: 1.55;">
+                        {{ t.partial_save_modal_body|default:"I file e i dati caricati finora rimarranno salvati in sicurezza. La pratica rimarrà in corso (Documentazione Parziale) e potrai rientrare nell'area riservata in qualsiasi momento per caricare i documenti mancanti entro la data di scadenza." }}
+                    </p>
+                    <div class="small text-muted mt-2 pt-2 border-top border-info-subtle">
+                        <i class="bi bi-info-circle me-1 text-primary"></i> L'Ufficio Regolatorio avvierà la lavorazione tecnica solo quando avrai effettuato l'invio finale con la dichiarazione di consapevolezza.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary px-3 rounded-3" data-bs-dismiss="modal">
+                    {{ t.alert_confirm_btn_cancel|default:"Annulla" }}
+                </button>
+                <button type="button" id="btnConfirmPartialSubmit" class="btn btn-primary px-4 rounded-3 fw-semibold">
+                    <i class="bi bi-floppy me-1"></i> {{ t.partial_save_btn_confirm|default:"Conferma Salva Bozza" }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnOpenModal = document.getElementById('btnOpenConfirmModal');
+        const btnConfirmSubmit = document.getElementById('btnConfirmSubmit');
+        const btnOpenPartialModal = document.getElementById('btnOpenPartialModal');
+        const btnConfirmPartialSubmit = document.getElementById('btnConfirmPartialSubmit');
+        const awarenessCheckbox = document.getElementById('awareness_declaration');
+        const awarenessCard = document.getElementById('awarenessCard');
+        const awarenessBadge = document.getElementById('awarenessBadge');
+        const form = document.getElementById('finalSubmissionForm');
+        const actionTypeInput = document.getElementById('action_type');
+        const modalEl = document.getElementById('confirmFinalSubmissionModal');
+        const partialModalEl = document.getElementById('partialSubmissionModal');
+        
+        let bsModal = null;
+        let bsPartialModal = null;
+
+        const awarenessAlertText = "{{ t.awareness_declaration_alert_js|default:'Attenzione: è necessario spuntare la dichiarazione formale di consapevolezza prima di procedere con l\'invio definitivo.'|escapejs }}";
+        const confirmPromptText = "{{ t.alert_confirm_submission_body|default:'Confermi di aver caricato tutta la documentazione in tuo possesso? L\'invio notificherà l\'Ufficio Regolatorio di Etichub per l\'avvio della lavorazione. Non sarà più possibile modificare i documenti caricati.'|escapejs }}";
+        const submittingText = "{{ t.submitting_spinner|default:'Invio in corso...'|escapejs }}";
+
+        if (typeof bootstrap !== 'undefined') {
+            if (modalEl) bsModal = new bootstrap.Modal(modalEl);
+            if (partialModalEl) bsPartialModal = new bootstrap.Modal(partialModalEl);
+        }
+
+        function updateSubmitButtonState() {
+            if (awarenessCheckbox && awarenessCheckbox.checked) {
+                if (awarenessCard) {
+                    awarenessCard.style.borderColor = '#2D8A4E';
+                    awarenessCard.style.backgroundColor = '#f0fdf4';
+                    awarenessCard.style.boxShadow = '0 4px 14px rgba(45, 138, 78, 0.15)';
+                }
+                if (awarenessBadge) {
+                    awarenessBadge.className = 'badge bg-success-subtle text-success border border-success-subtle px-2 py-1';
+                    awarenessBadge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Dichiarazione Flaggata';
+                }
+                if (btnOpenModal) {
+                    btnOpenModal.disabled = false;
+                    btnOpenModal.style.opacity = '1';
+                    btnOpenModal.style.cursor = 'pointer';
+                    btnOpenModal.style.boxShadow = '0 4px 14px rgba(45, 138, 78, 0.3)';
+                    btnOpenModal.title = '';
+                }
+            } else {
+                if (awarenessCard) {
+                    awarenessCard.style.borderColor = '#f59e0b';
+                    awarenessCard.style.backgroundColor = '#fffdf5';
+                    awarenessCard.style.boxShadow = '0 2px 10px rgba(245, 158, 11, 0.12)';
+                }
+                if (awarenessBadge) {
+                    awarenessBadge.className = 'badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1';
+                    awarenessBadge.innerHTML = '<i class="bi bi-exclamation-circle me-1"></i> Da spuntare per invio finale';
+                }
+                if (btnOpenModal) {
+                    btnOpenModal.disabled = true;
+                    btnOpenModal.style.opacity = '0.5';
+                    btnOpenModal.style.cursor = 'not-allowed';
+                    btnOpenModal.style.boxShadow = 'none';
+                    btnOpenModal.title = 'Spunta la dichiarazione di consapevolezza per abilitare l\'invio definitivo';
+                }
+            }
+        }
+
+        if (awarenessCheckbox) {
+            awarenessCheckbox.addEventListener('change', updateSubmitButtonState);
+            updateSubmitButtonState();
+        }
+
+        // Permette di cliccare su tutta la card per spuntare facilmente il box
+        if (awarenessCard) {
+            awarenessCard.addEventListener('click', function(e) {
+                if (e.target !== awarenessCheckbox) {
+                    awarenessCheckbox.checked = !awarenessCheckbox.checked;
+                    updateSubmitButtonState();
+                }
+            });
+        }
+
+        if (btnOpenModal) {
+            btnOpenModal.addEventListener('click', function(e) {
+                if (!awarenessCheckbox || !awarenessCheckbox.checked) {
+                    if (awarenessCheckbox) awarenessCheckbox.focus();
+                    alert(awarenessAlertText);
+                    return;
+                }
+                if (bsModal) {
+                    bsModal.show();
+                } else {
+                    if (confirm(confirmPromptText)) {
+                        actionTypeInput.value = 'complete';
+                        form.submit();
+                    }
+                }
+            });
+        }
+
+        if (btnConfirmSubmit) {
+            btnConfirmSubmit.addEventListener('click', function() {
+                btnConfirmSubmit.disabled = true;
+                btnConfirmSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + submittingText;
+                actionTypeInput.value = 'complete';
+                form.submit();
+            });
+        }
+
+        if (btnOpenPartialModal) {
+            btnOpenPartialModal.addEventListener('click', function() {
+                if (bsPartialModal) {
+                    bsPartialModal.show();
+                } else {
+                    if (confirm("Vuoi salvare lo stato attuale dei documenti caricati e concludere la sessione? Potrai completare l'invio successivamente.")) {
+                        actionTypeInput.value = 'partial';
+                        form.submit();
+                    }
+                }
+            });
+        }
+
+        if (btnConfirmPartialSubmit) {
+            btnConfirmPartialSubmit.addEventListener('click', function() {
+                btnConfirmPartialSubmit.disabled = true;
+                btnConfirmPartialSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>' + submittingText;
+                actionTypeInput.value = 'partial';
+                form.submit();
+            });
+        }
+    });
+</script>
 {% endblock %}

@@ -89,7 +89,8 @@ def published_form_access(request, form_id):
             context = {
                 'form': form,
                 'steps': steps,
-                'is_published_form': True
+                'is_published_form': True,
+                **get_translation_context(request),
             }
             return render(request, 'modules/published_form.html', context)
         else:
@@ -114,7 +115,8 @@ def published_form_access(request, form_id):
         context = {
             'form': form,
             'steps': steps,
-            'is_published_form': True
+            'is_published_form': True,
+            **get_translation_context(request),
         }
         return render(request, 'modules/published_form.html', context)
 
@@ -124,11 +126,13 @@ def published_form_access(request, form_id):
 
 @require_http_methods(["GET"])
 def form_success_view(request):
-    """Show success message after form submission."""
+    """Show success message after form submission or partial draft saving."""
     form_id = request.GET.get('form_id')
     assignment_id = request.GET.get('assignment_id')
+    mode = request.GET.get('mode', 'complete')
     customer_name = None
     project_name = None
+    expiry_date_str = None
 
     if assignment_id:
         try:
@@ -136,7 +140,9 @@ def form_success_view(request):
             form_id = str(assignment.form_template_id)
             if assignment.customer:
                 customer_name = f"{assignment.customer.first_name} {assignment.customer.last_name}"
-            project_name = assignment.form_data.get('project_name', '')
+            project_name = (assignment.form_data or {}).get('project_name', '')
+            if assignment.expiry_date:
+                expiry_date_str = assignment.expiry_date.strftime('%d/%m/%Y')
         except (FormAssignment.DoesNotExist, ValueError):
             pass
     elif form_id:
@@ -153,6 +159,8 @@ def form_success_view(request):
         'timestamp': timezone.now().strftime('%d/%m/%Y %H:%M:%S'),
         'form_id': form_id,
         'assignment_id': assignment_id,
+        'mode': mode,
+        'expiry_date': expiry_date_str,
         'customer': customer_name,
         'project': project_name,
         'is_public_form': True,
@@ -186,9 +194,13 @@ def published_form_receipt(request, form_id):
     if not os.path.exists(pdf_path):
         raise Http404("Il report PDF non è stato ancora generato per questo modulo.")
 
-    safe_title = "".join(c for c in form.name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
-    filename = f"Ricevuta_{safe_title}.pdf"
-    return FileResponse(open(pdf_path, 'rb'), content_type='application/pdf', as_attachment=True, filename=filename)
+    try:
+        safe_title = "".join(c for c in form.name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+        filename = f"Ricevuta_{safe_title}.pdf"
+        return FileResponse(open(pdf_path, 'rb'), content_type='application/pdf', as_attachment=True, filename=filename)
+    except (IOError, OSError) as e:
+        logger.error(f'File download error for published_form_receipt {form_id}: {e}')
+        raise Http404("Il file PDF non può essere scaricato. Per favore, contatta l'amministratore.")
 
 
 @require_http_methods(["GET"])
@@ -213,20 +225,23 @@ def assignment_receipt(request, assignment_id):
     nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
     pdf_path = str(safe_join_paths(nas_project_path, 'Report_Ricezione_Documenti.pdf'))
 
-    if not os.path.exists(pdf_path):
-        try:
-            os.makedirs(nas_project_path, exist_ok=True)
-            generate_form_receipt_pdf(assignment.form_template, assignment, pdf_path)
-        except Exception as e:
-            logger.warning(f"Could not generate PDF receipt on demand: {e}")
+    try:
+        os.makedirs(nas_project_path, exist_ok=True)
+        generate_form_receipt_pdf(assignment.form_template, assignment, pdf_path, client_ip=get_client_ip(request))
+    except Exception as e:
+        logger.warning(f"Could not generate/update PDF receipt on demand: {e}")
 
     if not os.path.exists(pdf_path):
         raise Http404("Il report PDF non è stato ancora generato per questa pratica.")
 
-    template_name = assignment.form_template.name if assignment.form_template else "Modulo"
-    safe_title = "".join(c for c in template_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
-    filename = f"Ricevuta_{safe_title}.pdf"
-    return FileResponse(open(pdf_path, 'rb'), content_type='application/pdf', as_attachment=True, filename=filename)
+    try:
+        template_name = assignment.form_template.name if assignment.form_template else "Modulo"
+        safe_title = "".join(c for c in template_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
+        filename = f"Ricevuta_{safe_title}.pdf"
+        return FileResponse(open(pdf_path, 'rb'), content_type='application/pdf', as_attachment=True, filename=filename)
+    except (IOError, OSError) as e:
+        logger.error(f'File download error for assignment_receipt {assignment_id}: {e}')
+        raise Http404("Il file PDF non può essere scaricato. Per favore, contatta l'amministratore.")
 
 
 @require_http_methods(["GET", "POST"])
@@ -366,6 +381,7 @@ def form_step_view(request, assignment_id, step_order):
         existing_uploads[str(upload.document_requirement_id)] = upload
         existing_uploads[upload.document_requirement_id] = upload
 
+    trans_ctx = get_translation_context(request)
     context = {
         'assignment': assignment,
         'step': step,
@@ -378,6 +394,7 @@ def form_step_view(request, assignment_id, step_order):
         'next_step': next_step,
         'existing_uploads': existing_uploads,
         'is_public_form': True,
+        **trans_ctx,
     }
 
     return render(request, 'modules/form_step.html', context)
@@ -530,12 +547,28 @@ def upload_document_view(request, assignment_id):
     file = request.FILES.get('file')
     requirement_id = request.POST.get('requirement_id')
 
+    if not requirement_id:
+        for k in request.POST.keys():
+            if k.startswith('availability_') or k.startswith('file_'):
+                requirement_id = k.split('_', 1)[1]
+                break
+
+    if not file and requirement_id:
+        file = request.FILES.get(f'file_{requirement_id}')
+
     if not file or not requirement_id:
         return JsonResponse({'error': 'Missing file or requirement'}, status=400)
 
     # Verify form_data has client and project (Step 0 must be completed)
     if not assignment.form_data or 'client_name' not in assignment.form_data:
-        return JsonResponse({'error': 'Please complete Step 0 (Client & Project info) first'}, status=400)
+        if assignment.customer:
+            if not assignment.form_data:
+                assignment.form_data = {}
+            assignment.form_data['client_name'] = assignment.customer.nas_folder_name or f"cliente_{assignment.customer.code}"
+            assignment.form_data['project_name'] = (getattr(assignment.form_template, 'project_name', None) if assignment.form_template else None) or (assignment.form_template.name if assignment.form_template else None) or 'Progetto'
+            assignment.save(update_fields=['form_data'])
+        else:
+            return JsonResponse({'error': 'Please complete Step 0 (Client & Project info) first'}, status=400)
 
     try:
         requirement = DocumentRequirement.objects.get(id=requirement_id)
@@ -550,7 +583,7 @@ def upload_document_view(request, assignment_id):
     try:
         # Get NAS path from form_data (Step 0)
         client_name = (assignment.form_data or {}).get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
-        project_name = (assignment.form_data or {}).get('project_name') or (assignment.form_template.project_name or 'Progetto')
+        project_name = (assignment.form_data or {}).get('project_name') or (getattr(assignment.form_template, 'project_name', None) if assignment.form_template else None) or (assignment.form_template.name if assignment.form_template else None) or 'Progetto'
         nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
         nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
         os.makedirs(nas_project_path, exist_ok=True)
@@ -584,7 +617,7 @@ def upload_document_view(request, assignment_id):
                     manifest = json.load(f)
             else:
                 manifest = {
-                    'form_name': assignment.form_template.name,
+                    'form_name': assignment.form_template.name if assignment.form_template else 'N/A',
                     'customer': client_name,
                     'project': project_name,
                     'form_assignment_id': str(assignment.id),
@@ -699,7 +732,7 @@ def skip_optional_document(request, assignment_id, requirement_id):
             return JsonResponse({'error': ' '.join(validation_errors), 'errors': validation_errors}, status=400)
 
         client_name = (assignment.form_data or {}).get('client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
-        project_name = (assignment.form_data or {}).get('project_name') or (assignment.form_template.project_name or 'Progetto')
+        project_name = (assignment.form_data or {}).get('project_name') or (getattr(assignment.form_template, 'project_name', None) if assignment.form_template else None) or (assignment.form_template.name if assignment.form_template else None) or 'Progetto'
         nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
         nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
         os.makedirs(nas_project_path, exist_ok=True)
@@ -734,7 +767,7 @@ def skip_optional_document(request, assignment_id, requirement_id):
                     manifest = json.load(f)
             else:
                 manifest = {
-                    'form_name': assignment.form_template.name,
+                    'form_name': assignment.form_template.name if assignment.form_template else 'N/A',
                     'customer': client_name,
                     'project': project_name,
                     'form_assignment_id': str(assignment.id),
@@ -889,6 +922,55 @@ def form_submission_view(request, assignment_id):
     if assignment.has_access_password() and not has_access:
         return redirect('get_form_by_token', token=assignment.secure_token)
 
+    action_type = request.POST.get('action_type', 'complete')
+
+    # CASISTICA 2: Invio Parziale / Salva Bozza (Wayout temporanea)
+    if action_type == 'partial':
+        try:
+            if assignment.status != 'submitted':
+                assignment.status = 'in_progress'
+                total_reqs = DocumentRequirement.objects.filter(form_step__form_template=assignment.form_template).count()
+                valid_count = assignment.documentupload_set.filter(status='valid').count()
+                if total_reqs > 0:
+                    assignment.completion_percentage = min(45, max(10, int((valid_count / total_reqs) * 50)))
+                else:
+                    assignment.completion_percentage = 10
+                assignment.save(update_fields=['status', 'completion_percentage'])
+
+            try:
+                cust_id_str = str(assignment.customer.id) if assignment.customer else ''
+                log_action(
+                    None,
+                    'save_draft',
+                    'FormAssignment',
+                    str(assignment.id),
+                    {'customer': cust_id_str, 'status': assignment.status, 'completion_percentage': assignment.completion_percentage},
+                    ip=get_client_ip(request),
+                    user_agent=get_user_agent(request)
+                )
+            except Exception as log_err:
+                logger.warning(f"Could not log save draft action: {log_err}")
+
+            redirect_url = f'/modules/form/success/?assignment_id={assignment.id}&mode=partial'
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+                return JsonResponse({'status': 'success', 'redirect': redirect_url})
+            return redirect(redirect_url)
+
+        except Exception as e:
+            logger.exception(f"Unexpected error in form_submission_view (partial draft): {e}")
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+                return JsonResponse({'error': f'Salvataggio bozza fallito: {str(e)}'}, status=500)
+            return redirect(f'/modules/form/success/?assignment_id={assignment.id}&mode=partial')
+
+    # CASISTICA 1: Invio Completo Definitivo
+    # Controllo che la dichiarazione di consapevolezza sia confermata
+    awareness_accepted = request.POST.get('awareness_declaration') in ('true', '1', 'on', True)
+    if request.POST.get('action_type') == 'complete' and not awareness_accepted:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+            return JsonResponse({'error': 'La dichiarazione di consapevolezza documentale è obbligatoria per l\'invio definitivo.'}, status=400)
+        messages.error(request, 'È necessario confermare la dichiarazione di consapevolezza prima di inviare i documenti.')
+        return redirect(f'/modules/form/{assignment.id}/summary/')
+
     try:
         assignment.status = 'submitted'
         assignment.submission_date = timezone.now()
@@ -927,7 +1009,7 @@ def form_submission_view(request, assignment_id):
             nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
             os.makedirs(nas_project_path, exist_ok=True)
             pdf_path = str(safe_join_paths(nas_project_path, 'Report_Ricezione_Documenti.pdf'))
-            generate_form_receipt_pdf(assignment.form_template, assignment, pdf_path)
+            generate_form_receipt_pdf(assignment.form_template, assignment, pdf_path, client_ip=get_client_ip(request))
         except Exception as e:
             logger.warning(f"Could not generate PDF receipt on assignment submit: {e}")
 
@@ -946,14 +1028,14 @@ def form_submission_view(request, assignment_id):
             logger.warning(f"Could not log submit action: {log_err}")
 
         if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
-            return JsonResponse({'status': 'success', 'redirect': f'/modules/form/success/?assignment_id={assignment.id}'})
-        return redirect(f'/modules/form/success/?assignment_id={assignment.id}')
+            return JsonResponse({'status': 'success', 'redirect': f'/modules/form/success/?assignment_id={assignment.id}&mode=complete'})
+        return redirect(f'/modules/form/success/?assignment_id={assignment.id}&mode=complete')
 
     except Exception as e:
         logger.exception(f"Unexpected error in form_submission_view: {e}")
         if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
             return JsonResponse({'error': f'Invio fallito: {str(e)}'}, status=500)
-        return redirect(f'/modules/form/success/?assignment_id={assignment.id}')
+        return redirect(f'/modules/form/success/?assignment_id={assignment.id}&mode=complete')
 
 
 
@@ -1119,7 +1201,7 @@ def published_form_submit(request, form_id):
                 'code': form.customer.code if form.customer else '—',
                 'email': form.customer.email if form.customer else '—',
                 'phone': form.customer.phone if form.customer else '—',
-                'vat': getattr(form.customer, 'vat_number', '') or getattr(form.customer, 'fiscal_code', '') or '—'
+                'vat': (getattr(form.customer, 'vat_number', '') or getattr(form.customer, 'fiscal_code', '') or '—') if form.customer else '—'
             }
 
             generate_submission_pdf(

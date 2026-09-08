@@ -4,8 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Modulo inviato con successo - Etichub Document Collector">
-    <title>Modulo Inviato — Etichub</title>
+    <meta name="description" content="{% if mode == 'partial' %}Bozza salvata con successo{% else %}Modulo inviato con successo{% endif %} - Etichub Document Collector">
+    <title>{% if mode == 'partial' %}{{ t.partial_success_page_title|default:"Bozza Salvata — Etichub" }}{% else %}{{ t.success_page_title|default:"Modulo Inviato — Etichub" }}{% endif %}</title>
 
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -241,6 +241,62 @@
                  loading="eager">
         </div>
 
+        {% if mode == 'partial' %}
+        <div class="success-icon-wrapper" style="background: #eff6ff; border-color: #bfdbfe; color: #2563eb;">
+            <i class="bi bi-clock-history"></i>
+        </div>
+
+        <h1 class="success-title">{{ t.partial_success_title|default:"Bozza Salvata con Successo!" }}</h1>
+        <p class="success-message">
+            {{ t.partial_success_msg|default:"I file e le informazioni caricate finora sono stati salvati. La pratica rimane aperta: potrai riaccedere alla tua area riservata in qualsiasi momento prima della scadenza per completare il caricamento dei documenti mancanti." }}
+        </p>
+
+        <div class="details-card" style="background: #eff6ff; border-color: #bfdbfe;">
+            <div class="detail-row" style="border-bottom: 1px solid rgba(37, 99, 235, 0.15);">
+                <span class="detail-label">{{ t.detail_status|default:"Stato" }}</span>
+                <span class="detail-value" style="color: #1d4ed8; font-weight: 600;">{{ t.partial_status_val|default:"⏳ Documentazione Parziale (In corso)" }}</span>
+            </div>
+            <div class="detail-row" style="border-bottom: 1px solid rgba(37, 99, 235, 0.15);">
+                <span class="detail-label">{{ t.detail_datetime|default:"Data e ora salvataggio" }}</span>
+                <span class="detail-value" style="color: #334155;">{{ timestamp }}</span>
+            </div>
+            {% if customer %}
+            <div class="detail-row" style="border-bottom: 1px solid rgba(37, 99, 235, 0.15);">
+                <span class="detail-label">{{ t.detail_customer|default:"Cliente" }}</span>
+                <span class="detail-value" style="color: #334155;">{{ customer }}</span>
+            </div>
+            {% endif %}
+            {% if project %}
+            <div class="detail-row" style="border-bottom: 1px solid rgba(37, 99, 235, 0.15);">
+                <span class="detail-label">{{ t.detail_project|default:"Progetto / Prodotto" }}</span>
+                <span class="detail-value" style="color: #334155;">{{ project }}</span>
+            </div>
+            {% endif %}
+            {% if expiry_date %}
+            <div class="detail-row">
+                <span class="detail-label">Scadenza pratica</span>
+                <span class="detail-value" style="color: #dc2626; font-weight: 600;">{{ expiry_date }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <p class="close-hint">
+            Puoi accedere alla tua area personale in qualsiasi momento per completare l'invio.
+        </p>
+
+        {% if request.session.customer_id %}
+        <a href="{% url 'client_dashboard' %}" class="btn-receipt" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);">
+            <i class="bi bi-grid-fill"></i>
+            {{ t.btn_back_to_portal|default:"Torna ai Tuoi Prodotti (Area Personale)" }}
+        </a>
+        {% elif assignment_id %}
+        <a href="/modules/form/{{ assignment_id }}/summary/" class="btn-receipt" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);">
+            <i class="bi bi-arrow-clockwise"></i>
+            Riapri Modulo per Continuare
+        </a>
+        {% endif %}
+
+        {% else %}
         <div class="success-icon-wrapper">
             <i class="bi bi-check-lg"></i>
         </div>
@@ -294,6 +350,7 @@
             <i class="bi bi-grid-fill" style="color: var(--brand-500);"></i>
             {{ t.back_to_portal|default:"Torna ai Tuoi Prodotti (Area Personale)" }}
         </a>
+        {% endif %}
         {% endif %}
 
         <a href="/" class="btn-home">

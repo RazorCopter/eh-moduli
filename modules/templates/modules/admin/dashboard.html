@@ -485,6 +485,309 @@
         transform: scale(1.1);
         color: #E89BA7;
     }
+
+    /* ─── Rationalized Customer & Product Console Styles ─── */
+    .dashboard-filter-toolbar {
+        background: #FFFFFF;
+        border-bottom: 1px solid #F0ECE8;
+        padding: 1.1rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+    }
+    .filter-toolbar-top {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    .search-input-wrap {
+        position: relative;
+        flex: 1 1 280px;
+    }
+    .search-input-wrap i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94A3B8;
+        font-size: 0.95rem;
+        pointer-events: none;
+    }
+    .search-input-wrap input {
+        padding-left: 36px;
+        border-radius: 8px;
+        border: 1px solid #D5D0C9;
+        font-size: 0.88rem;
+        height: 38px;
+        width: 100%;
+        transition: all 0.2s ease;
+        background-color: #FAF8F6;
+    }
+    .search-input-wrap input:focus {
+        background-color: #FFFFFF;
+        border-color: #E89BA7;
+        box-shadow: 0 0 0 3px rgba(232, 155, 167, 0.22);
+        outline: none;
+    }
+    .sort-select-wrap {
+        flex: 0 0 auto;
+        min-width: 200px;
+    }
+    .sort-select-wrap select {
+        border-radius: 8px;
+        border: 1px solid #D5D0C9;
+        font-size: 0.86rem;
+        height: 38px;
+        background-color: #FAF8F6;
+        font-weight: 500;
+        color: #4A4A4A;
+        cursor: pointer;
+    }
+    .toolbar-expand-btns {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+    }
+
+    /* Filter Pills */
+    .filter-pills-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .filter-pill {
+        background: #FAF8F6;
+        border: 1px solid #E5E0D8;
+        color: #5C544D;
+        padding: 0.35rem 0.85rem;
+        border-radius: 20px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        user-select: none;
+    }
+    .filter-pill:hover {
+        background: #F3EFEA;
+        border-color: #D0C8BE;
+        transform: translateY(-1px);
+    }
+    .filter-pill.active {
+        background: #2C2C2C;
+        color: #FFFFFF;
+        border-color: #2C2C2C;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+    .filter-pill.active .pill-count {
+        background: rgba(255,255,255,0.25);
+        color: #FFFFFF;
+    }
+    .pill-count {
+        background: #EAE6E1;
+        color: #5C544D;
+        font-size: 0.74rem;
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-weight: 700;
+        transition: all 0.2s ease;
+    }
+
+    /* Filter Pill Active Themes */
+    .filter-pill-red.active { background: #DC2626; border-color: #DC2626; }
+    .filter-pill-orange.active { background: #EA580C; border-color: #EA580C; }
+    .filter-pill-yellow.active { background: #D97706; border-color: #D97706; }
+    .filter-pill-green.active { background: #16A34A; border-color: #16A34A; }
+
+    /* Customer Accordion Cards */
+    .customer-accordion-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        padding: 1.25rem 1.5rem;
+        background: #FAF8F6;
+    }
+    .customer-accordion-card {
+        background: #FFFFFF;
+        border: 1px solid #EAE6E1;
+        border-left: 6px solid #94A3B8;
+        border-radius: 10px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        overflow: hidden;
+    }
+    .customer-accordion-card:hover {
+        box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+        border-color: #D5D0C9;
+    }
+
+    /* Semantic Status Borders requested by user */
+    .customer-accordion-card.status-border-green { border-left-color: #10B981; }
+    .customer-accordion-card.status-border-red { border-left-color: #EF4444; }
+    .customer-accordion-card.status-border-orange { border-left-color: #F97316; }
+    .customer-accordion-card.status-border-yellow { border-left-color: #F59E0B; }
+    .customer-accordion-card.status-border-neutral { border-left-color: #94A3B8; }
+
+    .customer-header {
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        user-select: none;
+        gap: 1rem;
+        flex-wrap: wrap;
+        transition: background-color 0.15s ease;
+    }
+    .customer-header:hover {
+        background-color: #FCFBF9;
+    }
+    .customer-header-left {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        flex: 1 1 300px;
+    }
+    .cust-status-circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.05rem;
+        flex-shrink: 0;
+    }
+    .cust-status-circle.green { background: #D1FAE5; color: #059669; }
+    .cust-status-circle.red { background: #FEE2E2; color: #DC2626; }
+    .cust-status-circle.orange { background: #FFEDD5; color: #EA580C; }
+    .cust-status-circle.yellow { background: #FEF3C7; color: #D97706; }
+    .cust-status-circle.neutral { background: #F1F5F9; color: #64748B; }
+
+    .cust-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .cust-name {
+        font-size: 1.02rem;
+        font-weight: 700;
+        color: #2C2C2C;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .badge-code {
+        font-size: 0.74rem;
+        background: #F3EFEA;
+        color: #5C544D;
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-weight: 600;
+        border: 1px solid #E5E0D8;
+    }
+
+    .customer-header-center {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+    }
+    .mini-status-badge {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+    .mini-status-badge.green { background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+    .mini-status-badge.red { background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+    .mini-status-badge.orange { background: #FFF7ED; color: #9A3412; border: 1px solid #FED7AA; }
+    .mini-status-badge.yellow { background: #FFFBEB; color: #92400E; border: 1px solid #FDE68A; }
+    .mini-status-badge.neutral { background: #F8FAFC; color: #64748B; border: 1px solid #E2E8F0; }
+
+    .customer-header-right {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-shrink: 0;
+    }
+    .cust-count-badge {
+        font-size: 0.78rem;
+        font-weight: 600;
+        background: #F3EFEA;
+        color: #5C544D;
+        padding: 4px 10px;
+        border-radius: 6px;
+    }
+    .btn-quick-assign {
+        font-size: 0.78rem;
+        border-radius: 6px;
+        padding: 3px 9px;
+        color: #5C544D;
+        border-color: #D5D0C9;
+        text-decoration: none;
+    }
+    .btn-quick-assign:hover {
+        background: #E89BA7;
+        color: white;
+        border-color: #E89BA7;
+    }
+    .cust-chevron {
+        font-size: 0.95rem;
+        color: #8C847C;
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .customer-accordion-card.open .cust-chevron {
+        transform: rotate(180deg);
+        color: #2C2C2C;
+    }
+
+    /* Products Dropdown / Nested Content */
+    .customer-products-collapse {
+        display: none;
+        border-top: 1px solid #F0ECE8;
+        background: #FFFFFF;
+    }
+    .customer-accordion-card.open .customer-products-collapse {
+        display: block;
+        animation: custFadeIn 0.2s ease;
+    }
+    @keyframes custFadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .nested-products-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .nested-products-table th {
+        background: #FAF8F6;
+        color: #7A726A;
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 0.65rem 1.25rem;
+        border-bottom: 1px solid #EAE6E1;
+    }
+    .nested-products-table td {
+        padding: 0.85rem 1.25rem;
+        border-bottom: 1px solid #F3EFEA;
+        font-size: 0.88rem;
+        vertical-align: middle;
+    }
+    .nested-products-table tbody tr:hover {
+        background-color: #FCFBF9;
+    }
 </style>
 {% endblock %}
 
@@ -651,121 +954,299 @@
 
 <!-- Main Content Grid -->
 <div class="dashboard-content-grid">
-    <!-- Recent Assignments Table -->
     <div class="section-card">
+        <!-- Section Header -->
         <div class="section-card-header">
-            <h3>
-                <i class="bi bi-clock-history" style="color: #E89BA7;"></i> Pratiche Recenti
-                <span class="section-header-badge">{{ recent_assignments|length }}</span>
-            </h3>
-            <a href="{% url 'assign_form_to_customer' %}" class="btn btn-sm btn-outline-secondary" style="border-radius: 6px; font-size: 0.85rem;">
-                <i class="bi bi-plus"></i> Assegna
-            </a>
+            <div>
+                <h3>
+                    <i class="bi bi-people-fill" style="color: #E89BA7;"></i> Gestione Clienti e Prodotti
+                    <span class="section-header-badge" id="customersCounterBadge">{{ customer_groups|length }} Clienti</span>
+                </h3>
+                <small class="text-muted" style="font-size: 0.84rem;">
+                    Vista aggregata per anagrafica cliente con stato visivo consolidato e progetti espandibili
+                </small>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="{% url 'assign_form_to_customer' %}" class="btn-action-primary" style="padding: 0.5rem 1.1rem; font-size: 0.86rem;">
+                    <i class="bi bi-plus-lg"></i> Nuova Assegnazione
+                </a>
+            </div>
         </div>
 
-        {% if recent_assignments %}
-        <div style="overflow-x: auto;">
-            <table class="table-modern">
-                <thead>
-                    <tr>
-                        <th>Cliente</th>
-                        <th>Modulo / Prodotto</th>
-                        <th>Avanzamento</th>
-                        <th>Stato</th>
-                        <th>Data Assegnazione</th>
-                        <th style="text-align: right;">Dettagli</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for assignment in recent_assignments %}
-                    <tr>
-                        <td>
-                            <div style="font-weight: 600; color: #2C2C2C;">
-                                {{ assignment.customer.first_name }} {{ assignment.customer.last_name }}
-                            </div>
-                            <small class="text-muted font-monospace">{{ assignment.customer.code }}</small>
-                        </td>
-                        <td>
-                            <div style="font-weight: 500; color: #3C3C3C;">
-                                {{ assignment.form_template.name }}
-                            </div>
-                            {% if assignment.form_data.project_name %}
-                            <small class="text-muted"><i class="bi bi-folder"></i> {{ assignment.form_data.project_name }}</small>
-                            {% elif assignment.form_template.project_name %}
-                            <small class="text-muted"><i class="bi bi-folder"></i> {{ assignment.form_template.project_name }}</small>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="progress-track">
-                                <div class="progress-fill" data-progress="{{ assignment.completion_percentage }}"></div>
-                            </div>
-                            <span style="font-weight: 600; font-size: 0.88rem; color: #4A4A4A;">
-                                {{ assignment.completion_percentage }}%
-                            </span>
-                        </td>
-                        <td>
-                            {% if assignment.status == 'completed' %}
-                            <span class="badge-status badge-status-submitted" style="background: #e8f5e9; color: #1b5e20;">
-                                <i class="bi bi-check2-all"></i> Lavorata
-                            </span>
-                            {% elif assignment.status == 'in_processing' %}
-                            <span class="badge-status badge-status-in-progress" style="background: #e0f2fe; color: #0369a1;">
-                                <i class="bi bi-gear-wide-connected"></i> In Lavorazione
-                            </span>
-                            {% elif assignment.status == 'submitted' %}
-                            <span class="badge-status" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">
-                                <i class="bi bi-bell-fill"></i> Da Lavorare
-                            </span>
-                            {% elif assignment.status == 'in_progress' %}
-                            <span class="badge-status badge-status-in-progress">
-                                <i class="bi bi-hourglass-split"></i> In Compilazione
-                            </span>
-                            {% elif assignment.status == 'expired' %}
-                            <span class="badge-status badge-status-expired">
-                                <i class="bi bi-exclamation-octagon"></i> Scaduto
-                            </span>
-                            {% else %}
-                            <span class="badge-status badge-status-draft">
-                                <i class="bi bi-pencil"></i> Bozza
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span style="color: #666; font-size: 0.88rem;">
-                                {{ assignment.assignment_date|date:"d/m/Y H:i" }}
-                            </span>
-                        </td>
-                        <td style="text-align: right; white-space: nowrap;">
-                            <a href="{% url 'assignment_detail' assignment.id %}" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-size: 0.82rem; padding: 4px 10px;">
-                                <i class="bi bi-eye"></i> Visualizza
-                            </a>
-                            {% if assignment.status == 'submitted' %}
-                            <form method="post" action="{% url 'reopen_assignment' assignment.id %}" onsubmit="return confirm('Riaprire la pratica per consentire l\'upload di ulteriori documenti integrativi mantenendo la stessa cartella NAS?');" style="display: inline-block; margin-left: 4px;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-warning" style="border-radius: 6px; font-size: 0.82rem; padding: 4px 8px;" title="Riapri per integrazioni documentali">
-                                    <i class="bi bi-arrow-repeat"></i> Riapri
-                                </button>
-                            </form>
-                            {% endif %}
-                            <form method="post" action="{% url 'assignment_delete' assignment.id %}" onsubmit="return confirm('Disassociare ed eliminare l\'assegnazione del modulo per questo cliente?');" style="display: inline-block; margin-left: 4px;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 6px; font-size: 0.82rem; padding: 4px 8px;" title="Disassocia / Elimina assegnazione">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- Filtering & Sorting Console Toolbar -->
+        <div class="dashboard-filter-toolbar">
+            <!-- Top row: Search input, Sort select, Expand/Collapse buttons -->
+            <div class="filter-toolbar-top">
+                <div class="search-input-wrap">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="customerSearchInput" placeholder="Cerca cliente, codice o prodotto (es. client001, Bagnoschiuma)..." autocomplete="off">
+                </div>
+
+                <div class="sort-select-wrap">
+                    <select id="customerSortSelect" class="form-select" title="Ordinamento clienti">
+                        <option value="alpha-asc">🔤 Alfabetico (A → Z)</option>
+                        <option value="alpha-desc">🔤 Alfabetico (Z → A)</option>
+                        <option value="recent">⏱️ Ultima Attività (Recenti)</option>
+                        <option value="products-desc">📦 N° Prodotti (Decrescente)</option>
+                    </select>
+                </div>
+
+                <div class="toolbar-expand-btns">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnExpandAll" title="Espandi tutti i clienti per vedere i prodotti">
+                        <i class="bi bi-arrows-expand"></i> Espandi Tutti
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCollapseAll" title="Comprimi tutti i clienti">
+                        <i class="bi bi-arrows-collapse"></i> Comprimi
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bottom row: Quick State Filter Pills -->
+            <div class="filter-pills-row">
+                <span class="text-muted small fw-bold me-1" style="font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px;">Filtra:</span>
+                <button type="button" class="filter-pill active" data-filter="all">
+                    <i class="bi bi-grid-fill"></i> Tutti
+                    <span class="pill-count">{{ filter_counts.all }}</span>
+                </button>
+                <button type="button" class="filter-pill filter-pill-red" data-filter="to_work" title="Clienti con pratiche completate dal cliente in attesa dell'operatore">
+                    <i class="bi bi-bell-fill text-danger"></i> Da Lavorare
+                    <span class="pill-count">{{ filter_counts.to_work }}</span>
+                </button>
+                <button type="button" class="filter-pill filter-pill-orange" data-filter="in_processing" title="Clienti con pratiche attualmente in lavorazione regolatoria">
+                    <i class="bi bi-gear-wide-connected text-warning"></i> In Lavorazione
+                    <span class="pill-count">{{ filter_counts.in_processing }}</span>
+                </button>
+                <button type="button" class="filter-pill filter-pill-yellow" data-filter="waiting_docs" title="Clienti con pratiche aperte o con documentazione parziale">
+                    <i class="bi bi-hourglass-split text-warning"></i> In Attesa Documenti
+                    <span class="pill-count">{{ filter_counts.waiting_docs }}</span>
+                </button>
+                <button type="button" class="filter-pill filter-pill-green" data-filter="completed" title="Clienti con tutte le pratiche lavorate e archiviate">
+                    <i class="bi bi-check2-all text-success"></i> Lavorati
+                    <span class="pill-count">{{ filter_counts.completed }}</span>
+                </button>
+            </div>
         </div>
+
+        <!-- Customer Accordion Container -->
+        {% if customer_groups %}
+        <div class="customer-accordion-list" id="customersAccordionContainer">
+            {% for c in customer_groups %}
+            <div class="customer-accordion-card status-border-{{ c.status_color }}"
+                 data-customer-name="{{ c.full_name|lower }}"
+                 data-customer-code="{{ c.code|lower }}"
+                 data-products-names="{% for p in c.products %}{{ p.project_name|lower }} {{ p.module_name|lower }} {% endfor %}"
+                 data-status-color="{{ c.status_color }}"
+                 data-status-code="{{ c.status_code }}"
+                 data-has-to-work="{% if c.has_to_work %}true{% else %}false{% endif %}"
+                 data-has-in-processing="{% if c.has_in_processing %}true{% else %}false{% endif %}"
+                 data-has-waiting-docs="{% if c.has_waiting_docs %}true{% else %}false{% endif %}"
+                 data-is-completed="{% if c.is_all_completed %}true{% else %}false{% endif %}"
+                 data-timestamp="{{ c.latest_activity_timestamp }}"
+                 data-products-count="{{ c.total_products }}">
+                
+                <!-- Clickable Header per Customer -->
+                <div class="customer-header" title="Clicca per mostrare o nascondere i prodotti">
+                    <div class="customer-header-left">
+                        <!-- Semantic Circle Status Icon -->
+                        <span class="cust-status-circle {{ c.status_color }}" title="Stato complessivo: {{ c.status_label }}">
+                            {% if c.status_color == 'green' %}
+                                <i class="bi bi-check-circle-fill"></i>
+                            {% elif c.status_color == 'red' %}
+                                <i class="bi bi-bell-fill"></i>
+                            {% elif c.status_color == 'orange' %}
+                                <i class="bi bi-gear-wide-connected"></i>
+                            {% elif c.status_color == 'yellow' %}
+                                <i class="bi bi-hourglass-split"></i>
+                            {% else %}
+                                <i class="bi bi-dash-circle"></i>
+                            {% endif %}
+                        </span>
+
+                        <!-- Customer Name & Details -->
+                        <div class="cust-info">
+                            <div class="cust-name">
+                                <span>{{ c.full_name }}</span>
+                                <span class="badge-code font-monospace">{{ c.code }}</span>
+                            </div>
+                            {% if c.email %}
+                            <small class="text-muted" style="font-size: 0.8rem;">
+                                <i class="bi bi-envelope"></i> {{ c.email }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Micro-badges breakdown -->
+                    <div class="customer-header-center">
+                        {% if c.count_to_work > 0 %}
+                        <span class="mini-status-badge red" title="{{ c.count_to_work }} pratiche con upload completato pronte per la lavorazione">
+                            <i class="bi bi-bell-fill"></i> {{ c.count_to_work }} da lavorare
+                        </span>
+                        {% endif %}
+                        {% if c.count_in_processing > 0 %}
+                        <span class="mini-status-badge orange" title="{{ c.count_in_processing }} pratiche in lavorazione regolatoria">
+                            <i class="bi bi-gear-fill"></i> {{ c.count_in_processing }} in lavorazione
+                        </span>
+                        {% endif %}
+                        {% if c.count_waiting_docs > 0 %}
+                        <span class="mini-status-badge yellow" title="{{ c.count_waiting_docs }} pratiche in bozza o compilazione parziale dal cliente">
+                            <i class="bi bi-hourglass-split"></i> {{ c.count_waiting_docs }} attesa doc
+                        </span>
+                        {% endif %}
+                        {% if c.count_completed > 0 %}
+                        <span class="mini-status-badge green" title="{{ c.count_completed }} pratiche lavorate">
+                            <i class="bi bi-check2"></i> {{ c.count_completed }} lavorat{{ c.count_completed|pluralize:"a,e" }}
+                        </span>
+                        {% endif %}
+                        {% if c.total_products == 0 %}
+                        <span class="mini-status-badge neutral">
+                            <i class="bi bi-info-circle"></i> Nessuna pratica
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Right Side: Activity Date, Total Products Badge, Quick Assign, Chevron -->
+                    <div class="customer-header-right">
+                        {% if c.latest_activity %}
+                        <span class="text-muted small d-none d-lg-inline" title="Data ultima operazione">
+                            <i class="bi bi-clock-history"></i> {{ c.latest_activity|date:"d/m/Y H:i" }}
+                        </span>
+                        {% endif %}
+
+                        <span class="cust-count-badge">
+                            <i class="bi bi-box-seam me-1"></i> {{ c.total_products }} Prodott{{ c.total_products|pluralize:"o,i" }}
+                        </span>
+
+                        <a href="{% url 'assign_form_to_customer' %}?customer_id={{ c.customer_id }}"
+                           class="btn btn-sm btn-quick-assign"
+                           title="Assegna nuovo modulo a questo cliente">
+                            <i class="bi bi-plus"></i> Assegna
+                        </a>
+
+                        <i class="bi bi-chevron-down cust-chevron"></i>
+                    </div>
+                </div>
+
+                <!-- Collapsible Products / Projects Table -->
+                <div class="customer-products-collapse">
+                    {% if c.products %}
+                    <div style="overflow-x: auto;">
+                        <table class="nested-products-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 25%;">Progetto / Prodotto</th>
+                                    <th style="width: 20%;">Modulo</th>
+                                    <th style="width: 18%;">Avanzamento</th>
+                                    <th style="width: 15%;">Stato</th>
+                                    <th style="width: 12%;">Assegnazione</th>
+                                    <th style="width: 10%; text-align: right;">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in c.products %}
+                                <tr>
+                                    <td>
+                                        <div style="font-weight: 600; color: #2C2C2C;">
+                                            <i class="bi bi-box-seam text-primary me-1"></i> {{ p.project_name }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span style="color: #555; font-size: 0.88rem;">{{ p.module_name }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="progress-track" style="width: 80px;">
+                                            <div class="progress-fill" data-progress="{{ p.completion_percentage }}"></div>
+                                        </div>
+                                        <span style="font-weight: 600; font-size: 0.84rem; color: #4A4A4A;">
+                                            {{ p.completion_percentage }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if p.status == 'completed' %}
+                                        <span class="badge-status badge-status-submitted" style="background: #e8f5e9; color: #1b5e20;">
+                                            <i class="bi bi-check2-all"></i> Lavorata
+                                        </span>
+                                        {% elif p.status == 'in_processing' %}
+                                        <span class="badge-status badge-status-in-progress" style="background: #e0f2fe; color: #0369a1;">
+                                            <i class="bi bi-gear-wide-connected"></i> In Lavorazione
+                                        </span>
+                                        {% elif p.status == 'submitted' %}
+                                        <span class="badge-status" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">
+                                            <i class="bi bi-bell-fill"></i> Da Lavorare
+                                        </span>
+                                        {% elif p.status == 'in_progress' %}
+                                        <span class="badge-status badge-status-in-progress">
+                                            <i class="bi bi-hourglass-split"></i> In Compilazione
+                                        </span>
+                                        {% elif p.status == 'expired' %}
+                                        <span class="badge-status badge-status-expired">
+                                            <i class="bi bi-exclamation-octagon"></i> Scaduto
+                                        </span>
+                                        {% else %}
+                                        <span class="badge-status badge-status-draft">
+                                            <i class="bi bi-pencil"></i> Bozza
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span style="color: #666; font-size: 0.82rem;">
+                                            {{ p.assignment_date|date:"d/m/Y H:i" }}
+                                        </span>
+                                    </td>
+                                    <td style="text-align: right; white-space: nowrap;">
+                                        <a href="{{ p.detail_url }}" class="btn btn-sm btn-outline-primary" style="border-radius: 6px; font-size: 0.8rem; padding: 3px 9px;">
+                                            <i class="bi bi-eye"></i> Visualizza
+                                        </a>
+                                        {% if p.can_reopen %}
+                                        <form method="post" action="{{ p.reopen_url }}" onsubmit="return confirm('Riaprire la pratica per consentire l\'upload di ulteriori documenti integrativi mantenendo la stessa cartella NAS?');" style="display: inline-block; margin-left: 3px;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-warning" style="border-radius: 6px; font-size: 0.8rem; padding: 3px 7px;" title="Riapri per integrazioni documentali">
+                                                <i class="bi bi-arrow-repeat"></i> Riapri
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        <form method="post" action="{{ p.delete_url }}" onsubmit="return confirm('Disassociare ed eliminare l\'assegnazione di questo prodotto per il cliente?');" style="display: inline-block; margin-left: 3px;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 6px; font-size: 0.8rem; padding: 3px 7px;" title="Disassocia / Elimina assegnazione">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div style="padding: 1.5rem; text-align: center; color: #7A7A7A;">
+                        <p class="mb-2"><i class="bi bi-inbox fs-4 d-block text-muted"></i>Nessun prodotto o modulo assegnato a questo cliente.</p>
+                        <a href="{% url 'assign_form_to_customer' %}?customer_id={{ c.customer_id }}" class="btn btn-sm btn-outline-primary" style="border-radius: 6px;">
+                            <i class="bi bi-plus-lg"></i> Assegna il primo prodotto
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- No search/filter results message -->
+        <div id="noResultsMessage" class="empty-placeholder" style="display: none;">
+            <i class="bi bi-search"></i>
+            <h5>Nessun cliente corrisponde ai criteri impostati</h5>
+            <p>Prova a modificare la parola chiave di ricerca o a selezionare un altro filtro di stato.</p>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="btnResetFilters" style="border-radius: 6px;">
+                <i class="bi bi-arrow-counterclockwise"></i> Reimposta Filtri
+            </button>
+        </div>
+
         {% else %}
         <div class="empty-placeholder">
-            <i class="bi bi-inbox"></i>
-            <h5>Nessuna pratica assegnata recentemente</h5>
-            <p>Inizia assegnando un modulo di raccolta ad uno dei tuoi clienti configurati.</p>
-            <a href="{% url 'assign_form_to_customer' %}" class="btn-action-primary mt-2">
-                <i class="bi bi-send-plus"></i> Assegna la Prima Pratica
+            <i class="bi bi-people"></i>
+            <h5>Nessun cliente attivo censito</h5>
+            <p>Inizia inserendo il tuo primo cliente per abilitare l'assegnazione e la lavorazione dei moduli.</p>
+            <a href="{% url 'customer_create' %}" class="btn-action-primary mt-2">
+                <i class="bi bi-person-plus-fill"></i> Inserisci Nuovo Cliente
             </a>
         </div>
         {% endif %}
@@ -818,6 +1299,144 @@
                 }
             });
         }, 150);
+
+        // 3. Rationalized Customer Console: Search, Filter, Sort & Accordion
+        const searchInput = document.getElementById('customerSearchInput');
+        const sortSelect = document.getElementById('customerSortSelect');
+        const filterPills = document.querySelectorAll('.filter-pill');
+        const accordionCards = document.querySelectorAll('.customer-accordion-card');
+        const btnExpandAll = document.getElementById('btnExpandAll');
+        const btnCollapseAll = document.getElementById('btnCollapseAll');
+        const btnResetFilters = document.getElementById('btnResetFilters');
+        const noResultsMsg = document.getElementById('noResultsMessage');
+        const customerListContainer = document.getElementById('customersAccordionContainer');
+        const customersCounterBadge = document.getElementById('customersCounterBadge');
+
+        let currentFilter = 'all';
+
+        // Accordion click toggle
+        document.querySelectorAll('.customer-header').forEach(header => {
+            header.addEventListener('click', function(e) {
+                // Ignore if clicked on an action link/button inside header
+                if (e.target.closest('a') || e.target.closest('button')) return;
+                const card = this.closest('.customer-accordion-card');
+                if (card) {
+                    card.classList.toggle('open');
+                }
+            });
+        });
+
+        // Expand / Collapse all
+        if (btnExpandAll) {
+            btnExpandAll.addEventListener('click', () => {
+                accordionCards.forEach(c => {
+                    if (c.style.display !== 'none') c.classList.add('open');
+                });
+            });
+        }
+        if (btnCollapseAll) {
+            btnCollapseAll.addEventListener('click', () => {
+                accordionCards.forEach(c => c.classList.remove('open'));
+            });
+        }
+
+        // Apply Search & State Filters
+        function applyFilters() {
+            const term = (searchInput ? searchInput.value.trim().toLowerCase() : '');
+            let visibleCount = 0;
+
+            accordionCards.forEach(card => {
+                const custName = card.getAttribute('data-customer-name') || '';
+                const custCode = card.getAttribute('data-customer-code') || '';
+                const prodNames = card.getAttribute('data-products-names') || '';
+
+                // Search match
+                const matchesSearch = !term || custName.includes(term) || custCode.includes(term) || prodNames.includes(term);
+
+                // Filter pill match
+                let matchesPill = false;
+                if (currentFilter === 'all') {
+                    matchesPill = true;
+                } else if (currentFilter === 'to_work') {
+                    matchesPill = card.getAttribute('data-has-to-work') === 'true';
+                } else if (currentFilter === 'in_processing') {
+                    matchesPill = card.getAttribute('data-has-in-processing') === 'true';
+                } else if (currentFilter === 'waiting_docs') {
+                    matchesPill = card.getAttribute('data-has-waiting-docs') === 'true';
+                } else if (currentFilter === 'completed') {
+                    matchesPill = card.getAttribute('data-is-completed') === 'true';
+                }
+
+                if (matchesSearch && matchesPill) {
+                    card.style.display = '';
+                    visibleCount++;
+                    // If user searched for a specific product name, automatically open the card so the product is visible
+                    if (term && prodNames.includes(term)) {
+                        card.classList.add('open');
+                    }
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            if (noResultsMsg) {
+                noResultsMsg.style.display = (visibleCount === 0 && accordionCards.length > 0) ? 'block' : 'none';
+            }
+            if (customersCounterBadge) {
+                customersCounterBadge.textContent = `${visibleCount} Client${visibleCount === 1 ? 'e' : 'i'}`;
+            }
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', applyFilters);
+        }
+
+        filterPills.forEach(pill => {
+            pill.addEventListener('click', function() {
+                filterPills.forEach(p => p.classList.remove('active'));
+                this.classList.add('active');
+                currentFilter = this.getAttribute('data-filter') || 'all';
+                applyFilters();
+            });
+        });
+
+        if (btnResetFilters) {
+            btnResetFilters.addEventListener('click', () => {
+                if (searchInput) searchInput.value = '';
+                filterPills.forEach(p => p.classList.remove('active'));
+                const allPill = document.querySelector('.filter-pill[data-filter="all"]');
+                if (allPill) allPill.classList.add('active');
+                currentFilter = 'all';
+                applyFilters();
+            });
+        }
+
+        // Sorting
+        if (sortSelect && customerListContainer) {
+            sortSelect.addEventListener('change', function() {
+                const val = this.value;
+                const cardsArray = Array.from(accordionCards);
+
+                cardsArray.sort((a, b) => {
+                    if (val === 'alpha-asc') {
+                        return (a.getAttribute('data-customer-name') || '').localeCompare(b.getAttribute('data-customer-name') || '');
+                    } else if (val === 'alpha-desc') {
+                        return (b.getAttribute('data-customer-name') || '').localeCompare(a.getAttribute('data-customer-name') || '');
+                    } else if (val === 'recent') {
+                        const tsA = parseFloat(a.getAttribute('data-timestamp') || '0');
+                        const tsB = parseFloat(b.getAttribute('data-timestamp') || '0');
+                        return tsB - tsA;
+                    } else if (val === 'products-desc') {
+                        const cntA = parseInt(a.getAttribute('data-products-count') || '0', 10);
+                        const cntB = parseInt(b.getAttribute('data-products-count') || '0', 10);
+                        return cntB - cntA;
+                    }
+                    return 0;
+                });
+
+                cardsArray.forEach(card => customerListContainer.appendChild(card));
+            });
+        }
     });
 </script>
 {% endblock %}

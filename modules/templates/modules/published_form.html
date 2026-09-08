@@ -1042,13 +1042,14 @@
                                                       x-model="reason"></textarea>
 
                                             <!-- Checkbox Attestazione Carta Intestata -->
-                                            <div style="margin-top: 0.625rem; display: flex; align-items: flex-start; gap: 0.5rem; background: white; padding: 0.5rem 0.75rem; border: 1px solid #e4e7ec; border-radius: var(--radius-sm);">
+                                            <div style="margin-top: 0.625rem; display: flex; align-items: flex-start; gap: 0.65rem; background: #fffbeb; padding: 0.65rem 0.85rem; border: 1.5px solid #f59e0b; border-radius: var(--radius-sm); cursor: pointer;"
+                                                 @click="if ($event.target.tagName !== 'INPUT') attestation = !attestation">
                                                 <input type="checkbox"
                                                        id="absence_attest_{{ item.id }}"
                                                        name="absence_attest_{{ item.id }}"
                                                        x-model="attestation"
-                                                       style="margin-top: 0.2rem; cursor: pointer;">
-                                                <label for="absence_attest_{{ item.id }}" style="font-size: 0.78rem; color: var(--gray-700); cursor: pointer; line-height: 1.35;">
+                                                       style="width: 18px; height: 18px; flex: 0 0 18px; margin-top: 0.15rem; cursor: pointer; accent-color: #2D8A4E; border-radius: 4px;">
+                                                <label for="absence_attest_{{ item.id }}" style="font-size: 0.8rem; color: #1e293b; cursor: pointer; line-height: 1.4; margin: 0;">
                                                     <strong>Dichiaro e attesto</strong> che l'eventuale dichiarazione allegata costituisce formalizzazione su <strong>carta intestata aziendale</strong> provvista di timbro e firma valida.
                                                 </label>
                                             </div>
@@ -1286,13 +1287,14 @@
                                                       x-model="reason"></textarea>
 
                                             <!-- Checkbox Attestazione Carta Intestata -->
-                                            <div style="margin-top: 0.625rem; display: flex; align-items: flex-start; gap: 0.5rem; background: white; padding: 0.5rem 0.75rem; border: 1px solid #e4e7ec; border-radius: var(--radius-sm);">
+                                            <div style="margin-top: 0.625rem; display: flex; align-items: flex-start; gap: 0.65rem; background: #fffbeb; padding: 0.65rem 0.85rem; border: 1.5px solid #f59e0b; border-radius: var(--radius-sm); cursor: pointer;"
+                                                 @click="if ($event.target.tagName !== 'INPUT') attestation = !attestation">
                                                 <input type="checkbox"
                                                        id="absence_attest_{{ item.id }}"
                                                        name="absence_attest_{{ item.id }}"
                                                        x-model="attestation"
-                                                       style="margin-top: 0.2rem; cursor: pointer;">
-                                                <label for="absence_attest_{{ item.id }}" style="font-size: 0.78rem; color: var(--gray-700); cursor: pointer; line-height: 1.35;">
+                                                       style="width: 18px; height: 18px; flex: 0 0 18px; margin-top: 0.15rem; cursor: pointer; accent-color: #2D8A4E; border-radius: 4px;">
+                                                <label for="absence_attest_{{ item.id }}" style="font-size: 0.8rem; color: #1e293b; cursor: pointer; line-height: 1.4; margin: 0;">
                                                     <strong>Dichiaro e attesto</strong> che l'eventuale dichiarazione allegata costituisce formalizzazione su <strong>carta intestata aziendale</strong> provvista di timbro e firma valida.
                                                 </label>
                                             </div>
@@ -1486,5 +1488,7 @@
             });
         });
     </script>
+
+    {% include "modules/client/upload_guide_modal.html" %}
 </body>
 </html>

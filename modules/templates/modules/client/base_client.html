@@ -330,7 +330,14 @@ document.addEventListener('click', function(e) {
 });
 </script>
 
+<script>
+window.EH_CUSTOMER_CODE = "{{ request.session.customer_code|default:'' }}";
+</script>
+
+{% include "modules/client/upload_guide_modal.html" %}
+
 {% block extra_js %}{% endblock %}
 
 </body>
 </html>
+

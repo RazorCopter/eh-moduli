@@ -388,25 +388,10 @@
                 </span>
             </div>
             <p class="text-secondary small mb-3">
-                Link Riservato di Accesso Cliente per l'upload della documentazione per un tempo prefissato (TTL stabilito alla creazione).
+                Il caricamento della documentazione da parte del cliente deve essere completato entro un tempo prefissato (TTL stabilito alla creazione).
             </p>
-            <div class="mb-2">
-                <label class="form-label small text-muted mb-1">Link Diretto Modulo Prodotto:</label>
-                <div class="input-group input-group-sm">
-                    <input type="text" class="form-control font-monospace bg-white" value="{{ form_url }}" id="formUrlInput" readonly>
-                    <button class="btn btn-outline-secondary" type="button" id="btnCopy" onclick="copyFormLink()">
-                        <i class="bi bi-clipboard"></i> Copia
-                    </button>
-                    <a href="{{ form_url }}" target="_blank" class="btn btn-outline-secondary">
-                        <i class="bi bi-box-arrow-up-right"></i>
-                    </a>
-                </div>
-            </div>
             <div class="d-flex align-items-center justify-content-between small text-muted mt-2 pt-2 border-top">
                 <span>Scadenza TTL: <strong class="text-dark">{{ assignment.expiry_date|date:"d/m/Y H:i" }}</strong></span>
-                {% if assignment.form_data.access_password %}
-                <span><i class="bi bi-shield-lock-fill text-success"></i> Accesso: <span class="badge bg-success-subtle text-success border border-success-subtle">Protetta da password</span></span>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -639,23 +624,7 @@ function copyPortalLink() {
     });
 }
 
-function copyFormLink() {
-    const copyText = document.getElementById("formUrlInput");
-    copyText.select();
-    copyText.setSelectionRange(0, 99999);
-    navigator.clipboard.writeText(copyText.value).then(function() {
-        const btn = document.getElementById("btnCopy");
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="bi bi-check-lg"></i> Copiato!';
-        btn.style.background = '#28a745';
-        setTimeout(function() {
-            btn.innerHTML = originalHtml;
-            btn.style.background = '';
-        }, 2000);
-    }).catch(function(err) {
-        alert("Impossibile copiare il link: " + err);
-    });
-}
+
 
 function copyPassword() {
     const pwd = document.getElementById("accessPasswordVal").innerText.trim();

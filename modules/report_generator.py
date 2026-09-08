@@ -218,10 +218,23 @@ def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, 
     if not left_logo:
         left_logo = Paragraph("<b>ETICHUB</b><br/><font size=7 color='#64748B'>DOCUMENT SYSTEM</font>", s_title)
 
+    trans_id = (
+        form_data.get('form_id')
+        or form_data.get('transaction_id')
+        or form_data.get('id')
+        or form_data.get('assignment_id')
+        or '—'
+    )
+    sub_date = (
+        form_data.get('submission_datetime')
+        or form_data.get('submission_time')
+        or datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+    )
+
     right_meta = [
         Paragraph("<b>RAPPORTO DI RICEZIONE DOCUMENTI</b>", s_title),
-        Paragraph(f"<b>Data Ricezione:</b> {form_data.get('submission_datetime', datetime.now().strftime('%d/%m/%Y %H:%M:%S'))}", s_subtitle),
-        Paragraph(f"<b>ID Transazione:</b> {form_data.get('form_id', '—')}", s_subtitle)
+        Paragraph(f"<b>Data Ricezione:</b> {sub_date}", s_subtitle),
+        Paragraph(f"<b>ID Transazione:</b> {trans_id}", s_subtitle)
     ]
 
     header_table = Table(
@@ -245,8 +258,18 @@ def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, 
     cust_display = customer_data.get('name') or "Non assegnato (Generico)"
     cust_code = customer_data.get('code', '—')
     cust_email = customer_data.get('email', '—')
-    cust_vat = customer_data.get('vat', customer_data.get('fiscal_code', '—'))
-    ip_addr = form_data.get('client_ip', '—')
+    cust_vat = (
+        customer_data.get('vat')
+        or customer_data.get('vat_number')
+        or customer_data.get('fiscal_code')
+        or '—'
+    )
+    ip_addr = (
+        form_data.get('client_ip')
+        or form_data.get('ip')
+        or form_data.get('ip_address')
+        or '—'
+    )
 
     meta_grid_data = [
         [
@@ -426,7 +449,7 @@ def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, 
     return output_pdf_path
 
 
-def generate_form_receipt_pdf(form_template, assignment, pdf_path):
+def generate_form_receipt_pdf(form_template, assignment, pdf_path, client_ip=None):
     """
     Generate PDF receipt for an assignment submission.
     """
@@ -436,16 +459,48 @@ def generate_form_receipt_pdf(form_template, assignment, pdf_path):
         'code': customer.code if customer else "—",
         'email': customer.email if customer else "—",
         'phone': customer.phone if customer else "—",
+        'vat': getattr(customer, 'vat_number', '') or getattr(customer, 'fiscal_code', '') or '—',
         'vat_number': getattr(customer, 'vat_number', '—'),
         'fiscal_code': getattr(customer, 'fiscal_code', '—'),
     }
-    project_name = assignment.form_data.get('project_name', '') if assignment.form_data else ''
+    project_name = (assignment.form_data or {}).get('project_name', '') if assignment.form_data else ''
+
+    # Risoluzione robusta dell'IP di sottomissione
+    resolved_ip = client_ip
+    if not resolved_ip:
+        try:
+            decl = assignment.awarenessdeclaration_set.filter(accepted=True).order_by('-acceptance_datetime').first()
+            if decl and decl.acceptance_ip:
+                resolved_ip = decl.acceptance_ip
+        except Exception:
+            pass
+
+    if not resolved_ip:
+        try:
+            from .models import AuditLog
+            audit = AuditLog.objects.filter(object_type='FormAssignment', object_id=str(assignment.id)).order_by('-action_datetime').first()
+            if audit and audit.actor_ip:
+                resolved_ip = audit.actor_ip
+        except Exception:
+            pass
+
+    if not resolved_ip:
+        resolved_ip = (assignment.form_data or {}).get('client_ip') or (assignment.form_data or {}).get('ip') or '—'
+
+    transaction_id = str(assignment.id)
+    submission_dt = assignment.submission_date or datetime.now()
+    submission_dt_str = submission_dt.strftime('%d/%m/%Y %H:%M:%S')
+
     form_data = {
-        'id': str(assignment.id),
-        'name': form_template.name,
-        'project_name': project_name or getattr(form_template, 'project_name', ''),
-        'submission_time': (assignment.submission_date or datetime.now()).strftime('%d/%m/%Y %H:%M:%S'),
-        'ip': '127.0.0.1',
+        'id': transaction_id,
+        'form_id': transaction_id,
+        'transaction_id': transaction_id,
+        'name': form_template.name if form_template else 'Modulo',
+        'project_name': project_name or (getattr(form_template, 'project_name', '') if form_template else ''),
+        'submission_datetime': submission_dt_str,
+        'submission_time': submission_dt_str,
+        'client_ip': resolved_ip,
+        'ip': resolved_ip,
     }
 
     uploads_data = []

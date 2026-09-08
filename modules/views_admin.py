@@ -43,6 +43,146 @@ def admin_dashboard(request):
         'customer', 'form_template'
     ).order_by('-assignment_date')[:10]
 
+    # Pre-fetch all active customers and their form assignments (excluding cancelled)
+    customers = Customer.objects.filter(active=True).prefetch_related(
+        Prefetch(
+            'formassignment_set',
+            queryset=FormAssignment.objects.select_related('form_template').exclude(status='cancelled').order_by('-assignment_date'),
+            to_attr='active_assignments'
+        )
+    ).order_by('first_name', 'last_name')
+
+    customer_groups = []
+    count_filter_all = 0
+    count_filter_to_work = 0         # 🔴 Clienti con almeno 1 pratica submitted (pronta per l'operatore)
+    count_filter_in_processing = 0   # 🟠 Clienti con almeno 1 pratica in_processing
+    count_filter_waiting_docs = 0    # 🟡 Clienti con almeno 1 pratica in bozza o compilazione parziale
+    count_filter_completed = 0       # 🟢 Clienti con pratiche tutte completate
+
+    for cust in customers:
+        assignments = getattr(cust, 'active_assignments', [])
+        total_assignments = len(assignments)
+
+        if total_assignments == 0:
+            status_color = 'neutral'
+            status_code = 'empty'
+            status_label = 'Nessuna Pratica'
+            latest_dt = None
+            has_to_work = False
+            has_in_processing = False
+            has_waiting_docs = False
+            all_completed = False
+            count_submitted = 0
+            count_in_proc = 0
+            count_intermediate = 0
+            count_comp = 0
+        else:
+            count_submitted = sum(1 for a in assignments if a.status == 'submitted')
+            count_in_proc = sum(1 for a in assignments if a.status == 'in_processing')
+            count_intermediate = sum(1 for a in assignments if a.status in ('draft', 'in_progress'))
+            count_comp = sum(1 for a in assignments if a.status == 'completed')
+
+            has_to_work = (count_submitted > 0)
+            has_in_processing = (count_in_proc > 0)
+            has_waiting_docs = (count_intermediate > 0)
+            all_completed = (count_comp == total_assignments)
+
+            # Priorità semantica dei colori del cliente richiesta dall'utente:
+            # - verde se tutte le pratiche sono state lavorate
+            # - rosso se tutte le pratiche sono da lavorare lato operatore (oppure se ha pratiche da lavorare)
+            # - arancio se almeno una pratica è in lavorazione
+            # - giallo se almeno una pratica è in uno stato intermedio (in attesa documenti cliente)
+            if all_completed:
+                status_color = 'green'
+                status_code = 'completed'
+                status_label = 'Tutte Lavorate'
+            elif count_submitted == total_assignments:
+                status_color = 'red'
+                status_code = 'to_work'
+                status_label = 'Tutte da Lavorare'
+            elif has_in_processing:
+                status_color = 'orange'
+                status_code = 'in_processing'
+                status_label = 'In Lavorazione'
+            elif has_to_work:
+                status_color = 'red'
+                status_code = 'to_work'
+                status_label = f'{count_submitted} da Lavorare'
+            elif has_waiting_docs:
+                status_color = 'yellow'
+                status_code = 'waiting_docs'
+                status_label = 'In Attesa Documenti'
+            else:
+                status_color = 'neutral'
+                status_code = 'other'
+                status_label = 'Archiviate / Scadute'
+
+            dts = [
+                a.submission_date or a.last_access_date or a.assignment_date
+                for a in assignments
+                if (a.submission_date or a.last_access_date or a.assignment_date)
+            ]
+            latest_dt = max(dts) if dts else None
+
+        products = []
+        for a in assignments:
+            p_name = (a.form_data or {}).get('project_name') or getattr(a.form_template, 'project_name', None) or a.form_template.name
+            products.append({
+                'id': str(a.id),
+                'project_name': p_name,
+                'module_name': a.form_template.name,
+                'status': a.status,
+                'status_display': a.get_status_display(),
+                'completion_percentage': a.completion_percentage,
+                'assignment_date': a.assignment_date,
+                'submission_date': a.submission_date,
+                'can_reopen': (a.status == 'submitted'),
+                'detail_url': reverse('assignment_detail', kwargs={'pk': a.id}),
+                'delete_url': reverse('assignment_delete', kwargs={'pk': a.id}),
+                'reopen_url': reverse('reopen_assignment', kwargs={'pk': a.id}),
+            })
+
+        if has_to_work:
+            count_filter_to_work += 1
+        if has_in_processing:
+            count_filter_in_processing += 1
+        if has_waiting_docs:
+            count_filter_waiting_docs += 1
+        if all_completed:
+            count_filter_completed += 1
+        count_filter_all += 1
+
+        customer_groups.append({
+            'customer': cust,
+            'customer_id': str(cust.id),
+            'full_name': f"{cust.first_name} {cust.last_name or ''}".strip(),
+            'code': cust.code,
+            'email': cust.email or '',
+            'status_color': status_color,
+            'status_code': status_code,
+            'status_label': status_label,
+            'total_products': total_assignments,
+            'count_to_work': count_submitted,
+            'count_in_processing': count_in_proc,
+            'count_waiting_docs': count_intermediate,
+            'count_completed': count_comp,
+            'latest_activity': latest_dt,
+            'latest_activity_timestamp': latest_dt.timestamp() if latest_dt else 0,
+            'products': products,
+            'has_to_work': has_to_work,
+            'has_in_processing': has_in_processing,
+            'has_waiting_docs': has_waiting_docs,
+            'is_all_completed': all_completed,
+        })
+
+    filter_counts = {
+        'all': count_filter_all,
+        'to_work': count_filter_to_work,
+        'in_processing': count_filter_in_processing,
+        'waiting_docs': count_filter_waiting_docs,
+        'completed': count_filter_completed,
+    }
+
     context = {
         'templates_count': templates_count,
         'customers_count': customers_count,
@@ -51,6 +191,8 @@ def admin_dashboard(request):
         'in_processing_count': in_processing_count,
         'completed_count': completed_count,
         'recent_assignments': recent_assignments,
+        'customer_groups': customer_groups,
+        'filter_counts': filter_counts,
     }
 
     log_action(
@@ -774,7 +916,7 @@ def reopen_assignment_for_upload(request, pk):
     customer_name = f"{assignment.customer.first_name} {assignment.customer.last_name}" if assignment.customer else "Cliente"
     messages.success(
         request,
-        f"Pratica riaperta con successo per {customer_name}! È stato generato un nuovo link di accesso per il caricamento di documenti integrativi. La cartella NAS del cliente e i file già caricati rimangono invariati."
+        f"Pratica riaperta con successo per {customer_name}! Il cliente può ora accedere dall'area personale per il caricamento di documenti integrativi. La cartella NAS del cliente e i file già caricati rimangono invariati."
     )
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):

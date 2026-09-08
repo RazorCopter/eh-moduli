@@ -5,7 +5,7 @@ import tempfile
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
-from .models import User, Customer, FormTemplate, FormStep, DocumentRequirement, FormAssignment, AuditLog
+from .models import User, Customer, FormTemplate, FormStep, DocumentRequirement, FormAssignment, AuditLog, AwarenessDeclaration, NotificationLog
 
 
 class CustomerDeleteTests(TestCase):
@@ -231,10 +231,9 @@ class DashboardAndNavigationTests(TestCase):
         detail_response = self.client.get(reverse('assignment_detail', kwargs={'pk': assignment.id}))
         self.assertEqual(detail_response.status_code, 200)
         detail_content = detail_response.content.decode('utf-8')
-        self.assertIn('Link Riservato di Accesso Cliente', detail_content)
-        self.assertIn(assignment.secure_token, detail_content)
+        self.assertIn('Area Personale Cliente', detail_content)
+        self.assertIn('Link Portale Clienti:', detail_content)
         self.assertIn('ProgettoTest', detail_content)
-        self.assertIn('btn-copy-link', detail_content)
 
     def test_builder_create_as_reusable_template(self):
         """Test creating a form template without requiring customer or project."""
@@ -342,7 +341,9 @@ class PublicAssignmentFlowTests(TestCase):
         content = response.content.decode('utf-8')
         self.assertIn('Documenti Reddituali', content)
         self.assertIn('Passaggio 2 di 2', content)
-        self.assertIn('handleFileUpload', content)
+        self.assertIn('id="nextStepBtn"', content)
+        self.assertIn('Vai al Riepilogo e Invia', content)
+        self.assertIn('proceedToNextStep', content)
 
     def test_form_step_view_step_0_renders_without_500_error(self):
         url = reverse('form_step_view', kwargs={'assignment_id': self.assignment.id, 'step_order': 0})
@@ -567,6 +568,49 @@ class PublicAssignmentFlowTests(TestCase):
         self.assertEqual(self.assignment.status, 'submitted')
         self.assertEqual(self.assignment.completion_percentage, 50)
         self.assertIsNotNone(self.assignment.submission_date)
+
+    def test_form_submission_partial_draft_save(self):
+        """Partial submission saves draft state (in_progress), proportional %, and does not submit to regulatory."""
+        submit_url = reverse('form_submission_view', kwargs={'assignment_id': self.assignment.id})
+        response = self.client.post(submit_url, {'action_type': 'partial'})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('mode=partial', response.url)
+
+        self.assignment.refresh_from_db()
+        self.assertEqual(self.assignment.status, 'in_progress')
+        self.assertLess(self.assignment.completion_percentage, 50)
+        self.assertIsNone(self.assignment.submission_date)
+
+        # No awareness declaration created for partial save
+        self.assertFalse(AwarenessDeclaration.objects.filter(form_assignment=self.assignment).exists())
+        # No regulatory notification created
+        self.assertFalse(NotificationLog.objects.filter(notification_type='form_submitted').exists())
+
+    def test_form_submission_complete_requires_awareness_declaration(self):
+        """Complete submission explicitly requires awareness_declaration=true."""
+        submit_url = reverse('form_submission_view', kwargs={'assignment_id': self.assignment.id})
+
+        # 1. Attempt complete submission without awareness declaration -> blocked
+        resp_blocked = self.client.post(submit_url, {'action_type': 'complete'}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp_blocked.status_code, 400)
+        self.assignment.refresh_from_db()
+        self.assertNotEqual(self.assignment.status, 'submitted')
+
+        # 2. Attempt complete submission with awareness declaration -> succeeds
+        resp_ok = self.client.post(submit_url, {
+            'action_type': 'complete',
+            'awareness_declaration': 'true',
+            'customer_name': 'Mario Rossi'
+        })
+        self.assertEqual(resp_ok.status_code, 302)
+        self.assertIn('mode=complete', resp_ok.url)
+
+        self.assignment.refresh_from_db()
+        self.assertEqual(self.assignment.status, 'submitted')
+        self.assertEqual(self.assignment.completion_percentage, 50)
+        self.assertIsNotNone(self.assignment.submission_date)
+        self.assertTrue(AwarenessDeclaration.objects.filter(form_assignment=self.assignment, accepted=True).exists())
 
     def test_operator_state_machine_transitions(self):
         """Etichub operator transitions practice: submitted (50%) -> in_processing (75%) -> completed (100%)."""
@@ -1215,6 +1259,509 @@ class TestFormTemplateDefaultExpiryTTL(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context['expiry_days'], 45)
         self.assertContains(resp, f'data-expiry="45"')
+
+
+class TestPDFReceiptGeneration(TestCase):
+    """Test suite for PDF receipt generation including Transaction ID and Client IP."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='test_user_pdf', password='password123')
+        self.customer = Customer.objects.create(
+            code='CUST-PDF-01',
+            first_name='Badedas',
+            last_name='SPA',
+            email='test@badedas.it',
+            vat_number='IT12345678901'
+        )
+        self.template = FormTemplate.objects.create(
+            name='Modulo Documentale Test',
+            project_name='BAGNOSCHIUMA',
+            author=self.user
+        )
+        self.step = FormStep.objects.create(form_template=self.template, title='Step 1', order=1)
+        self.doc_req = DocumentRequirement.objects.create(
+            form_step=self.step,
+            name='Doc 1',
+            required=True,
+            allowed_extensions='pdf',
+            mime_types='application/pdf',
+            max_file_size=10485760,
+            destination_subfolder='allegati',
+            order=1
+        )
+        self.assignment = FormAssignment.objects.create(
+            customer=self.customer,
+            form_template=self.template,
+            form_data={'client_name': 'Badedas SPA', 'project_name': 'BAGNOSCHIUMA'},
+            expiry_date=timezone.now() + timezone.timedelta(days=30)
+        )
+
+    def test_generate_form_receipt_pdf_contains_id_and_ip(self):
+        import tempfile
+        from modules.report_generator import generate_form_receipt_pdf
+
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            generate_form_receipt_pdf(
+                self.template,
+                self.assignment,
+                tmp_path,
+                client_ip='192.168.1.50'
+            )
+            self.assertTrue(os.path.exists(tmp_path))
+            self.assertGreater(os.path.getsize(tmp_path), 0)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_generate_form_receipt_pdf_resolves_ip_from_awareness_declaration(self):
+        import tempfile
+        from modules.report_generator import generate_form_receipt_pdf
+        from modules.models import AwarenessDeclaration
+
+        AwarenessDeclaration.objects.create(
+            form_assignment=self.assignment,
+            declaration_text='Dichiaro di aver preso visione',
+            accepted=True,
+            acceptance_ip='10.0.0.99',
+            acceptance_user_agent='TestBrowser'
+        )
+
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            generate_form_receipt_pdf(
+                self.template,
+                self.assignment,
+                tmp_path
+            )
+            self.assertTrue(os.path.exists(tmp_path))
+            self.assertGreater(os.path.getsize(tmp_path), 0)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_pdf_ip_address_resolution(self):
+        """Test that IP resolution follows correct fallback chain: parameter > declaration > audit log > form_data."""
+        from unittest.mock import patch, MagicMock
+        from modules.report_generator import generate_form_receipt_pdf
+        import tempfile
+
+        # Test 1: Explicit client_ip parameter has highest priority
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            with patch('modules.report_generator.generate_submission_pdf') as mock_pdf:
+                mock_pdf.return_value = None
+                generate_form_receipt_pdf(
+                    self.template,
+                    self.assignment,
+                    tmp_path,
+                    client_ip='203.0.113.50'
+                )
+                # Verify the PDF generation was called with the explicit IP
+                self.assertTrue(mock_pdf.called)
+                call_args = mock_pdf.call_args
+                form_data = call_args[0][1] if call_args[0] else {}
+                self.assertEqual(form_data.get('client_ip'), '203.0.113.50')
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+        # Test 2: Awareness declaration IP is used when client_ip not provided
+        from modules.models import AwarenessDeclaration
+        AwarenessDeclaration.objects.create(
+            form_assignment=self.assignment,
+            declaration_text='Test Declaration',
+            accepted=True,
+            acceptance_ip='192.0.2.100',
+            acceptance_user_agent='Mozilla/5.0'
+        )
+
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            with patch('modules.report_generator.generate_submission_pdf') as mock_pdf:
+                mock_pdf.return_value = None
+                generate_form_receipt_pdf(
+                    self.template,
+                    self.assignment,
+                    tmp_path
+                )
+                call_args = mock_pdf.call_args
+                form_data = call_args[0][1] if call_args[0] else {}
+                self.assertEqual(form_data.get('client_ip'), '192.0.2.100')
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+        # Test 3: Audit log IP is used when declaration not available
+        AwarenessDeclaration.objects.all().delete()
+        AuditLog.objects.create(
+            object_type='FormAssignment',
+            object_id=str(self.assignment.id),
+            action='submit',
+            actor=self.user,
+            actor_ip='198.51.100.75'
+        )
+
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            with patch('modules.report_generator.generate_submission_pdf') as mock_pdf:
+                mock_pdf.return_value = None
+                generate_form_receipt_pdf(
+                    self.template,
+                    self.assignment,
+                    tmp_path
+                )
+                call_args = mock_pdf.call_args
+                form_data = call_args[0][1] if call_args[0] else {}
+                self.assertEqual(form_data.get('client_ip'), '198.51.100.75')
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+        # Test 4: form_data IP is used as last resort
+        AuditLog.objects.all().delete()
+        self.assignment.form_data = {'client_ip': '192.168.100.1'}
+        self.assignment.save()
+
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            with patch('modules.report_generator.generate_submission_pdf') as mock_pdf:
+                mock_pdf.return_value = None
+                generate_form_receipt_pdf(
+                    self.template,
+                    self.assignment,
+                    tmp_path
+                )
+                call_args = mock_pdf.call_args
+                form_data = call_args[0][1] if call_args[0] else {}
+                self.assertEqual(form_data.get('client_ip'), '192.168.100.1')
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_pdf_transaction_id_extraction(self):
+        """Test that transaction ID is correctly extracted from assignment.id."""
+        from unittest.mock import patch
+        from modules.report_generator import generate_form_receipt_pdf
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            with patch('modules.report_generator.generate_submission_pdf') as mock_pdf:
+                mock_pdf.return_value = None
+                generate_form_receipt_pdf(
+                    self.template,
+                    self.assignment,
+                    tmp_path
+                )
+
+                self.assertTrue(mock_pdf.called)
+                call_args = mock_pdf.call_args
+                form_data = call_args[0][1] if call_args[0] else {}
+
+                # Verify transaction ID fields contain assignment ID
+                expected_id = str(self.assignment.id)
+                self.assertEqual(form_data.get('id'), expected_id)
+                self.assertEqual(form_data.get('form_id'), expected_id)
+                self.assertEqual(form_data.get('transaction_id'), expected_id)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_pdf_submission_date_resolution(self):
+        """Test that submission date uses assignment.submission_date or falls back to now()."""
+        from unittest.mock import patch
+        from modules.report_generator import generate_form_receipt_pdf
+        import tempfile
+        from datetime import datetime
+
+        # Test 1: When submission_date is set
+        test_date = timezone.now()
+        self.assignment.submission_date = test_date
+        self.assignment.save()
+
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            with patch('modules.report_generator.generate_submission_pdf') as mock_pdf:
+                mock_pdf.return_value = None
+                generate_form_receipt_pdf(
+                    self.template,
+                    self.assignment,
+                    tmp_path
+                )
+
+                call_args = mock_pdf.call_args
+                form_data = call_args[0][1] if call_args[0] else {}
+
+                # Verify submission datetime is in the form_data
+                self.assertIn('submission_datetime', form_data)
+                # Date should be formatted as dd/mm/yyyy hh:mm:ss
+                submission_str = form_data.get('submission_datetime', '')
+                self.assertRegex(submission_str, r'\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}')
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+        # Test 2: When submission_date is None, should use current time
+        self.assignment.submission_date = None
+        self.assignment.save()
+
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            before_call = timezone.now()
+            with patch('modules.report_generator.generate_submission_pdf') as mock_pdf:
+                mock_pdf.return_value = None
+                generate_form_receipt_pdf(
+                    self.template,
+                    self.assignment,
+                    tmp_path
+                )
+            after_call = timezone.now()
+
+            call_args = mock_pdf.call_args
+            form_data = call_args[0][1] if call_args[0] else {}
+
+            # Verify we got a datetime string
+            self.assertIn('submission_datetime', form_data)
+            submission_str = form_data.get('submission_datetime', '')
+            self.assertRegex(submission_str, r'\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}')
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_pdf_vat_fiscal_code_fallback(self):
+        """Test VAT/fiscal code extraction uses fallback: vat_number > fiscal_code."""
+        from unittest.mock import patch
+        from modules.report_generator import generate_form_receipt_pdf
+        import tempfile
+
+        # Test 1: Customer with vat_number
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            with patch('modules.report_generator.generate_submission_pdf') as mock_pdf:
+                mock_pdf.return_value = None
+                generate_form_receipt_pdf(
+                    self.template,
+                    self.assignment,
+                    tmp_path
+                )
+
+                call_args = mock_pdf.call_args
+                customer_data = call_args[0][2] if len(call_args[0]) > 2 else {}
+
+                # Should use vat_number when available
+                self.assertEqual(customer_data.get('vat'), 'IT12345678901')
+                self.assertEqual(customer_data.get('vat_number'), 'IT12345678901')
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+        # Test 2: Customer with only fiscal_code (no vat_number)
+        self.customer.vat_number = ''
+        self.customer.fiscal_code = 'RSSMRA80A01H501X'
+        self.customer.save()
+
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+        try:
+            with patch('modules.report_generator.generate_submission_pdf') as mock_pdf:
+                mock_pdf.return_value = None
+                generate_form_receipt_pdf(
+                    self.template,
+                    self.assignment,
+                    tmp_path
+                )
+
+                call_args = mock_pdf.call_args
+                customer_data = call_args[0][2] if len(call_args[0]) > 2 else {}
+
+                # Should use fiscal_code when vat_number is empty
+                self.assertEqual(customer_data.get('vat'), 'RSSMRA80A01H501X')
+                self.assertEqual(customer_data.get('fiscal_code'), 'RSSMRA80A01H501X')
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    def test_pdf_generation_no_corrupt_on_error(self):
+        """Test that PDF generation error doesn't corrupt manifest or leave orphan files."""
+        from unittest.mock import patch
+        from modules.report_generator import generate_form_receipt_pdf
+        import tempfile
+
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            # Mock generate_submission_pdf to raise an exception
+            with patch('modules.report_generator.generate_submission_pdf') as mock_pdf:
+                mock_pdf.side_effect = RuntimeError("PDF writer error")
+
+                # Should handle exception gracefully
+                try:
+                    generate_form_receipt_pdf(
+                        self.template,
+                        self.assignment,
+                        tmp_path
+                    )
+                except RuntimeError:
+                    pass  # Expected to propagate the error
+
+                # Verify PDF file was not created or is properly cleaned up
+                # If error occurred during generation, file should not exist or be incomplete
+                self.assertFalse(os.path.exists(tmp_path) and os.path.getsize(tmp_path) > 0,
+                    "PDF file should not exist or should be empty after generation error")
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+
+class TestAdminDashboardCustomerGrouping(TestCase):
+    """Test suite for Admin Dashboard customer grouping and semantic color-coding."""
+
+    def setUp(self):
+        self.client = Client()
+        self.admin = User.objects.create_superuser(
+            username='admin_dash',
+            email='admin_dash@etichub.it',
+            password='Password123!'
+        )
+        self.client.force_login(self.admin)
+
+        self.template = FormTemplate.objects.create(
+            name='Modulo Standard',
+            project_name='Standard Project',
+            status='published',
+            author=self.admin
+        )
+        self.expiry = timezone.now() + timezone.timedelta(days=30)
+
+        # Cust 1: All Completed -> Green
+        self.cust_green = Customer.objects.create(code='CUST-G1', first_name='Acme', last_name='Green', nas_folder_name='cust_g1')
+        FormAssignment.objects.create(customer=self.cust_green, form_template=self.template, status='completed', expiry_date=self.expiry, form_data={'project_name': 'Prod G1'})
+        FormAssignment.objects.create(customer=self.cust_green, form_template=self.template, status='completed', expiry_date=self.expiry, form_data={'project_name': 'Prod G2'})
+
+        # Cust 2: All Submitted (Da Lavorare) -> Red
+        self.cust_red = Customer.objects.create(code='CUST-R1', first_name='Beta', last_name='Red', nas_folder_name='cust_r1')
+        FormAssignment.objects.create(customer=self.cust_red, form_template=self.template, status='submitted', expiry_date=self.expiry, form_data={'project_name': 'Prod R1'})
+
+        # Cust 3: In Processing -> Orange
+        self.cust_orange = Customer.objects.create(code='CUST-O1', first_name='Gamma', last_name='Orange', nas_folder_name='cust_o1')
+        FormAssignment.objects.create(customer=self.cust_orange, form_template=self.template, status='in_processing', expiry_date=self.expiry, form_data={'project_name': 'Prod O1'})
+
+        # Cust 4: In Progress / Draft -> Yellow
+        self.cust_yellow = Customer.objects.create(code='CUST-Y1', first_name='Delta', last_name='Yellow', nas_folder_name='cust_y1')
+        FormAssignment.objects.create(customer=self.cust_yellow, form_template=self.template, status='in_progress', expiry_date=self.expiry, form_data={'project_name': 'Prod Y1'})
+
+        # Cust 5: No practices -> Neutral
+        self.cust_neutral = Customer.objects.create(code='CUST-N1', first_name='Epsilon', last_name='Neutral', nas_folder_name='cust_n1')
+
+    def test_dashboard_customer_groups_and_colors(self):
+        resp = self.client.get(reverse('admin_dashboard'))
+        self.assertEqual(resp.status_code, 200)
+
+        customer_groups = resp.context['customer_groups']
+        self.assertEqual(len(customer_groups), 5)
+
+        by_code = {cg['code']: cg for cg in customer_groups}
+
+        # Check colors and status codes
+        self.assertEqual(by_code['CUST-G1']['status_color'], 'green')
+        self.assertEqual(by_code['CUST-G1']['status_code'], 'completed')
+        self.assertEqual(len(by_code['CUST-G1']['products']), 2)
+
+        self.assertEqual(by_code['CUST-R1']['status_color'], 'red')
+        self.assertEqual(by_code['CUST-R1']['status_code'], 'to_work')
+
+        self.assertEqual(by_code['CUST-O1']['status_color'], 'orange')
+        self.assertEqual(by_code['CUST-O1']['status_code'], 'in_processing')
+
+        self.assertEqual(by_code['CUST-Y1']['status_color'], 'yellow')
+        self.assertEqual(by_code['CUST-Y1']['status_code'], 'waiting_docs')
+
+        self.assertEqual(by_code['CUST-N1']['status_color'], 'neutral')
+        self.assertEqual(by_code['CUST-N1']['status_code'], 'empty')
+
+        # Check filter counts
+        filter_counts = resp.context['filter_counts']
+        self.assertEqual(filter_counts['all'], 5)
+        self.assertEqual(filter_counts['completed'], 1)
+        self.assertEqual(filter_counts['to_work'], 1)
+        self.assertEqual(filter_counts['in_processing'], 1)
+        self.assertEqual(filter_counts['waiting_docs'], 1)
+
+        # Check that HTML rendered accordion cards and console
+        content = resp.content.decode('utf-8')
+        self.assertIn('Gestione Clienti e Prodotti', content)
+        self.assertIn('customerSearchInput', content)
+        self.assertIn('customerSortSelect', content)
+        self.assertIn('status-border-green', content)
+        self.assertIn('status-border-red', content)
+        self.assertIn('status-border-orange', content)
+        self.assertIn('status-border-yellow', content)
+        self.assertIn('Prod G1', content)
+        self.assertIn('Prod R1', content)
+
+    def test_client_dashboard_badge_label_rendering(self):
+        session = self.client.session
+        session['customer_id'] = str(self.cust_red.id)
+        session.save()
+
+        resp = self.client.get(reverse('client_dashboard'))
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode('utf-8')
+        self.assertIn('Doc. Inviati', content)
+        self.assertIn('Prod R1', content)
+
+    def test_client_upload_guide_translations_all_languages(self):
+        """Verify that all 4 supported languages contain all upload guide keys."""
+        from .client_i18n import TRANSLATIONS
+        guide_keys = [
+            'guide_fab_label', 'guide_modal_title', 'guide_modal_subtitle',
+            'guide_step1_badge', 'guide_step1_title', 'guide_step1_desc',
+            'guide_step2_badge', 'guide_step2_title', 'guide_step2_desc',
+            'guide_step3_badge', 'guide_step3_title', 'guide_step3_desc',
+            'guide_step4_badge', 'guide_step4_title', 'guide_step4_desc',
+            'guide_step5_badge', 'guide_step5_title', 'guide_step5_desc',
+            'guide_help_box_title', 'guide_help_box_desc',
+            'guide_dont_show_again', 'guide_btn_start', 'guide_btn_close',
+        ]
+        for lang in ['it', 'en', 'fr', 'de']:
+            self.assertIn(lang, TRANSLATIONS, f"Language {lang} missing in TRANSLATIONS")
+            dict_lang = TRANSLATIONS[lang]
+            for key in guide_keys:
+                self.assertIn(key, dict_lang, f"Key '{key}' missing for language '{lang}'")
+                self.assertTrue(dict_lang[key], f"Key '{key}' is empty for language '{lang}'")
+
+    def test_client_dashboard_renders_upload_guide_modal_and_fab(self):
+        """Verify that client dashboard renders the upload guide modal and floating button."""
+        session = self.client.session
+        session['customer_id'] = str(self.cust_red.id)
+        session['customer_code'] = self.cust_red.code
+        session.save()
+
+        resp = self.client.get(reverse('client_dashboard'))
+        self.assertEqual(resp.status_code, 200)
+        content = resp.content.decode('utf-8')
+        self.assertIn('btnFloatingUploadGuide', content)
+        self.assertIn('uploadGuideModal', content)
+        self.assertIn('dontShowGuideAgain', content)
+        self.assertIn('Guida Upload', content)
+
+
+
 
 
 
