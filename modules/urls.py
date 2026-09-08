@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import forms_api
 from . import views_client
+from . import views_admin
 
 urlpatterns = [
     # Admin panel
@@ -16,6 +17,7 @@ urlpatterns = [
     path('admin/builder/<uuid:pk>/preview/', views.builder_preview, name='builder_preview'),
     path('admin/customers/', views.customer_list, name='customer_list'),
     path('admin/customers/create/', views.customer_create, name='customer_create'),
+    path('admin/customers/<uuid:pk>/edit/', views.customer_edit, name='customer_edit'),
     path('admin/customers/<uuid:pk>/delete/', views.customer_delete, name='customer_delete'),
     path('admin/customers/<uuid:pk>/reset-password/', views.customer_reset_password, name='customer_reset_password'),
     path('admin/assign-form/', views.assign_form_to_customer, name='assign_form_to_customer'),
@@ -24,6 +26,14 @@ urlpatterns = [
     path('admin/assignments/<uuid:pk>/reopen/', views.reopen_assignment_for_upload, name='reopen_assignment'),
     path('admin/assignments/<uuid:pk>/delete/', views.assignment_delete, name='assignment_delete'),
     path('admin/guide/', views.operational_guide, name='operational_guide'),
+    path('admin/analytics/', views.analytics_dashboard, name='analytics_dashboard'),
+
+    # Admin User Management API
+    path('admin/api/users/', views_admin.admin_user_list, name='admin_user_list'),
+    path('admin/api/users/create/', views_admin.admin_user_create, name='admin_user_create'),
+    path('admin/api/users/<int:user_id>/update/', views_admin.admin_user_update, name='admin_user_update'),
+    path('admin/api/users/<int:user_id>/delete/', views_admin.admin_user_delete, name='admin_user_delete'),
+    path('admin/api/password/generate/', views_admin.admin_user_password_generate, name='admin_password_generate'),
 
     # API v1 endpoints
     path('api/v1/forms/', forms_api.api_forms_list, name='api_forms_list'),

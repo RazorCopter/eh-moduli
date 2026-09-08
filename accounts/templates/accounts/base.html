@@ -414,6 +414,144 @@
             text-align: right;
         }
 
+        /* User Dropdown Menu */
+        .navbar-user {
+            position: relative;
+        }
+
+        .navbar-user-dropdown {
+            position: relative;
+        }
+
+        .navbar-user-toggle {
+            background: none;
+            border: none;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #374151;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .navbar-user-toggle:hover {
+            background: #f3f4f6;
+            color: #1f2937;
+        }
+
+        .role-badge {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .role-badge.admin-badge {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .role-badge.operator-badge {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .navbar-user-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 0.5rem;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
+            min-width: 280px;
+            z-index: 1050;
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-header {
+            padding: 0.75rem 1rem;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 0.9rem;
+        }
+
+        .user-email {
+            color: #6b7280;
+            font-size: 0.8rem;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: #f3f4f6;
+            margin: 0.5rem 0;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: #374151;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+            background: #f9fafb;
+            color: #1976d2;
+        }
+
+        .dropdown-item i {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dropdown-item.logout-item {
+            color: #dc2626;
+            border-top: 1px solid #f3f4f6;
+            margin-top: 0.5rem;
+            padding-top: 0.75rem;
+        }
+
+        .dropdown-item.logout-item:hover {
+            background: #fee2e2;
+        }
+
         /* Responsive Navigation */
         @media (max-width: 768px) {
             .navbar-container {
@@ -487,8 +625,39 @@
             <div class="navbar-user">
                 {% if not is_public_form %}
                     {% if user.is_authenticated %}
-                        <span class="navbar-username">{{ user.username }}</span>
-                        <a href="{% url 'logout' %}" class="btn-logout-pill">Logout</a>
+                        <div class="navbar-user-dropdown">
+                            <button class="navbar-user-toggle" onclick="toggleUserDropdown(event)">
+                                <i class="bi bi-person-circle"></i>
+                                <span class="navbar-username">{{ user.username }}</span>
+                                {% if user.role == 'admin' %}
+                                    <span class="role-badge admin-badge">Admin</span>
+                                {% elif user.role == 'operator' %}
+                                    <span class="role-badge operator-badge">Operator</span>
+                                {% endif %}
+                                <i class="bi bi-chevron-down"></i>
+                            </button>
+
+                            <div class="navbar-user-menu" id="userDropdownMenu" style="display: none;">
+                                <div class="dropdown-header">
+                                    <div class="user-info">
+                                        <div class="user-name">{{ user.first_name|default:user.username }} {% if user.last_name %}{{ user.last_name }}{% endif %}</div>
+                                        <div class="user-email">{{ user.email }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="dropdown-divider"></div>
+
+                                {% if user.is_staff or user.role == 'admin' %}
+                                    <a href="#" class="dropdown-item" onclick="openUserManagementModal(event)">
+                                        <i class="bi bi-gear"></i> Gestione Utenti
+                                    </a>
+                                {% endif %}
+
+                                <a href="{% url 'logout' %}" class="dropdown-item logout-item">
+                                    <i class="bi bi-box-arrow-right"></i> Logout
+                                </a>
+                            </div>
+                        </div>
                     {% else %}
                         <a href="{% url 'login' %}" class="btn btn-sm btn-primary" style="border-radius: 20px; padding: 5px 18px;">Login</a>
                     {% endif %}
@@ -605,9 +774,228 @@
                 }
             });
         });
+
+        // User dropdown menu toggle
+        function toggleUserDropdown(event) {
+            const menu = document.getElementById('userDropdownMenu');
+            if (menu) {
+                menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        // Open user management modal
+        function openUserManagementModal(event) {
+            if (event) event.preventDefault();
+            const modal = new bootstrap.Modal(document.getElementById('userManagementModal'));
+            modal.show();
+            loadUserList();
+        }
+
+        // Load user list from API
+        function loadUserList() {
+            fetch('/admin/api/users/')
+                .then(response => response.json())
+                .then(users => renderUserList(users))
+                .catch(error => console.error('Error loading users:', error));
+        }
+
+        // Render user list in table
+        function renderUserList(users) {
+            const tbody = document.getElementById('userListTableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+            users.forEach(user => {
+                const roleColor = user.role === 'admin' ? '#fee2e2' : '#dbeafe';
+                const roleText = user.role === 'admin' ? 'Admin' : 'Operatore';
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="padding: 1rem;">${user.username}</td>
+                    <td style="padding: 1rem;">${user.first_name} ${user.last_name || ''}</td>
+                    <td style="padding: 1rem;">${user.email}</td>
+                    <td style="padding: 1rem;">
+                        <span style="background: ${roleColor}; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">
+                            ${roleText}
+                        </span>
+                    </td>
+                    <td style="padding: 1rem;">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="editUser(${user.id}, '${user.username}', '${user.email}', '${user.first_name}', '${user.last_name || ''}', '${user.role}')">
+                            <i class="bi bi-pencil"></i> Modifica
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id}, '${user.username}')">
+                            <i class="bi bi-trash"></i> Elimina
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Edit user
+        function editUser(userId, username, email, firstName, lastName, role) {
+            document.getElementById('userId').value = userId;
+            document.getElementById('userUsername').value = username;
+            document.getElementById('userEmail').value = email;
+            document.getElementById('userFirstName').value = firstName;
+            document.getElementById('userLastName').value = lastName;
+            document.getElementById('userRole').value = role;
+            document.getElementById('userPassword').value = '';
+
+            document.getElementById('userForm').style.display = 'block';
+            document.getElementById('noFormMessage').style.display = 'none';
+
+            const tab = new bootstrap.Tab(document.getElementById('addUserTab'));
+            tab.show();
+        }
+
+        // Reset user form
+        function resetUserForm() {
+            document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
+            document.getElementById('userForm').style.display = 'none';
+            document.getElementById('noFormMessage').style.display = 'block';
+
+            const tab = new bootstrap.Tab(document.getElementById('userListTab'));
+            tab.show();
+        }
+
+        // Generate random password
+        function generatePassword() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+            let password = '';
+            for (let i = 0; i < 12; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            document.getElementById('userPassword').value = password;
+        }
+
+        // Save user (create or update)
+        function saveUser(event) {
+            if (event) event.preventDefault();
+
+            const userId = document.getElementById('userId').value;
+            const username = document.getElementById('userUsername').value.trim();
+            const email = document.getElementById('userEmail').value.trim();
+            const firstName = document.getElementById('userFirstName').value.trim();
+            const lastName = document.getElementById('userLastName').value.trim();
+            const role = document.getElementById('userRole').value;
+            const password = document.getElementById('userPassword').value.trim();
+
+            if (!username || !email) {
+                alert('Username e Email sono obbligatori');
+                return;
+            }
+
+            if (!userId && !password) {
+                alert('Password è obbligatoria per nuovi utenti');
+                return;
+            }
+
+            const data = {
+                username,
+                email,
+                first_name: firstName,
+                last_name: lastName,
+                role,
+                password: password || undefined
+            };
+
+            const url = userId
+                ? `/admin/api/users/${userId}/update/`
+                : '/admin/api/users/create/';
+            const method = userId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.error) {
+                    alert('Errore: ' + result.error);
+                } else {
+                    alert(userId ? 'Utente aggiornato con successo' : 'Utente creato con successo');
+                    resetUserForm();
+                    loadUserList();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Errore nel salvataggio');
+            });
+        }
+
+        // Delete user
+        function deleteUser(userId, username) {
+            if (!confirm(`Sei sicuro di voler eliminare l'utente "${username}"?`)) return;
+
+            fetch(`/admin/api/users/${userId}/delete/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': getCsrfToken()
+                }
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.error) {
+                    alert('Errore: ' + result.error);
+                } else {
+                    alert('Utente eliminato con successo');
+                    loadUserList();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Errore nell\'eliminazione');
+            });
+        }
+
+        // Get CSRF token from cookie
+        function getCsrfToken() {
+            const name = 'csrftoken';
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Attach form submit handler
+        document.addEventListener('DOMContentLoaded', function() {
+            const userForm = document.getElementById('userForm');
+            if (userForm) {
+                userForm.addEventListener('submit', saveUser);
+            }
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const userDropdown = document.querySelector('.navbar-user-dropdown');
+            const userMenu = document.getElementById('userDropdownMenu');
+            if (userDropdown && !userDropdown.contains(event.target)) {
+                if (userMenu) {
+                    userMenu.style.display = 'none';
+                }
+            }
+        });
     </script>
 
     {% block modals %}{% endblock %}
+
+    {% if user.is_authenticated and (user.is_staff or user.role == 'admin') %}
+        {% include "modules/admin/user_management_modal.html" %}
+    {% endif %}
 
     {% if is_public_form or request.session.customer_id or assignment %}
     <script>

@@ -1,0 +1,156 @@
+<!-- User Management Modal -->
+<div id="userManagementModal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content" style="border-radius: 12px; border: 1px solid #EAE6E1;">
+            <div class="modal-header" style="border-bottom: 1px solid #F0EDE8; padding: 1.5rem;">
+                <h5 class="modal-title" style="font-weight: 700; color: #2C2C2C;">
+                    <i class="bi bi-gear" style="margin-right: 0.5rem;"></i>Gestione Utenti Operatore
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body" style="padding: 1.5rem;">
+                <!-- Nav Tabs -->
+                <ul class="nav nav-tabs mb-3" role="tablist" style="border-bottom: 2px solid #EAE6E1;">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="userListTab" data-bs-toggle="tab" data-bs-target="#userListPane" type="button" role="tab">
+                            <i class="bi bi-list" style="margin-right: 0.5rem;"></i>Elenco Utenti
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="addUserTab" data-bs-toggle="tab" data-bs-target="#addUserPane" type="button" role="tab">
+                            <i class="bi bi-plus-circle" style="margin-right: 0.5rem;"></i>Aggiungi Utente
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- Tab Content -->
+                <div class="tab-content">
+                    <!-- User List Tab -->
+                    <div class="tab-pane fade show active" id="userListPane" role="tabpanel">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="userSearchInput"
+                                   placeholder="Cerca per username, email, nome..." style="border-radius: 8px;">
+                        </div>
+
+                        <div style="overflow-x: auto;">
+                            <table class="table table-hover" style="font-size: 0.9rem;">
+                                <thead style="background: #FAF8F6;">
+                                    <tr>
+                                        <th style="padding: 1rem; font-weight: 600; color: #6B7280;">Username</th>
+                                        <th style="padding: 1rem; font-weight: 600; color: #6B7280;">Nome</th>
+                                        <th style="padding: 1rem; font-weight: 600; color: #6B7280;">Email</th>
+                                        <th style="padding: 1rem; font-weight: 600; color: #6B7280;">Ruolo</th>
+                                        <th style="padding: 1rem; font-weight: 600; color: #6B7280;">Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userListTableBody">
+                                    <tr>
+                                        <td colspan="5" style="text-align: center; padding: 2rem; color: #9CA3AF;">
+                                            Caricamento utenti...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Add/Edit User Tab -->
+                    <div class="tab-pane fade" id="addUserPane" role="tabpanel">
+                        <form id="userForm" style="display: none;">
+                            <input type="hidden" id="userId">
+
+                            <div class="mb-3">
+                                <label class="form-label" style="font-weight: 600; color: #374151;">Username*</label>
+                                <input type="text" class="form-control" id="userUsername" required style="border-radius: 8px;">
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" style="font-weight: 600; color: #374151;">Nome</label>
+                                    <input type="text" class="form-control" id="userFirstName" style="border-radius: 8px;">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" style="font-weight: 600; color: #374151;">Cognome</label>
+                                    <input type="text" class="form-control" id="userLastName" style="border-radius: 8px;">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" style="font-weight: 600; color: #374151;">Email*</label>
+                                <input type="email" class="form-control" id="userEmail" required style="border-radius: 8px;">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" style="font-weight: 600; color: #374151;">Ruolo*</label>
+                                <select class="form-control" id="userRole" required style="border-radius: 8px;">
+                                    <option value="operator">Operatore</option>
+                                    <option value="admin">Amministratore</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label" style="font-weight: 600; color: #374151;">Password</label>
+                                <div class="input-group" style="border-radius: 8px;">
+                                    <input type="text" class="form-control" id="userPassword" style="border-radius: 8px 0 0 8px;">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="generatePassword()" style="border-radius: 0 8px 8px 0;">
+                                        <i class="bi bi-arrow-repeat"></i> Genera
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block mt-1">Lasciare vuoto per non cambiare password (edit mode)</small>
+                            </div>
+
+                            <div class="d-flex gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary" style="border-radius: 8px; background: #1976d2; border: none;">
+                                    <i class="bi bi-check-circle"></i> Salva
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="resetUserForm()" style="border-radius: 8px;">
+                                    <i class="bi bi-x-circle"></i> Annulla
+                                </button>
+                            </div>
+                        </form>
+
+                        <div id="noFormMessage" style="text-align: center; padding: 2rem; color: #9CA3AF;">
+                            Seleziona un utente dalla lista o crea uno nuovo cliccando il pulsante "Aggiungi Utente".
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="border-top: 1px solid #F0EDE8; padding: 1rem 1.5rem; background: #FAF8F6;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 8px;">
+                    Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    #userManagementModal .nav-link {
+        color: #6B7280;
+        font-weight: 500;
+        border: none;
+        border-bottom: 3px solid transparent;
+    }
+    #userManagementModal .nav-link:hover {
+        color: #1976d2;
+    }
+    #userManagementModal .nav-link.active {
+        color: #1976d2;
+        border-bottom-color: #1976d2;
+        background: none;
+    }
+    #userManagementModal .table tbody tr:hover {
+        background: #FAF8F6;
+    }
+    #userManagementModal .form-control,
+    #userManagementModal .form-select {
+        border-color: #E5E7EB;
+    }
+    #userManagementModal .form-control:focus,
+    #userManagementModal .form-select:focus {
+        border-color: #1976d2;
+        box-shadow: 0 0 0 0.2rem rgba(25, 118, 210, 0.25);
+    }
+</style>
