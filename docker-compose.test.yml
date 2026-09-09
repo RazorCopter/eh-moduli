@@ -61,7 +61,7 @@ services:
       ALLOWED_HOSTS: localhost,127.0.0.1,app,0.0.0.0
       CSRF_TRUSTED_ORIGINS: http://localhost:6060,http://127.0.0.1:6060
       APP_PORT: 6060
-      APP_VERSION: 3.0.0-test
+      APP_VERSION: 3.0.1-test
       GUNICORN_WORKERS: 3
       GUNICORN_TIMEOUT: 60
       CUSTOMER_DOCUMENTS_PATH: /storage/clienti
