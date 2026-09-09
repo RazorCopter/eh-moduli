@@ -294,11 +294,17 @@ def form_step_view(request, assignment_id, step_order):
     prev_step = steps[current_index - 2] if current_index > 1 else None
     next_step = steps[current_index] if current_index < step_count else None
 
-    # Load existing valid uploads for this assignment
+    # Load existing valid uploads for this assignment (both latest-mapped and grouped list)
     existing_uploads = {}
-    for upload in assignment.documentupload_set.filter(status='valid'):
-        existing_uploads[str(upload.document_requirement_id)] = upload
+    existing_uploads_grouped = {}
+    for upload in assignment.documentupload_set.filter(status='valid').order_by('upload_datetime'):
+        req_id_str = str(upload.document_requirement_id)
+        existing_uploads[req_id_str] = upload
         existing_uploads[upload.document_requirement_id] = upload
+        if req_id_str not in existing_uploads_grouped:
+            existing_uploads_grouped[req_id_str] = []
+            existing_uploads_grouped[upload.document_requirement_id] = existing_uploads_grouped[req_id_str]
+        existing_uploads_grouped[req_id_str].append(upload)
 
     trans_ctx = get_translation_context(request)
     context = {
@@ -312,6 +318,7 @@ def form_step_view(request, assignment_id, step_order):
         'prev_step': prev_step,
         'next_step': next_step,
         'existing_uploads': existing_uploads,
+        'existing_uploads_grouped': existing_uploads_grouped,
         'is_public_form': True,
         **trans_ctx,
     }

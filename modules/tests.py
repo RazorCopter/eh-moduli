@@ -2889,4 +2889,288 @@ class MaintenanceAndBackupTests(TestCase):
         self.assertEqual(AuditLog.objects.count(), 1)
 
 
+class XlsxUploadAndMimeSyncTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='admin_xlsx',
+            email='admin_xlsx@example.com',
+            password='Password123!',
+            role='admin',
+            is_staff=True
+        )
+        self.template = FormTemplate.objects.create(
+            name='Test XLSX Template',
+            description='Template testing xlsx extension',
+            intro_text='Intro',
+            privacy_text='Privacy',
+            author=self.user,
+            status='draft'
+        )
+        self.step = FormStep.objects.create(
+            form_template=self.template,
+            title='Step 1',
+            order=0
+        )
+        # Simulate an existing document requirement configured with allowed_extensions='pdf,docx,xlsx'
+        # but with old mime_types='application/pdf,application/msword'
+        self.req = DocumentRequirement.objects.create(
+            form_step=self.step,
+            name='Composizione quali-quantitativa',
+            allowed_extensions='pdf,docx,xlsx',
+            mime_types='application/pdf,application/msword',
+            max_file_size=10 * 1024 * 1024,
+            destination_subfolder='Composizione',
+            order=0
+        )
+
+    def test_get_mimes_for_extensions(self):
+        from modules.validators import get_mimes_for_extensions
+        mimes = get_mimes_for_extensions('pdf,docx,xlsx')
+        self.assertIn('application/pdf', mimes)
+        self.assertIn('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', mimes)
+        self.assertIn('application/vnd.openxmlformats-officedocument.wordprocessingml.document', mimes)
+
+    def test_document_requirement_file_accept_attribute(self):
+        accept_attr = self.req.file_accept_attribute
+        self.assertIn('.xlsx', accept_attr)
+        self.assertIn('.pdf', accept_attr)
+        self.assertIn('.docx', accept_attr)
+        self.assertIn('.zip', accept_attr)
+        self.assertIn('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', accept_attr)
+
+    def test_document_requirement_save_auto_populates_mime_types(self):
+        new_req = DocumentRequirement(
+            form_step=self.step,
+            name='Nuovo Doc',
+            allowed_extensions='xlsx,csv',
+            mime_types='application/pdf',
+            destination_subfolder='Nuovo',
+            order=1
+        )
+        new_req.save()
+        self.assertIn('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', new_req.mime_types)
+        self.assertIn('text/csv', new_req.mime_types)
+
+    def test_xlsx_file_upload_validation_succeeds(self):
+        from modules.upload_security import validate_file_upload_secure
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        import io
+        import zipfile
+
+        # Build a valid XLSX file in memory (a zip containing minimal openxml structures)
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"></Types>')
+            zf.writestr('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>')
+        xlsx_content = buf.getvalue()
+
+        file_obj = SimpleUploadedFile(
+            name='formula_composizione.xlsx',
+            content=xlsx_content,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+
+        # Even though self.req had only 'application/pdf,application/msword' initially,
+        # validate_file_upload_secure should derive the XLSX mime type and allow it!
+        errors = validate_file_upload_secure(file_obj, self.req)
+        self.assertEqual(errors, [], f"Expected no errors for XLSX file upload, but got: {errors}")
+
+    def test_forms_api_save_populates_mime_types_for_xlsx(self):
+        self.client.force_login(self.user)
+        save_url = f'/modules/api/v1/forms/{self.template.id}/save/'
+        payload = {
+            'name': 'Updated XLSX Form',
+            'description': 'Updated Desc',
+            'intro_text': 'Updated Intro',
+            'privacy_text': 'Updated Privacy',
+            'steps': [
+                {
+                    'title': 'Step 1',
+                    'order': 0,
+                    'required': True,
+                    'active': True,
+                    'elements': [
+                        {
+                            'type': 'document',
+                            'name': 'Upload Excel Form',
+                            'description': 'Carica documento',
+                            'required': True,
+                            'allowed_extensions': 'pdf,docx,xlsx',
+                            'mime_types': 'application/pdf,application/msword',  # Simulated old builder frontend payload
+                            'max_file_size': 10,
+                            'max_files': 200,
+                            'destination_subfolder': 'Excel',
+                            'order': 0
+                        }
+                    ]
+                }
+            ]
+        }
+        resp = self.client.put(save_url, data=json.dumps(payload), content_type='application/json')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertTrue(data.get('success'))
+
+        # Check in database
+        saved_doc = DocumentRequirement.objects.get(name='Upload Excel Form')
+        self.assertIn('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', saved_doc.mime_types)
+        self.assertIn('application/vnd.openxmlformats-officedocument.wordprocessingml.document', saved_doc.mime_types)
+
+
+class MultiFileUploadAndDeletionTestCase(TestCase):
+    def setUp(self):
+        from django.utils import timezone
+        from datetime import timedelta
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='op_multifile',
+            email='op_multifile@example.com',
+            password='Password123!',
+            role='operator'
+        )
+        self.customer = Customer.objects.create(
+            code="CUST_MULTI_01",
+            first_name="Mario",
+            last_name="Multi",
+            email="mario.multi@example.com",
+            nas_folder_name="MARIO_MULTI_NAS"
+        )
+        self.template = FormTemplate.objects.create(
+            name="Multi File Form Template",
+            status="published"
+        )
+        self.step = FormStep.objects.create(
+            form_template=self.template,
+            title='Step 1',
+            order=0
+        )
+        self.multi_req = DocumentRequirement.objects.create(
+            form_step=self.step,
+            name='Allegati Multipli',
+            allowed_extensions='pdf,docx,xlsx',
+            max_file_size=10 * 1024 * 1024,
+            max_files=10,
+            destination_subfolder='Allegati',
+            order=0
+        )
+        self.single_req = DocumentRequirement.objects.create(
+            form_step=self.step,
+            name='Documento Singolo',
+            allowed_extensions='pdf',
+            max_file_size=10 * 1024 * 1024,
+            max_files=1,
+            destination_subfolder='Singolo',
+            order=1
+        )
+        self.assignment = FormAssignment.objects.create(
+            customer=self.customer,
+            form_template=self.template,
+            expiry_date=timezone.now() + timedelta(days=30),
+            operator=self.user,
+            status='in_progress',
+            form_data={
+                'client_name': self.customer.nas_folder_name,
+                'project_name': 'MultiTestProject'
+            }
+        )
+
+    def test_multi_file_upload_keeps_all_valid_uploads(self):
+        from modules.models import DocumentUpload
+        up1 = DocumentUpload.objects.create(
+            form_assignment=self.assignment,
+            document_requirement=self.multi_req,
+            original_filename='file1.pdf',
+            stored_filename='file1_hash.pdf',
+            file_size=1024,
+            status='valid',
+            uploaded_by_ip='127.0.0.1',
+            uploaded_by_user_agent='TestAgent'
+        )
+        up2 = DocumentUpload.objects.create(
+            form_assignment=self.assignment,
+            document_requirement=self.multi_req,
+            original_filename='file2.xlsx',
+            stored_filename='file2_hash.xlsx',
+            file_size=2048,
+            status='valid',
+            uploaded_by_ip='127.0.0.1',
+            uploaded_by_user_agent='TestAgent'
+        )
+        valid_uploads = DocumentUpload.objects.filter(
+            form_assignment=self.assignment,
+            document_requirement=self.multi_req,
+            status='valid'
+        )
+        self.assertEqual(valid_uploads.count(), 2)
+
+    def test_delete_upload_view(self):
+        from modules.models import DocumentUpload
+        up1 = DocumentUpload.objects.create(
+            form_assignment=self.assignment,
+            document_requirement=self.multi_req,
+            original_filename='file1.pdf',
+            stored_filename='file1_hash.pdf',
+            file_size=1024,
+            status='valid',
+            uploaded_by_ip='127.0.0.1',
+            uploaded_by_user_agent='TestAgent'
+        )
+        up2 = DocumentUpload.objects.create(
+            form_assignment=self.assignment,
+            document_requirement=self.multi_req,
+            original_filename='file2.xlsx',
+            stored_filename='file2_hash.xlsx',
+            file_size=2048,
+            status='valid',
+            uploaded_by_ip='127.0.0.1',
+            uploaded_by_user_agent='TestAgent'
+        )
+
+        delete_url = f'/modules/form/{self.assignment.id}/upload/{up1.id}/delete/'
+        response = self.client.post(delete_url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertEqual(data['remaining_count'], 1)
+
+        up1.refresh_from_db()
+        self.assertEqual(up1.status, 'superseded')
+        up2.refresh_from_db()
+        self.assertEqual(up2.status, 'valid')
+
+    def test_form_step_view_groups_existing_uploads(self):
+        from modules.models import DocumentUpload
+        up1 = DocumentUpload.objects.create(
+            form_assignment=self.assignment,
+            document_requirement=self.multi_req,
+            original_filename='file1.pdf',
+            stored_filename='file1_hash.pdf',
+            file_size=1024,
+            status='valid',
+            uploaded_by_ip='127.0.0.1',
+            uploaded_by_user_agent='TestAgent'
+        )
+        up2 = DocumentUpload.objects.create(
+            form_assignment=self.assignment,
+            document_requirement=self.multi_req,
+            original_filename='file2.xlsx',
+            stored_filename='file2_hash.xlsx',
+            file_size=2048,
+            status='valid',
+            uploaded_by_ip='127.0.0.1',
+            uploaded_by_user_agent='TestAgent'
+        )
+        token_url = f'/modules/form/{self.assignment.secure_token}/'
+        self.client.get(token_url)
+        step_url = f'/modules/form/{self.assignment.id}/step/0/'
+        resp = self.client.get(step_url)
+        self.assertEqual(resp.status_code, 200)
+        grouped = resp.context.get('existing_uploads_grouped', {})
+        self.assertIn(self.multi_req.id, grouped)
+        self.assertEqual(len(grouped[self.multi_req.id]), 2)
+
+
+
+
+
 

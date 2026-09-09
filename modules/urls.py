@@ -74,6 +74,7 @@ urlpatterns = [
     path('form/<str:token>/', views.get_form_by_token, name='get_form_by_token'),
     path('form/<uuid:assignment_id>/step/<int:step_order>/', views.form_step_view, name='form_step_view'),
     path('form/<uuid:assignment_id>/upload/', views.upload_document_view, name='upload_document_view'),
+    path('form/<uuid:assignment_id>/upload/<uuid:upload_id>/delete/', views.delete_upload_view, name='delete_upload_view'),
     path('form/<uuid:assignment_id>/skip-document/<uuid:requirement_id>/', views.skip_optional_document, name='skip_optional_document'),
     path('form/<uuid:assignment_id>/summary/', views.form_summary_view, name='form_summary_view'),
     path('form/<uuid:assignment_id>/submit/', views.form_submission_view, name='form_submission_view'),

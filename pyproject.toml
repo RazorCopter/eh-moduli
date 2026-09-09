@@ -1,6 +1,6 @@
 [project]
 name = "ehmoduli"
-version = "2.1.0"
+version = "2.1.1"
 description = "Sistema gestione moduli e raccolta documenti Etichub"
 requires-python = ">=3.11"
 

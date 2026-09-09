@@ -1337,8 +1337,54 @@
                     }
                 },
 
+                getMimeTypesForExtensions(extensionsStr) {
+                    if (!extensionsStr) return '';
+                    const map = {
+                        'pdf': ['application/pdf'],
+                        'doc': ['application/msword'],
+                        'docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'],
+                        'xls': ['application/vnd.ms-excel'],
+                        'xlsx': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'],
+                        'ppt': ['application/vnd.ms-powerpoint'],
+                        'pptx': ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+                        'jpg': ['image/jpeg'],
+                        'jpeg': ['image/jpeg'],
+                        'png': ['image/png'],
+                        'gif': ['image/gif'],
+                        'webp': ['image/webp'],
+                        'svg': ['image/svg+xml'],
+                        'txt': ['text/plain'],
+                        'csv': ['text/csv', 'text/plain'],
+                        'zip': ['application/zip']
+                    };
+                    const mimes = [];
+                    const exts = extensionsStr.split(',').map(e => e.trim().toLowerCase().replace(/^\./, ''));
+                    for (const ext of exts) {
+                        if (map[ext]) {
+                            map[ext].forEach(m => { if (!mimes.includes(m)) mimes.push(m); });
+                        }
+                    }
+                    return mimes.join(',');
+                },
+
                 async save() {
                     try {
+                        // Sincronizza i MIME type corrispondenti alle estensioni ammesse per ogni documento
+                        if (this.form && this.form.steps) {
+                            this.form.steps.forEach(step => {
+                                (step.elements || []).forEach(el => {
+                                    if (el.type === 'document' && el.allowed_extensions) {
+                                        const derived = this.getMimeTypesForExtensions(el.allowed_extensions);
+                                        if (derived) {
+                                            const current = (el.mime_types || '').split(',').map(m => m.trim()).filter(Boolean);
+                                            const combined = [...new Set([...current, ...derived.split(',')])];
+                                            el.mime_types = combined.join(',');
+                                        }
+                                    }
+                                });
+                            });
+                        }
+
                         const response = await fetch(`/modules/api/v1/forms/{{ template.id|escapejs }}/save/`, {
                             method: 'PUT',
                             headers: {

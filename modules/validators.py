@@ -3,6 +3,8 @@ Validators for model fields to prevent security issues.
 """
 
 import re
+import mimetypes
+from typing import List
 from django.core.exceptions import ValidationError
 
 
@@ -159,3 +161,106 @@ def validate_mime_types(value):
             )
 
     return value
+
+
+COMMON_EXTENSION_MIMES = {
+    # Documents & Office
+    'pdf': ['application/pdf', 'application/x-pdf'],
+    'doc': ['application/msword'],
+    'docx': [
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword',
+        'application/zip',
+        'application/x-zip-compressed',
+    ],
+    'xls': [
+        'application/vnd.ms-excel',
+        'application/msexcel',
+        'application/x-msexcel',
+        'application/x-ms-excel',
+    ],
+    'xlsx': [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel',
+        'application/zip',
+        'application/x-zip-compressed',
+    ],
+    'ppt': ['application/vnd.ms-powerpoint'],
+    'pptx': [
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.ms-powerpoint',
+        'application/zip',
+        'application/x-zip-compressed',
+    ],
+    'odt': ['application/vnd.oasis.opendocument.text'],
+    'ods': ['application/vnd.oasis.opendocument.spreadsheet'],
+    'odp': ['application/vnd.oasis.opendocument.presentation'],
+    'rtf': ['application/rtf', 'text/rtf'],
+    'txt': ['text/plain'],
+    'csv': [
+        'text/csv',
+        'text/plain',
+        'application/csv',
+        'text/x-csv',
+        'application/vnd.ms-excel',
+    ],
+    'xml': ['application/xml', 'text/xml'],
+    'json': ['application/json', 'text/plain'],
+
+    # Images
+    'jpg': ['image/jpeg', 'image/pjpeg'],
+    'jpeg': ['image/jpeg', 'image/pjpeg'],
+    'png': ['image/png'],
+    'gif': ['image/gif', 'image/x-gif'],
+    'webp': ['image/webp'],
+    'svg': ['image/svg+xml', 'text/xml', 'text/plain'],
+    'tif': ['image/tiff'],
+    'tiff': ['image/tiff'],
+    'bmp': ['image/bmp', 'image/x-ms-bmp'],
+    'ico': ['image/x-icon', 'image/vnd.microsoft.icon'],
+
+    # Archives
+    'zip': [
+        'application/zip',
+        'application/x-zip-compressed',
+        'multipart/x-zip',
+        'application/octet-stream',
+    ],
+    'rar': [
+        'application/vnd.rar',
+        'application/x-rar-compressed',
+        'application/octet-stream',
+    ],
+    '7z': [
+        'application/x-7z-compressed',
+        'application/octet-stream',
+    ],
+    'tar': ['application/x-tar', 'application/tar'],
+    'gz': ['application/gzip', 'application/x-gzip'],
+}
+
+
+def get_mimes_for_extensions(extensions_str: str) -> List[str]:
+    """
+    Given a comma-separated string of extensions (e.g. 'pdf,docx,xlsx'),
+    returns a list of matching valid MIME types.
+    Uses COMMON_EXTENSION_MIMES and falls back to python's mimetypes module.
+    """
+    if not extensions_str:
+        return []
+
+    mimes: List[str] = []
+    for ext in extensions_str.split(','):
+        ext = ext.strip().lower().lstrip('.')
+        if not ext:
+            continue
+        if ext in COMMON_EXTENSION_MIMES:
+            for m in COMMON_EXTENSION_MIMES[ext]:
+                if m not in mimes:
+                    mimes.append(m)
+        else:
+            guessed, _ = mimetypes.guess_type(f"file.{ext}")
+            if guessed and guessed not in mimes:
+                mimes.append(guessed)
+    return mimes
+

@@ -11,6 +11,7 @@ from .validators import (
     validate_subfolder_name,
     validate_allowed_extensions,
     validate_mime_types,
+    get_mimes_for_extensions,
 )
 
 def generate_secure_token():
@@ -273,6 +274,50 @@ class DocumentRequirement(models.Model):
 
     def __str__(self):
         return f"{self.form_step.form_template.name} - {self.name}"
+
+    def get_effective_mime_types(self):
+        """Return all allowed MIME types derived from mime_types and allowed_extensions."""
+        explicit = [m.strip() for m in (self.mime_types or '').split(',') if m.strip()]
+        derived = get_mimes_for_extensions(self.allowed_extensions or '')
+        combined = []
+        for m in explicit + derived:
+            if m not in combined:
+                combined.append(m)
+        return combined
+
+    @property
+    def file_accept_attribute(self) -> str:
+        """
+        Build an HTML accept attribute string combining extensions (e.g. .pdf, .docx, .xlsx)
+        and MIME types for robust browser file dialog filtering.
+        """
+        parts = []
+        if self.allowed_extensions:
+            for ext in self.allowed_extensions.split(','):
+                ext = ext.strip().lower().lstrip('.')
+                if ext:
+                    parts.append(f".{ext}")
+        if '.zip' not in parts:
+            parts.append('.zip')
+        parts.append('application/zip')
+        for m in self.get_effective_mime_types():
+            if m not in parts:
+                parts.append(m)
+        return ','.join(parts)
+
+    def save(self, *args, **kwargs):
+        # Automatically ensure mime_types includes all valid MIME types for allowed_extensions
+        if self.allowed_extensions:
+            derived = get_mimes_for_extensions(self.allowed_extensions)
+            current = [m.strip() for m in (self.mime_types or '').split(',') if m.strip()]
+            combined = []
+            for m in current + derived:
+                if m not in combined:
+                    combined.append(m)
+            if combined:
+                self.mime_types = ','.join(combined)
+        super().save(*args, **kwargs)
+
 
 class FormElement(models.Model):
     ELEMENT_TYPE_CHOICES = [

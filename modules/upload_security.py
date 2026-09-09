@@ -29,6 +29,7 @@ from django.db import transaction
 from django.utils import timezone
 from .models import DocumentUpload
 from .utils import get_client_ip, get_user_agent
+from .validators import get_mimes_for_extensions
 
 logger = logging.getLogger(__name__)
 
@@ -421,11 +422,16 @@ def validate_file_upload_secure(file_obj, requirement) -> List[str]:
         errors.extend(zip_safety_errors)
         return errors
 
-    allowed_mimes = [m.strip() for m in requirement.mime_types.split(',') if m.strip()]
+    # Derive allowed MIME types from requirement.mime_types AND requirement.allowed_extensions
+    allowed_mimes = [m.strip() for m in (getattr(requirement, 'mime_types', '') or '').split(',') if m.strip()]
+    derived_mimes = get_mimes_for_extensions(getattr(requirement, 'allowed_extensions', '') or '')
+    for dm in derived_mimes:
+        if dm not in allowed_mimes:
+            allowed_mimes.append(dm)
 
     if detected_mime not in allowed_mimes:
         errors.append(f"File content MIME type {detected_mime} not allowed. "
-                     f"Allowed: {requirement.mime_types}")
+                     f"Allowed: {', '.join(allowed_mimes)}")
         return errors
 
     # 5. Content validation

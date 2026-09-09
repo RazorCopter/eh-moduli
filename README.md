@@ -269,4 +269,4 @@ Sviluppato con Django 4.2, Bootstrap 5, HTMX e Alpine.js.
 ---
 
 **Ultima modifica**: Settembre 2026  
-**Versione**: 2.1.0
+**Versione**: 2.1.1

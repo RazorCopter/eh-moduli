@@ -560,3 +560,57 @@ def skip_optional_document(request, assignment_id, requirement_id):
         'justification': final_motive,
         'is_declaration_file': False
     })
+
+
+@require_http_methods(["POST"])
+def delete_upload_view(request, assignment_id, upload_id):
+    """Delete or mark superseded an uploaded file from an assignment."""
+    try:
+        assignment = FormAssignment.objects.get(id=assignment_id)
+        upload = DocumentUpload.objects.get(id=upload_id, form_assignment=assignment)
+    except (FormAssignment.DoesNotExist, DocumentUpload.DoesNotExist):
+        return JsonResponse({'error': 'File o pratica non trovata.'}, status=404)
+
+    req_id = upload.document_requirement_id
+    filename = upload.original_filename
+    upload.status = 'superseded'
+    upload.save(update_fields=['status'])
+
+    # Count remaining valid uploads for this requirement
+    remaining_count = DocumentUpload.objects.filter(
+        form_assignment=assignment,
+        document_requirement_id=req_id,
+        status='valid'
+    ).count()
+
+    # Recalculate completion percentage
+    try:
+        total_reqs_qs = DocumentRequirement.objects.filter(form_step__form_template=assignment.form_template)
+        total_reqs = total_reqs_qs.count() if total_reqs_qs.exists() else 0
+        valid_count = DocumentUpload.objects.filter(form_assignment=assignment, status='valid').count()
+        if assignment.status == 'in_progress':
+            if total_reqs > 0:
+                assignment.completion_percentage = min(45, max(10, int((valid_count / total_reqs) * 50)))
+            else:
+                assignment.completion_percentage = 10
+            assignment.save(update_fields=['completion_percentage'])
+    except Exception as e:
+        logger.warning(f"Could not update assignment progress: {e}")
+
+    log_action(
+        None,
+        'delete',
+        'DocumentUpload',
+        str(upload.id),
+        {'original_filename': filename},
+        ip=get_client_ip(request),
+        user_agent=get_user_agent(request)
+    )
+
+    return JsonResponse({
+        'status': 'success',
+        'remaining_count': remaining_count,
+        'requirement_id': str(req_id) if req_id else None,
+        'filename': filename
+    })
+

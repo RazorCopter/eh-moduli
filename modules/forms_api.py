@@ -15,7 +15,7 @@ import secrets
 import string
 from .models import FormTemplate, FormStep, FormElement, DocumentRequirement, FormAssignment, Customer
 from .utils import log_action, get_client_ip, get_user_agent
-from .validators import validate_folder_name
+from .validators import validate_folder_name, get_mimes_for_extensions
 from .upload_security import safe_join_paths, save_manifest_atomic
 
 
@@ -250,9 +250,15 @@ def api_form_save(request, form_id):
                         if not allowed_ext or not str(allowed_ext).strip():
                             allowed_ext = 'pdf,docx'
 
-                        m_types = item.get('mime_types', 'application/pdf,application/msword')
-                        if not m_types or not str(m_types).strip():
-                            m_types = 'application/pdf,application/msword'
+                        # Derive full MIME types matching the allowed extensions
+                        derived_mimes = get_mimes_for_extensions(allowed_ext)
+                        raw_mimes = item.get('mime_types', '')
+                        explicit_mimes = [m.strip() for m in str(raw_mimes).split(',') if m.strip()]
+                        combined_mimes = []
+                        for m in explicit_mimes + derived_mimes:
+                            if m not in combined_mimes:
+                                combined_mimes.append(m)
+                        m_types = ','.join(combined_mimes) if combined_mimes else 'application/pdf,application/msword'
 
                         subfolder = item.get('destination_subfolder', '')
                         subfolder = str(subfolder).strip() if subfolder is not None else ''

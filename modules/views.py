@@ -25,6 +25,7 @@ from .views_upload import (
     published_form_upload,
     upload_document_view,
     skip_optional_document,
+    delete_upload_view,
 )
 
 # 3. Form Submission & Receipts
