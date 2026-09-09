@@ -127,7 +127,7 @@
                                                 </div>
                                                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
                                                     <span class="badge bg-success doc-status-indicator" data-status="uploaded">Salvato</span>
-                                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" onclick="deleteUploadedFile('{{ upload.id }}', '{{ item.id }}')" title="Rimuovi questo file">
+                                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1 d-flex align-items-center justify-content-center" style="width: 26px; height: 26px;" onclick="deleteUploadedFile('{{ upload.id }}', '{{ item.id }}')" title="Rimuovi questo file">
                                                         <i class="bi bi-trash3"></i>
                                                     </button>
                                                 </div>
@@ -139,12 +139,20 @@
                                     <!-- Error message container -->
                                     <div id="upload-error-{{ item.id }}" class="d-none mt-2"></div>
 
-                                    <!-- Loading indicator -->
-                                    <div class="upload-loading d-none mt-2" id="upload-loading-{{ item.id }}">
-                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                            <span class="visually-hidden">Caricamento...</span>
+                                    <!-- Loading & Progress indicator -->
+                                    <div class="upload-loading d-none mt-2 p-2 bg-light rounded-3 border" id="upload-loading-{{ item.id }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                                    <span class="visually-hidden">Caricamento...</span>
+                                                </div>
+                                                <small class="text-muted upload-loading-text fw-medium">Caricamento file in corso...</small>
+                                            </div>
+                                            <small class="upload-progress-percent fw-bold text-primary">0%</small>
                                         </div>
-                                        <small class="text-muted ms-2 upload-loading-text">Caricamento file in corso...</small>
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary upload-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -233,6 +241,10 @@
                             <i class="bi bi-arrow-left me-1"></i> Inizio
                         </a>
                     {% endif %}
+
+                    <a href="{% url 'form_success_view' %}?assignment_id={{ assignment.id }}&mode=partial" class="btn btn-light border px-3 py-2 rounded-3 text-nowrap d-flex align-items-center justify-content-center text-dark text-decoration-none" title="Salva i progressi fatti finora e torna alla pagina di gestione">
+                        <i class="bi bi-save me-1 text-primary"></i> Salva Bozza ed Esci
+                    </a>
 
                     {% if next_step %}
                         <button type="button" class="btn btn-primary px-4 py-2 rounded-3 fw-semibold" id="nextStepBtn" onclick="proceedToNextStep('{% url 'form_step_view' assignment.id next_step.order %}')">
@@ -584,6 +596,8 @@ async function handleFilesSelected(reqId, files) {
     const errorContainer = document.getElementById(`upload-error-${reqId}`);
     const loadingEl = document.getElementById(`upload-loading-${reqId}`);
     const loadingText = loadingEl ? loadingEl.querySelector('.upload-loading-text') : null;
+    const progressBar = loadingEl ? loadingEl.querySelector('.upload-progress-bar') : null;
+    const progressPercent = loadingEl ? loadingEl.querySelector('.upload-progress-percent') : null;
     const absenceBox = document.getElementById(`absence-box-${reqId}`);
 
     // Clear any previous error box
@@ -609,9 +623,24 @@ async function handleFilesSelected(reqId, files) {
                 ? `Caricamento file ${i + 1} di ${files.length}: ${file.name}...`
                 : `Caricamento file: ${file.name}...`;
         }
+        if (progressBar) {
+            progressBar.style.width = '0%';
+            progressBar.setAttribute('aria-valuenow', '0');
+        }
+        if (progressPercent) {
+            progressPercent.textContent = '0%';
+        }
 
         try {
-            const data = await uploadFilePromise(reqId, file, assignmentId);
+            const data = await uploadFilePromise(reqId, file, assignmentId, (percent) => {
+                if (progressBar) {
+                    progressBar.style.width = `${percent}%`;
+                    progressBar.setAttribute('aria-valuenow', percent);
+                }
+                if (progressPercent) {
+                    progressPercent.textContent = `${percent}%`;
+                }
+            });
             successfulUploads.push({ file, data });
 
             // If max_files is 1, clear previous items in uploadsList since backend superseded them
@@ -637,6 +666,8 @@ async function handleFilesSelected(reqId, files) {
     if (loadingEl) {
         loadingEl.classList.add('d-none');
         if (loadingText) loadingText.textContent = 'Caricamento file in corso...';
+        if (progressBar) progressBar.style.width = '0%';
+        if (progressPercent) progressPercent.textContent = '0%';
     }
 
     // Process errors if any
@@ -645,6 +676,17 @@ async function handleFilesSelected(reqId, files) {
         showUploadErrors(reqId, errors);
     } else {
         delete lastFailedUploads[reqId];
+
+        // Flash visual feedback on the dropzone indicating successful upload
+        const dropzone = document.getElementById(`dropzone-${reqId}`);
+        if (dropzone) {
+            dropzone.style.borderColor = '#198754';
+            dropzone.style.backgroundColor = 'rgba(25, 135, 84, 0.08)';
+            setTimeout(() => {
+                dropzone.style.borderColor = '#CBD5E1';
+                dropzone.style.backgroundColor = '#FFFFFF';
+            }, 1500);
+        }
     }
 
     // Update container status attribute
@@ -663,7 +705,7 @@ async function handleFilesSelected(reqId, files) {
     updateNextButtonState();
 }
 
-function uploadFilePromise(reqId, file, assignmentId) {
+function uploadFilePromise(reqId, file, assignmentId, onProgress) {
     return new Promise((resolve, reject) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -672,42 +714,54 @@ function uploadFilePromise(reqId, file, assignmentId) {
         formData.append('availability_' + reqId, 'uploaded');
 
         const uploadUrl = `/modules/form/${assignmentId}/upload/`;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', uploadUrl, true);
+        xhr.setRequestHeader('X-CSRFToken', getCsrfToken());
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
-        fetch(uploadUrl, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': getCsrfToken()
-            },
-            body: formData,
-            signal: controller.signal
-        })
-        .then(async response => {
-            clearTimeout(timeoutId);
-            const data = await response.json().catch(() => ({}));
-            if (!response.ok) {
+        // Timeout 5 minutes (300,000 ms)
+        xhr.timeout = 300000;
+
+        if (xhr.upload && typeof onProgress === 'function') {
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percent = Math.min(100, Math.round((e.loaded / e.total) * 100));
+                    onProgress(percent, e.loaded, e.total);
+                }
+            };
+        }
+
+        xhr.onload = function() {
+            let data = {};
+            try {
+                data = JSON.parse(xhr.responseText);
+            } catch (e) {
+                data = {};
+            }
+
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(data);
+            } else {
                 let msg = data.error;
                 if (!msg && data.errors) {
                     msg = Array.isArray(data.errors) ? data.errors.join(', ') : JSON.stringify(data.errors);
                 }
                 if (!msg) {
-                    msg = `Errore caricamento (${response.status})`;
+                    msg = `Errore caricamento (${xhr.status})`;
                 }
-                throw new Error(msg);
+                reject(new Error(msg));
             }
-            resolve(data);
-        })
-        .catch(error => {
-            clearTimeout(timeoutId);
-            let friendlyError = error.message || 'Errore sconosciuto';
-            if (error.name === 'AbortError') {
-                friendlyError = 'Timeout di connessione: il caricamento ha impiegato troppo tempo.';
-            } else if (friendlyError.includes('Failed to fetch') || friendlyError.includes('NetworkError')) {
-                friendlyError = 'Connessione interrotta o errore di rete. Verifica il collegamento.';
-            }
-            reject(new Error(friendlyError));
-        });
+        };
+
+        xhr.onerror = function() {
+            reject(new Error('Connessione interrotta o errore di rete. Verifica il collegamento.'));
+        };
+
+        xhr.ontimeout = function() {
+            reject(new Error('Timeout di connessione: il caricamento ha impiegato più di 5 minuti.'));
+        };
+
+        xhr.send(formData);
     });
 }
 
@@ -730,7 +784,7 @@ function appendUploadedFileCard(reqId, uploadId, filename, fileSize, data) {
         <div class="d-flex align-items-center gap-2 flex-shrink-0">
             <span class="badge bg-success doc-status-indicator" data-status="uploaded">Salvato</span>
             ${uploadId ? `
-            <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1" onclick="deleteUploadedFile('${uploadId}', '${reqId}')" title="Rimuovi questo file">
+            <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1 d-flex align-items-center justify-content-center" style="width: 26px; height: 26px;" onclick="deleteUploadedFile('${uploadId}', '${reqId}')" title="Rimuovi questo file">
                 <i class="bi bi-trash3"></i>
             </button>
             ` : ''}

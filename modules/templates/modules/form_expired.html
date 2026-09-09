@@ -1,15 +1,244 @@
-{% extends "accounts/base.html" %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#7f1718">
+    <title>Modulo Scaduto — Etichub</title>
 
-{% block title %}Modulo Scaduto{% endblock %}
+    <!-- Google Fonts: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-6">
-        <div class="alert alert-warning mt-5">
-            <h4>⏰ Modulo Scaduto</h4>
-            <p>La scadenza di questo modulo è stata superata.</p>
-            <p>Contatta l'amministratore per ricevere una nuova assegnazione.</p>
+    <!-- Bootstrap 5 & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        * {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 50%, #FFF7ED 100%);
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .status-container {
+            width: 100%;
+            max-width: 580px;
+        }
+
+        .status-card {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 56px 40px;
+            box-shadow: 0 20px 60px rgba(180, 83, 9, 0.12), 0 4px 16px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(245, 158, 11, 0.18);
+            text-align: center;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(28px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status-icon-wrap {
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 28px;
+            border-radius: 50%;
+            background: #FEF3C7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: float 3.2s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .status-icon-wrap i {
+            font-size: 48px;
+            color: #D97706;
+            display: inline-block;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #92400E;
+            background: #FEF3C7;
+            border: 1px solid #FDE68A;
+            padding: 6px 16px;
+            border-radius: 9999px;
+            margin-bottom: 20px;
+            letter-spacing: 0.02em;
+        }
+
+        .status-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1E293B;
+            margin-bottom: 16px;
+            line-height: 1.25;
+        }
+
+        .status-description {
+            font-size: 1.05rem;
+            color: #64748B;
+            line-height: 1.7;
+            margin-bottom: 36px;
+        }
+
+        .status-actions {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 28px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+            min-width: 190px;
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(135deg, #7F1718 0%, #A51D24 100%);
+            color: #ffffff;
+            border: none;
+            box-shadow: 0 6px 20px rgba(127, 23, 24, 0.28);
+        }
+
+        .action-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 26px rgba(127, 23, 24, 0.38);
+            color: #ffffff;
+        }
+
+        .action-btn.secondary {
+            background: #ffffff;
+            color: #475569;
+            border: 1.5px solid #E2E8F0;
+        }
+
+        .action-btn.secondary:hover {
+            background: #F8FAFC;
+            border-color: #CBD5E1;
+            color: #1E293B;
+            transform: translateY(-2px);
+        }
+
+        .status-footer {
+            margin-top: 36px;
+            padding-top: 24px;
+            border-top: 1px solid #F1F5F9;
+            font-size: 0.88rem;
+            color: #94A3B8;
+        }
+
+        .status-footer a {
+            color: #7F1718;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .status-footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 576px) {
+            .status-card {
+                padding: 40px 24px;
+                border-radius: 20px;
+            }
+            .status-title {
+                font-size: 1.6rem;
+            }
+            .status-actions {
+                flex-direction: column;
+            }
+            .action-btn {
+                width: 100%;
+                min-width: unset;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="status-container">
+        <div class="status-card">
+            <div class="status-icon-wrap">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+
+            <div class="status-badge">
+                <i class="bi bi-clock-history"></i> Termine Scaduto
+            </div>
+
+            <h1 class="status-title">Modulo di Raccolta Scaduto</h1>
+
+            <p class="status-description">
+                La data limite per il caricamento dei documenti di questo modulo è stata superata. 
+                I caricamenti sono al momento sospesi.
+            </p>
+
+            <div class="status-actions">
+                <a href="{% url 'client_login' %}" class="action-btn primary">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    Area Personale Clienti
+                </a>
+                <a href="mailto:supporto@etichub.it?subject=Richiesta%20riapertura%20modulo" class="action-btn secondary">
+                    <i class="bi bi-envelope"></i>
+                    Richiedi Proroga
+                </a>
+            </div>
+
+            <div class="status-footer">
+                Hai bisogno di assistenza immediata? 
+                <a href="mailto:supporto@etichub.it">Contatta il nostro team</a>
+            </div>
         </div>
     </div>
-</div>
-{% endblock %}
+</body>
+</html>

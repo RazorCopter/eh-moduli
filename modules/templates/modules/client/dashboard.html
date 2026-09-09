@@ -571,7 +571,6 @@
 </div>
 
 <!-- Stats -->
-{% with active_count=0 submitted_count=0 %}
 <div class="dash-stats">
     <div class="dash-stat-card">
         <div class="dash-stat-icon total">
@@ -588,9 +587,7 @@
             <i class="bi bi-arrow-repeat"></i>
         </div>
         <div>
-            {% with active=products|dictsort:"status" %}
-            <div class="dash-stat-number" id="stat-active">0</div>
-            {% endwith %}
+            <div class="dash-stat-number" id="stat-active">{{ active_count|default:0 }}</div>
             <div class="dash-stat-label">{{ t.stat_in_progress }}</div>
         </div>
     </div>
@@ -600,12 +597,11 @@
             <i class="bi bi-check-circle"></i>
         </div>
         <div>
-            <div class="dash-stat-number" id="stat-submitted">0</div>
+            <div class="dash-stat-number" id="stat-submitted">{{ submitted_count|default:0 }}</div>
             <div class="dash-stat-label">{{ t.stat_completed }}</div>
         </div>
     </div>
 </div>
-{% endwith %}
 
 <!-- Products -->
 <div class="products-section-title">

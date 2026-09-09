@@ -342,10 +342,15 @@ def client_dashboard(request):
 
     welcome_msg = t['hello_user'].format(name=customer.first_name) if customer.first_name else t['welcome_back']
 
+    active_count = sum(1 for p in products if p['status'] in ('draft', 'in_progress'))
+    submitted_count = sum(1 for p in products if p['status'] in ('submitted', 'in_processing', 'completed'))
+
     context = {
         'customer': customer,
         'products': products,
         'products_count': len(products),
+        'active_count': active_count,
+        'submitted_count': submitted_count,
         'show_navbar': True,
         'customer_initial': (customer.first_name[0] if customer.first_name else '?').upper(),
         'welcome_msg': welcome_msg,

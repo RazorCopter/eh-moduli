@@ -497,7 +497,9 @@ ACCESSIBILITY NOTES:
   transition: all var(--transition-base);
 }
 
-.card:hover {
+.card.card-interactive:hover,
+.card.card-hoverable:hover,
+.card-clickable:hover {
   box-shadow: var(--shadow-elevated);
   transform: translateY(-2px);
 }
