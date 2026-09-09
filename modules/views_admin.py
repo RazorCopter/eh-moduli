@@ -79,4 +79,5 @@ from .views_maintenance import (
     admin_backup_download,
     admin_backup_restore,
     admin_backup_delete,
+    admin_update_settings,
 )

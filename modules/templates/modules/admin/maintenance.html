@@ -556,6 +556,33 @@
         </div>
     </div>
 
+    <!-- Settings Card -->
+    <div class="m-card">
+        <div class="m-card-header">
+            <h2 class="m-card-title">
+                <i class="bi bi-gear-fill text-primary"></i> Impostazioni di Sistema
+            </h2>
+        </div>
+        <p class="m-card-desc">Configurazione globale dei percorsi e delle variabili di sistema.</p>
+
+        <form method="POST" action="{% url 'admin_update_settings' %}">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="nasBasePathInput" class="form-label fw-bold text-dark small">Folder NAS Base (Root)</label>
+                <input type="text" class="form-control" id="nasBasePathInput" name="nas_base_path" value="{{ nas_base_path }}" required placeholder="es. /volume1/Clienti">
+                <div class="form-text">
+                    La directory radice in cui vengono create le cartelle per i clienti e salvati i documenti. 
+                    <strong class="text-danger">Attenzione:</strong> Modificare questo valore influirà su tutti i nuovi upload e link!
+                </div>
+            </div>
+            <div class="pt-2">
+                <button type="submit" class="btn btn-primary fw-semibold">
+                    <i class="bi bi-save"></i> Salva Impostazioni
+                </button>
+            </div>
+        </form>
+    </div>
+
     <!-- Operations Row: Reset Stats & Upload Restore -->
     <div class="row g-4">
         <!-- Reset Statistics Card -->

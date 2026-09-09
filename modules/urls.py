@@ -30,6 +30,7 @@ urlpatterns = [
 
     # Admin System Maintenance & Database Backup
     path('admin/maintenance/', views_admin.admin_maintenance, name='admin_maintenance'),
+    path('admin/maintenance/settings/update/', views_admin.admin_update_settings, name='admin_update_settings'),
     path('admin/maintenance/reset-stats/', views_admin.admin_reset_statistics, name='admin_reset_statistics'),
     path('admin/maintenance/backup/create/', views_admin.admin_backup_create, name='admin_backup_create'),
     path('admin/maintenance/backup/<str:filename>/download/', views_admin.admin_backup_download, name='admin_backup_download'),

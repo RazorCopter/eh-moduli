@@ -574,5 +574,22 @@ class NotificationLog(models.Model):
             models.Index(fields=['notification_datetime']),
         ]
 
+
     def __str__(self):
         return f"{self.notification_type} - {self.recipient_email} ({self.status})"
+
+class SystemSetting(models.Model):
+    """Stores global system configurations (key-value) accessible by administrators."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    key = models.CharField(max_length=255, unique=True, help_text="Unique configuration key (e.g., nas_base_path)")
+    value = models.TextField(blank=True, help_text="Configuration value")
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    class Meta:
+        ordering = ['key']
+        verbose_name = 'System Setting'
+        verbose_name_plural = 'System Settings'
+
+    def __str__(self):
+        return self.key

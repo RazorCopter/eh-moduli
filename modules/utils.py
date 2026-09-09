@@ -94,6 +94,16 @@ def is_ajax_request(request) -> bool:
 
 def get_nas_base_path() -> str:
     """Return the configured base NAS path for customer documents."""
+    from .models import SystemSetting
+    try:
+        setting = SystemSetting.objects.get(key='nas_base_path')
+        if setting.value and setting.value.strip():
+            return setting.value.strip()
+    except SystemSetting.DoesNotExist:
+        pass
+    except Exception as e:
+        logger.error(f"Error fetching nas_base_path setting: {e}")
+
     return os.getenv(
         'CUSTOMER_DOCUMENTS_CONTAINER_PATH',
         os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti')

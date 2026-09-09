@@ -21,9 +21,9 @@ from django.views.decorators.http import require_http_methods
 from .models import (
     Customer, FormTemplate, FormStep, FormElement, DocumentRequirement,
     FormAssignment, DocumentUpload, AwarenessDeclaration, AuditLog,
-    NotificationLog, User
+    NotificationLog, User, SystemSetting
 )
-from .utils import log_action, get_client_ip, get_user_agent
+from .utils import log_action, get_client_ip, get_user_agent, get_nas_base_path
 
 logger = logging.getLogger('modules')
 
@@ -100,9 +100,45 @@ def admin_maintenance(request):
         'backups': backups,
         'backup_count': len(backups),
         'last_backup': backups[0]['created_at'] if backups else None,
-        'app_version': getattr(settings, 'APP_VERSION', '2.1.2'),
+        'app_version': getattr(settings, 'APP_VERSION', '2.2.0'),
+        'nas_base_path': get_nas_base_path(),
     }
     return render(request, 'modules/admin/maintenance.html', context)
+
+@login_required
+@user_passes_test(is_admin_user)
+@require_http_methods(["POST"])
+def admin_update_settings(request):
+    """Update global system settings (e.g. NAS Base Path)."""
+    nas_base_path = request.POST.get('nas_base_path', '').strip()
+    
+    if not nas_base_path:
+        messages.error(request, "Il percorso del Folder NAS non può essere vuoto.")
+        return redirect('admin_maintenance')
+        
+    try:
+        setting, created = SystemSetting.objects.get_or_create(key='nas_base_path')
+        old_value = setting.value
+        setting.value = nas_base_path
+        setting.updated_by = request.user
+        setting.save()
+        
+        log_action(
+            request.user,
+            'update',
+            'SystemSetting',
+            'nas_base_path',
+            {'old_value': old_value, 'new_value': nas_base_path},
+            ip=get_client_ip(request),
+            user_agent=get_user_agent(request)
+        )
+        
+        messages.success(request, "Impostazioni di sistema aggiornate con successo.")
+    except Exception as e:
+        logger.error(f"Error updating system settings: {e}")
+        messages.error(request, f"Errore durante l'aggiornamento delle impostazioni: {str(e)}")
+        
+    return redirect('admin_maintenance')
 
 
 @login_required
