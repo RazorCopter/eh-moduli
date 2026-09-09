@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Form Builder - {{ template.name }}</title>
+    <title>Composizione Modulo - {{ template.name }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -694,7 +694,7 @@
                 <a href="{% url 'builder_list' %}" class="btn btn-sm btn-outline-secondary me-2" title="Torna alla lista moduli" style="border-radius: 6px; font-size: 0.8rem; padding: 4px 8px; display: inline-flex; align-items: center; gap: 4px;">
                     <i class="bi bi-arrow-left"></i> Moduli
                 </a>
-                <input type="text" class="form-title-inline" x-model="form.name" placeholder="Form Title" @blur="autoSave()">
+                <input type="text" class="form-title-inline" x-model="form.name" placeholder="Titolo del Modulo" @blur="autoSave()">
                 <span class="form-status" :class="form.status">
                     <i :class="form.status === 'published' ? 'bi-check-circle' : 'bi-pencil'"></i>
                     <span x-text="form.status === 'published' ? 'Pubblicato' : 'Bozza'"></span>
@@ -718,10 +718,10 @@
             </div>
             <div class="builder-header-right">
                 <button class="btn-preview" @click="preview()">
-                    <i class="bi bi-eye"></i> Preview
+                    <i class="bi bi-eye"></i> Anteprima
                 </button>
                 <button class="btn-save" @click="save()" x-show="form.status === 'draft'">
-                    <i class="bi bi-save"></i> Save
+                    <i class="bi bi-save"></i> Salva
                 </button>
                 <button class="btn-publish" @click="publish()" x-show="form.status === 'draft'">
                     <i class="bi bi-cloud-check"></i> Pubblica Modulo
@@ -733,7 +733,7 @@
                     <i class="bi bi-arrow-counterclockwise"></i> Ripristina in Bozza
                 </button>
                 <button class="btn-delete" @click="deleteForm()" style="background: #dc3545;">
-                    <i class="bi bi-trash"></i> Delete
+                    <i class="bi bi-trash"></i> Elimina
                 </button>
             </div>
         </div>
@@ -742,46 +742,58 @@
         <div class="builder-body">
             <!-- Left Sidebar: Palette -->
             <div class="builder-sidebar-left">
-                <div class="sidebar-title">Elements Palette</div>
+                <div class="sidebar-title">Tavolozza Elementi</div>
                 <div class="element-palette">
-                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'text_field')">
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'text_field')" title="Trascina nel passaggio per aggiungere un campo di testo">
                         <i class="bi bi-input-cursor-text"></i>
-                        <span>Text Field</span>
+                        <span>Campo di Testo</span>
                     </div>
-                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'email_field')">
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'email_field')" title="Trascina nel passaggio per aggiungere un campo email">
                         <i class="bi bi-envelope"></i>
                         <span>Email</span>
                     </div>
-                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'phone_field')">
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'phone_field')" title="Trascina nel passaggio per aggiungere un campo telefono">
                         <i class="bi bi-telephone"></i>
-                        <span>Phone</span>
+                        <span>Telefono</span>
                     </div>
-                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'date_field')">
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'date_field')" title="Trascina nel passaggio per aggiungere un selettore data">
                         <i class="bi bi-calendar"></i>
-                        <span>Date</span>
+                        <span>Data</span>
                     </div>
-                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'text_info')">
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'text_info')" title="Trascina nel passaggio per aggiungere un blocco informativo">
                         <i class="bi bi-info-circle"></i>
-                        <span>Info Text</span>
+                        <span>Testo Informativo</span>
                     </div>
-                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'separator')">
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'separator')" title="Trascina nel passaggio per aggiungere una riga separatrice">
                         <i class="bi bi-dash"></i>
-                        <span>Separator</span>
+                        <span>Separatore</span>
                     </div>
-                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'doc_upload')">
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'awareness_declaration')" title="Trascina nel passaggio per aggiungere una presa visione/consenso">
+                        <i class="bi bi-check-circle"></i>
+                        <span>Dichiarazione</span>
+                    </div>
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'doc_upload')" title="Trascina nel passaggio per richiedere un documento al cliente">
                         <i class="bi bi-file-earmark-arrow-up"></i>
-                        <span>Document Upload</span>
+                        <span>Caricamento Documento</span>
+                    </div>
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'client_dropdown')" title="Trascina nel passaggio per selezionare un cliente esistente">
+                        <i class="bi bi-building"></i>
+                        <span>Selettore Cliente</span>
+                    </div>
+                    <div class="palette-item" draggable="true" @dragstart="dragStartPalette($event, 'project_name_field')" title="Trascina nel passaggio per il nome progetto">
+                        <i class="bi bi-folder"></i>
+                        <span>Nome Progetto</span>
                     </div>
                 </div>
             </div>
 
             <!-- Center: Canvas -->
             <div class="builder-canvas">
-                <div class="canvas-title">Steps</div>
+                <div class="canvas-title">Passaggi del Modulo (Steps)</div>
 
                 <template x-if="form.steps.length === 0">
                     <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> Add a step to get started
+                        <i class="bi bi-info-circle"></i> Aggiungi un passaggio per iniziare a comporre il modulo
                     </div>
                 </template>
 
@@ -794,16 +806,16 @@
                              @drop="dropStep($event, stepIndex)">
                             <div class="step-header">
                                 <div class="step-header-left">
-                                    <span class="step-drag-handle" draggable="true">
+                                    <span class="step-drag-handle" draggable="true" title="Trascina per riordinare il passaggio">
                                         <i class="bi bi-grip-vertical"></i>
                                     </span>
-                                    <input type="text" class="step-title" x-model="step.title" placeholder="Step Title" style="background: transparent; border: none; color: white;">
+                                    <input type="text" class="step-title" x-model="step.title" placeholder="Titolo Passaggio" style="background: transparent; border: none; color: white;">
                                 </div>
                                 <div class="step-actions">
-                                    <button @click="selectStep(stepIndex)" title="Edit">
+                                    <button @click="selectStep(stepIndex)" title="Modifica proprietà passaggio">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-                                    <button @click="deleteStep(stepIndex)" title="Delete">
+                                    <button @click="deleteStep(stepIndex)" title="Elimina passaggio">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -822,10 +834,10 @@
                                              @click="selectElement(stepIndex, elemIndex)">
                                             <div class="element-info">
                                                 <i class="element-icon bi" :class="getElementIcon(element)"></i>
-                                                <span class="element-name" x-text="element.type === 'element' ? element.element_type : element.name"></span>
+                                                <span class="element-name" x-text="element.type === 'element' ? (element.config && element.config.label ? element.config.label : getElementTypeLabel(element.element_type)) : (element.name || 'Nuovo Documento')"></span>
                                             </div>
                                             <div class="element-actions">
-                                                <button @click.stop="deleteElement(stepIndex, elemIndex)">
+                                                <button @click.stop="deleteElement(stepIndex, elemIndex)" title="Elimina elemento">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </div>
@@ -834,7 +846,7 @@
                                 </div>
 
                                 <button class="add-element-btn" @click="addElementToStep(stepIndex)">
-                                    + Add Element
+                                    + Aggiungi Elemento
                                 </button>
                             </div>
                         </div>
@@ -842,23 +854,23 @@
                 </div>
 
                 <button class="btn btn-primary" @click="addStep()" style="align-self: flex-start;">
-                    <i class="bi bi-plus"></i> Add Step
+                    <i class="bi bi-plus"></i> Aggiungi Passaggio
                 </button>
             </div>
 
             <!-- Right Sidebar: Properties -->
             <div class="builder-sidebar-right">
-                <template x-if="selectedStep !== null && form.steps[selectedStep]">
+                <template x-if="selectedStep !== null && form.steps[selectedStep] && selectedElement === null">
                     <div class="properties-panel">
                         <div>
-                            <div class="section-title">Step Properties</div>
+                            <div class="section-title">Proprietà Passaggio</div>
                             <div class="form-group">
-                                <label>Title</label>
-                                <input type="text" x-model="form.steps[selectedStep].title" placeholder="Step title">
+                                <label>Titolo del Passaggio <span class="text-danger">*</span></label>
+                                <input type="text" x-model="form.steps[selectedStep].title" placeholder="es. Dati Anagrafici">
                             </div>
                             <div class="form-group">
-                                <label>Description</label>
-                                <textarea x-model="form.steps[selectedStep].description" placeholder="Optional description"></textarea>
+                                <label>Descrizione / Istruzioni (opzionale)</label>
+                                <textarea x-model="form.steps[selectedStep].description" placeholder="Descrizione o istruzioni fornite al cliente per questo passaggio..."></textarea>
                             </div>
                         </div>
                     </div>
@@ -867,78 +879,111 @@
                 <template x-if="selectedStep !== null && selectedElement !== null && form.steps[selectedStep] && form.steps[selectedStep].elements[selectedElement]">
                     <div class="properties-panel">
                         <div>
-                            <div class="section-title">Element Properties</div>
+                            <div class="section-title">Attributi Elemento</div>
                             <template x-if="form.steps[selectedStep].elements[selectedElement].type === 'element'">
                                 <div>
                                     <div class="form-group">
-                                        <label>Type</label>
-                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].element_type" readonly>
+                                        <label>Tipo di Elemento</label>
+                                        <input type="text" :value="getElementTypeLabel(form.steps[selectedStep].elements[selectedElement].element_type)" readonly style="background: #f8f9fa; font-weight: 600; color: #495057;">
                                     </div>
-                                    <div class="form-group" x-show="form.steps[selectedStep].elements[selectedElement].element_type !== 'separator' && form.steps[selectedStep].elements[selectedElement].element_type !== 'text_info'">
-                                        <label>Label</label>
-                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.label" placeholder="Field label">
+
+                                    <!-- Campo Standard: Etichetta / Label -->
+                                    <div class="form-group" x-show="form.steps[selectedStep].elements[selectedElement].element_type !== 'separator' && form.steps[selectedStep].elements[selectedElement].element_type !== 'text_info' && form.steps[selectedStep].elements[selectedElement].element_type !== 'awareness_declaration'">
+                                        <label>Etichetta del Campo (Label) <span class="text-danger">*</span></label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.label" placeholder="es. Nome Completo, Codice Fiscale...">
                                     </div>
+
+                                    <!-- Dichiarazione di Consenso: Testo Dichiarazione -->
+                                    <template x-if="form.steps[selectedStep].elements[selectedElement].element_type === 'awareness_declaration'">
+                                        <div class="form-group">
+                                            <label>Testo Dichiarazione / Consenso <span class="text-danger">*</span></label>
+                                            <textarea x-model="form.steps[selectedStep].elements[selectedElement].config.label" placeholder="es. Dichiaro di aver preso visione dell'informativa..." style="min-height: 80px; width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 0.5rem;"></textarea>
+                                        </div>
+                                    </template>
+
+                                    <!-- Testo Informativo -->
                                     <template x-if="form.steps[selectedStep].elements[selectedElement].element_type === 'text_info'">
                                         <div>
                                             <div class="form-group">
-                                                <label>Titolo / Etichetta (opzionale)</label>
-                                                <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.label" placeholder="Es. Informazioni importanti">
+                                                <label>Titolo / Intestazione (opzionale)</label>
+                                                <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.label" placeholder="es. Informazioni Importanti">
                                             </div>
                                             <div class="form-group">
-                                                <label>Contenuto Testo Informativo</label>
-                                                <textarea x-model="form.steps[selectedStep].elements[selectedElement].config.text" placeholder="Scrivi qui il testo informativo da mostrare..." style="min-height: 100px; width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 0.5rem;"></textarea>
+                                                <label>Contenuto Testo Informativo <span class="text-danger">*</span></label>
+                                                <textarea x-model="form.steps[selectedStep].elements[selectedElement].config.text" placeholder="Scrivi qui il testo informativo mostrato al cliente..." style="min-height: 110px; width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 0.5rem;"></textarea>
                                             </div>
                                         </div>
                                     </template>
+
+                                    <!-- Document Upload (se creato come elemento) -->
                                     <template x-if="form.steps[selectedStep].elements[selectedElement].element_type === 'doc_upload'">
                                         <div>
                                             <div class="form-group">
-                                                <label>Nome Documento</label>
-                                                <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.label" placeholder="Es. Documento A, Carta d'Identità">
+                                                <label>Nome Documento <span class="text-danger">*</span></label>
+                                                <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.label" placeholder="es. Carta d'Identità, Certificato...">
                                             </div>
                                             <div class="form-group">
-                                                <label>Descrizione</label>
-                                                <textarea x-model="form.steps[selectedStep].elements[selectedElement].config.description" placeholder="Istruzioni o dettagli sul documento..."></textarea>
+                                                <label>Descrizione / Istruzioni</label>
+                                                <textarea x-model="form.steps[selectedStep].elements[selectedElement].config.description" placeholder="Istruzioni o dettagli sul documento richiesto..."></textarea>
                                             </div>
                                             <div class="form-group">
                                                 <label>Estensioni permesse</label>
                                                 <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.allowed_extensions" placeholder="pdf,docx,jpg">
+                                                <small class="text-muted">Separate da virgola (es. pdf,docx,jpg)</small>
                                             </div>
                                         </div>
                                     </template>
-                                    <div class="form-group" x-show="form.steps[selectedStep].elements[selectedElement].element_type !== 'separator' && form.steps[selectedStep].elements[selectedElement].element_type !== 'text_info' && form.steps[selectedStep].elements[selectedElement].element_type !== 'doc_upload'">
-                                        <label>Placeholder</label>
-                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.placeholder" placeholder="Placeholder text">
+
+                                    <!-- Placeholder per campi testo/email/telefono/data -->
+                                    <div class="form-group" x-show="form.steps[selectedStep].elements[selectedElement].element_type !== 'separator' && form.steps[selectedStep].elements[selectedElement].element_type !== 'text_info' && form.steps[selectedStep].elements[selectedElement].element_type !== 'doc_upload' && form.steps[selectedStep].elements[selectedElement].element_type !== 'awareness_declaration'">
+                                        <label>Testo Segnaposto (Placeholder)</label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].config.placeholder" placeholder="Testo di esempio visualizzato prima della digitazione...">
                                     </div>
+
+                                    <!-- Opzione Selettore Cliente -->
+                                    <template x-if="form.steps[selectedStep].elements[selectedElement].element_type === 'client_dropdown'">
+                                        <div class="form-group mb-2">
+                                            <label style="cursor: pointer;">
+                                                <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].config.allow_new">
+                                                <span>Consenti selezione da anagrafica NAS cliente</span>
+                                            </label>
+                                        </div>
+                                    </template>
+
+                                    <!-- Checkbox Obbligatorio -->
                                     <div class="form-group" x-show="form.steps[selectedStep].elements[selectedElement].element_type !== 'separator' && form.steps[selectedStep].elements[selectedElement].element_type !== 'text_info'">
-                                        <label>
+                                        <label style="cursor: pointer;">
                                             <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].config.required">
-                                            Required
+                                            <strong>Campo Obbligatorio</strong>
                                         </label>
+                                        <small class="text-muted d-block" x-show="form.steps[selectedStep].elements[selectedElement].config.required">Il cliente è tenuto a compilare o spuntare questo elemento per poter avanzare.</small>
+                                        <small class="text-muted d-block" x-show="!form.steps[selectedStep].elements[selectedElement].config.required">Elemento facoltativo: il cliente può avanzare anche lasciandolo vuoto.</small>
                                     </div>
                                 </div>
                             </template>
+
+                            <!-- Document Requirement (type === 'document') -->
                             <template x-if="form.steps[selectedStep].elements[selectedElement].type === 'document'">
                                 <div>
                                     <div class="form-group">
-                                        <label>📄 Document Name <span class="text-danger">*</span></label>
-                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].name" placeholder="e.g., ID Card, Invoice">
+                                        <label>📄 Nome Documento <span class="text-danger">*</span></label>
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].name" placeholder="es. Carta d'Identità, Fattura, Certificato...">
                                     </div>
                                     <div class="form-group">
-                                        <label>Description</label>
-                                        <textarea x-model="form.steps[selectedStep].elements[selectedElement].description" placeholder="Instructions or requirements for this document" style="min-height: 80px;"></textarea>
+                                        <label>Descrizione / Istruzioni per il Cliente</label>
+                                        <textarea x-model="form.steps[selectedStep].elements[selectedElement].description" placeholder="Istruzioni o requisiti dettagliati per questo documento..." style="min-height: 80px;"></textarea>
                                     </div>
                                     <hr style="margin: 1rem 0;">
                                     <div style="background: #f8f9fa; padding: 1rem; border-radius: 6px; margin-bottom: 1rem;">
-                                        <strong style="font-size: 0.875rem; text-transform: uppercase; color: var(--secondary);">Impostazioni Documento</strong>
+                                        <strong style="font-size: 0.875rem; text-transform: uppercase; color: var(--secondary);">Attributi e Impostazioni Documento</strong>
                                     </div>
                                     <div class="form-group">
                                         <label style="cursor: pointer;">
                                             <input type="checkbox" x-model="form.steps[selectedStep].elements[selectedElement].required">
-                                            <strong>Documento Obbligatorio (Required)</strong>
+                                            <strong>Documento Obbligatorio</strong>
                                         </label>
-                                        <small class="text-muted" x-show="form.steps[selectedStep].elements[selectedElement].required">Il cliente è tenuto a caricare questo documento per completare il modulo.</small>
-                                        <small class="text-muted" x-show="!form.steps[selectedStep].elements[selectedElement].required">Il cliente può saltare questo documento o dichiararne l'assenza.</small>
+                                        <small class="text-muted d-block" x-show="form.steps[selectedStep].elements[selectedElement].required">Il cliente è tenuto a caricare questo documento per completare il modulo.</small>
+                                        <small class="text-muted d-block" x-show="!form.steps[selectedStep].elements[selectedElement].required">Il cliente può saltare questo documento o dichiararne l'assenza.</small>
                                     </div>
                                     <div class="form-group">
                                         <label>Tipi di File Consentiti (Estensioni)</label>
@@ -948,16 +993,16 @@
                                     <div class="form-group">
                                         <label>Dimensione Massima (MB)</label>
                                         <input type="number" x-model.number="form.steps[selectedStep].elements[selectedElement].max_file_size" placeholder="10">
-                                        <small class="text-muted">Predefinito: 10 MB</small>
+                                        <small class="text-muted">Predefinito: 10 MB per singolo file</small>
                                     </div>
                                     <div class="form-group">
                                         <label>Numero Massimo di File</label>
                                         <input type="number" x-model.number="form.steps[selectedStep].elements[selectedElement].max_files" placeholder="200" min="1">
-                                        <small class="text-muted">Predefinito: 200 (puoi indicare un valore inferiore per limitare)</small>
+                                        <small class="text-muted">Predefinito: 200 (puoi indicare un valore inferiore per limitare i file caricabili)</small>
                                     </div>
                                     <div class="form-group">
                                         <label>Sottocartella NAS di Destinazione</label>
-                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].destination_subfolder" placeholder="es. /materie_prime" title="Percorso cartella NAS">
+                                        <input type="text" x-model="form.steps[selectedStep].elements[selectedElement].destination_subfolder" placeholder="es. /documenti_amministrativi" title="Percorso cartella NAS">
                                         <small class="text-muted">Sottocartella del cliente in cui archiviare i file sul NAS</small>
                                     </div>
 
@@ -989,7 +1034,7 @@
                 <template x-if="selectedStep === null && selectedElement === null">
                     <div class="no-selection">
                         <i class="bi bi-cursor-text" style="font-size: 2rem; margin-bottom: 1rem; display: block; color: var(--secondary);"></i>
-                        Select a step or element to edit properties
+                        Seleziona un passaggio o un elemento per configurarne gli attributi
                     </div>
                 </template>
             </div>
@@ -1002,12 +1047,12 @@
                     <i class="bi bi-x-lg"></i>
                 </button>
                 <div class="modal-header">
-                    <h2 class="modal-title">Add Element to Step</h2>
+                    <h2 class="modal-title">Aggiungi Elemento al Passaggio</h2>
                 </div>
                 <div class="element-type-grid">
                     <button class="element-type-btn" @click="addElement('text_field')">
                         <i class="bi bi-input-cursor-text"></i>
-                        <span>Text Field</span>
+                        <span>Campo di Testo</span>
                     </button>
                     <button class="element-type-btn" @click="addElement('email_field')">
                         <i class="bi bi-envelope"></i>
@@ -1015,35 +1060,35 @@
                     </button>
                     <button class="element-type-btn" @click="addElement('phone_field')">
                         <i class="bi bi-telephone"></i>
-                        <span>Phone</span>
+                        <span>Telefono</span>
                     </button>
                     <button class="element-type-btn" @click="addElement('date_field')">
                         <i class="bi bi-calendar"></i>
-                        <span>Date</span>
+                        <span>Data</span>
                     </button>
                     <button class="element-type-btn" @click="addElement('text_info')">
                         <i class="bi bi-info-circle"></i>
-                        <span>Info Text</span>
+                        <span>Testo Informativo</span>
                     </button>
                     <button class="element-type-btn" @click="addElement('separator')">
                         <i class="bi bi-dash"></i>
-                        <span>Separator</span>
+                        <span>Separatore</span>
                     </button>
                     <button class="element-type-btn" @click="addElement('awareness_declaration')">
                         <i class="bi bi-check-circle"></i>
-                        <span>Declaration</span>
+                        <span>Dichiarazione</span>
                     </button>
                     <button class="element-type-btn" @click="addElement('doc_upload')">
                         <i class="bi bi-file-earmark-arrow-up"></i>
-                        <span>Document</span>
+                        <span>Documento</span>
                     </button>
                     <button class="element-type-btn" @click="addElement('client_dropdown')">
                         <i class="bi bi-building"></i>
-                        <span>Client Selector</span>
+                        <span>Selettore Cliente</span>
                     </button>
                     <button class="element-type-btn" @click="addElement('project_name_field')">
                         <i class="bi bi-folder"></i>
-                        <span>Project Name</span>
+                        <span>Nome Progetto</span>
                     </button>
                 </div>
             </div>
@@ -1151,28 +1196,51 @@
                         date_field: 'bi-calendar',
                         text_info: 'bi-info-circle',
                         separator: 'bi-dash',
+                        awareness_declaration: 'bi-check-circle',
+                        client_dropdown: 'bi-building',
+                        project_name_field: 'bi-folder',
                         doc_upload: 'bi-file-earmark-arrow-up',
                         document: 'bi-file-earmark'
                     };
                     return iconMap[element.element_type] || iconMap[element.type] || 'bi-question-circle';
                 },
 
+                getElementTypeLabel(type) {
+                    const labels = {
+                        'text_field': 'Campo di Testo',
+                        'email_field': 'Email',
+                        'phone_field': 'Telefono',
+                        'date_field': 'Data',
+                        'text_info': 'Testo Informativo',
+                        'separator': 'Separatore',
+                        'awareness_declaration': 'Dichiarazione di Consenso',
+                        'client_dropdown': 'Selettore Cliente',
+                        'project_name_field': 'Nome Progetto',
+                        'doc_upload': 'Caricamento Documento',
+                        'document': 'Documento'
+                    };
+                    return labels[type] || type;
+                },
+
                 addStep() {
+                    const stepNum = this.form.steps.length + 1;
                     this.form.steps.push({
                         id: 'step-' + Date.now(),
-                        title: `Step ${this.form.steps.length + 1}`,
+                        title: `Passaggio ${stepNum}`,
                         description: '',
                         order: this.form.steps.length,
                         required: true,
                         active: true,
                         elements: []
                     });
+                    this.selectStep(this.form.steps.length - 1);
                 },
 
                 deleteStep(index) {
-                    if (confirm('Delete this step?')) {
+                    if (confirm('Eliminare questo passaggio? Verranno rimossi anche tutti i relativi elementi.')) {
                         this.form.steps.splice(index, 1);
                         this.selectedStep = null;
+                        this.selectedElement = null;
                     }
                 },
 
@@ -1192,7 +1260,8 @@
                 },
 
                 addElement(elementType) {
-                    const stepIndex = this.currentStepForElement;
+                    const stepIndex = this.currentStepForElement !== null ? this.currentStepForElement : this.selectedStep;
+                    if (stepIndex === null || !this.form.steps[stepIndex]) return;
                     const step = this.form.steps[stepIndex];
 
                     let newElement;
@@ -1201,7 +1270,7 @@
                         newElement = {
                             id: 'doc-' + Date.now(),
                             type: 'document',
-                            name: 'New Document',
+                            name: 'Nuovo Documento',
                             description: '',
                             required: true,
                             allowed_extensions: 'pdf,docx',
@@ -1220,8 +1289,8 @@
                             element_type: elementType,
                             order: step.elements.length,
                             config: {
-                                label: 'Select Client',
-                                placeholder: '-- Choose Client --',
+                                label: 'Seleziona Cliente',
+                                placeholder: '-- Scegli un Cliente --',
                                 required: true,
                                 allow_new: true
                             }
@@ -1233,9 +1302,43 @@
                             element_type: elementType,
                             order: step.elements.length,
                             config: {
-                                label: 'Project Name',
-                                placeholder: 'Enter project name',
+                                label: 'Nome Progetto',
+                                placeholder: 'Inserisci il nome del progetto',
                                 required: true
+                            }
+                        };
+                    } else if (elementType === 'awareness_declaration') {
+                        newElement = {
+                            id: 'elem-' + Date.now(),
+                            type: 'element',
+                            element_type: elementType,
+                            order: step.elements.length,
+                            config: {
+                                label: 'Dichiaro di aver preso visione e accettato i termini del modulo',
+                                required: true
+                            }
+                        };
+                    } else if (elementType === 'text_info') {
+                        newElement = {
+                            id: 'elem-' + Date.now(),
+                            type: 'element',
+                            element_type: elementType,
+                            order: step.elements.length,
+                            config: {
+                                label: 'Testo Informativo',
+                                text: '',
+                                required: false
+                            }
+                        };
+                    } else if (elementType === 'separator') {
+                        newElement = {
+                            id: 'elem-' + Date.now(),
+                            type: 'element',
+                            element_type: elementType,
+                            order: step.elements.length,
+                            config: {
+                                label: 'Separatore',
+                                required: false
                             }
                         };
                     } else {
@@ -1245,10 +1348,10 @@
                             element_type: elementType,
                             order: step.elements.length,
                             config: {
-                                label: elementType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                                label: this.getElementTypeLabel(elementType),
                                 placeholder: '',
                                 text: '',
-                                required: elementType !== 'separator'
+                                required: true
                             }
                         };
                     }
@@ -1263,7 +1366,12 @@
                 },
 
                 deleteElement(stepIndex, elemIndex) {
-                    this.form.steps[stepIndex].elements.splice(elemIndex, 1);
+                    if (confirm('Eliminare questo elemento dal passaggio?')) {
+                        this.form.steps[stepIndex].elements.splice(elemIndex, 1);
+                        if (this.selectedElement === elemIndex) {
+                            this.selectedElement = null;
+                        }
+                    }
                 },
 
                 selectElement(stepIndex, elemIndex) {
@@ -1307,43 +1415,10 @@
                 dropElementToStep(e, stepIndex) {
                     e.preventDefault();
                     const elementType = e.dataTransfer.getData('elementType');
-                    const sourceInfo = e.dataTransfer.getData('elementInfo');
 
-                    // If dragging from palette (elementType set)
                     if (elementType) {
-                        let newElement;
-                        if (elementType === 'doc_upload') {
-                            newElement = {
-                                id: 'doc-' + Date.now(),
-                                type: 'document',
-                                name: 'Nuovo Documento',
-                                description: '',
-                                required: true,
-                                allowed_extensions: 'pdf,docx',
-                                mime_types: 'application/pdf,application/msword',
-                                max_file_size: 10,
-                                max_files: 200,
-                                destination_subfolder: '',
-                                order: this.form.steps[stepIndex].elements.length,
-                                awareness_text: '',
-                                awareness_required_when_empty: false
-                            };
-                        } else {
-                            newElement = {
-                                id: 'elem-' + Date.now(),
-                                type: 'element',
-                                element_type: elementType,
-                                order: this.form.steps[stepIndex].elements.length,
-                                config: {
-                                    label: elementType.replace('_', ' ').toUpperCase(),
-                                    placeholder: '',
-                                    text: '',
-                                    required: false
-                                }
-                            };
-                        }
-                        this.form.steps[stepIndex].elements.push(newElement);
-                        this.selectElement(stepIndex, this.form.steps[stepIndex].elements.length - 1);
+                        this.currentStepForElement = stepIndex;
+                        this.addElement(elementType);
                     }
                 },
 

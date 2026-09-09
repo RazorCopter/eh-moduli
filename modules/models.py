@@ -321,15 +321,15 @@ class DocumentRequirement(models.Model):
 
 class FormElement(models.Model):
     ELEMENT_TYPE_CHOICES = [
-        ('text_field', 'Text Field'),
-        ('email_field', 'Email Field'),
-        ('phone_field', 'Phone Field'),
-        ('date_field', 'Date Field'),
-        ('text_info', 'Info Text'),
-        ('awareness_declaration', 'Awareness Declaration'),
-        ('separator', 'Separator'),
-        ('client_dropdown', 'Client Selector (from NAS)'),
-        ('project_name_field', 'Project Name Field'),
+        ('text_field', 'Campo di Testo'),
+        ('email_field', 'Campo Email'),
+        ('phone_field', 'Campo Telefono'),
+        ('date_field', 'Campo Data'),
+        ('text_info', 'Testo Informativo'),
+        ('awareness_declaration', 'Dichiarazione di Consenso'),
+        ('separator', 'Separatore'),
+        ('client_dropdown', 'Selettore Cliente (da NAS)'),
+        ('project_name_field', 'Nome Progetto'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

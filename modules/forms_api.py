@@ -57,7 +57,7 @@ def api_form_create(request):
             default_days = getattr(settings, 'FORM_ASSIGNMENT_EXPIRY_DAYS', 30)
 
         form = FormTemplate.objects.create(
-            name=data.get('name', 'Untitled Form'),
+            name=data.get('name', 'Modulo Senza Titolo'),
             description=data.get('description', ''),
             intro_text=data.get('intro_text', ''),
             privacy_text=data.get('privacy_text', ''),
