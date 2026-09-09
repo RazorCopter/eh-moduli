@@ -16,7 +16,8 @@ from django.utils import timezone
 from django.db import transaction
 
 from .models import FormTemplate, DocumentRequirement, FormAssignment, DocumentUpload, AwarenessDeclaration
-from .utils import get_client_ip, get_user_agent, log_action, safe_get_form_data
+from .utils import get_client_ip, get_user_agent, log_action, safe_get_form_data, get_nas_base_path
+from .permissions import validate_assignment_access
 from .upload_security import (
     validate_file_upload_secure,
     validate_absence_declaration_file,
@@ -61,9 +62,12 @@ def published_form_upload(request, form_id):
         return JsonResponse({'error': 'Missing file or requirement'}, status=400)
 
     try:
-        requirement = DocumentRequirement.objects.get(id=requirement_id)
+        requirement = DocumentRequirement.objects.select_related('form_step').get(
+            id=requirement_id,
+            form_step__form_template=form
+        )
     except DocumentRequirement.DoesNotExist:
-        return JsonResponse({'error': 'Requirement not found'}, status=404)
+        return JsonResponse({'error': 'Requirement not found or does not belong to this form'}, status=404)
 
     # Validate file
     errors = validate_file_upload_secure(file, requirement)
@@ -71,7 +75,7 @@ def published_form_upload(request, form_id):
         return JsonResponse({'errors': errors}, status=400)
 
     try:
-        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+        nas_base = get_nas_base_path()
         if form.customer:
             nas_path = os.path.join(
                 nas_base,
@@ -180,10 +184,9 @@ def upload_document_view(request, assignment_id):
     if getattr(request, 'limited', False):
         return JsonResponse({'error': 'Limite di upload superato per questo minuto. Riprova a breve.'}, status=429)
 
-    try:
-        assignment = FormAssignment.objects.get(id=assignment_id)
-    except FormAssignment.DoesNotExist:
-        return JsonResponse({'error': 'Assignment not found'}, status=404)
+    assignment, err_resp = validate_assignment_access(request, assignment_id, require_writable=True)
+    if err_resp:
+        return err_resp
 
     file = request.FILES.get('file')
     requirement_id = request.POST.get('requirement_id')
@@ -212,9 +215,24 @@ def upload_document_view(request, assignment_id):
             return JsonResponse({'error': 'Please complete Step 0 (Client & Project info) first'}, status=400)
 
     try:
-        requirement = DocumentRequirement.objects.get(id=requirement_id)
+        requirement = DocumentRequirement.objects.select_related('form_step').get(
+            id=requirement_id,
+            form_step__form_template_id=assignment.form_template_id
+        )
     except DocumentRequirement.DoesNotExist:
-        return JsonResponse({'error': 'Requirement not found'}, status=404)
+        return JsonResponse({'error': 'Requirement not found or does not belong to this form'}, status=404)
+
+    # Check max_files limit for multi-file additions
+    if requirement.max_files > 1:
+        current_valid_count = DocumentUpload.objects.filter(
+            form_assignment=assignment,
+            document_requirement=requirement,
+            status='valid'
+        ).count()
+        if current_valid_count >= requirement.max_files:
+            return JsonResponse({
+                'error': f'Limite massimo di {requirement.max_files} file già raggiunto per questo documento. Elimina un file prima di aggiungerne un altro.'
+            }, status=400)
 
     # SECURE VALIDATION: checks path traversal, MIME, double extensions, etc
     errors = validate_file_upload_secure(file, requirement)
@@ -224,7 +242,7 @@ def upload_document_view(request, assignment_id):
     try:
         client_name = safe_get_form_data(assignment.form_data, 'client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
         project_name = safe_get_form_data(assignment.form_data, 'project_name') or (getattr(assignment.form_template, 'project_name', None) if assignment.form_template else None) or (assignment.form_template.name if assignment.form_template else None) or 'Progetto'
-        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+        nas_base = get_nas_base_path()
         nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
         os.makedirs(nas_project_path, exist_ok=True)
 
@@ -250,40 +268,43 @@ def upload_document_view(request, assignment_id):
                 'files': bulk_res['files']
             })
 
-        # SECURE SAVE: atomic write, safe paths, restrictive permissions
-        upload = save_uploaded_file_secure(
-            file,
-            assignment,
-            requirement,
-            nas_project_path,
-            request=request
-        )
-
         # If max_files is 1, replace previous file; if max_files > 1, allow multiple files up to limit
         with transaction.atomic():
+            locked_assignment = FormAssignment.objects.select_for_update().get(id=assignment.id)
+
+            if requirement.max_files > 1:
+                current_valid_count = DocumentUpload.objects.filter(
+                    form_assignment=locked_assignment,
+                    document_requirement=requirement,
+                    status='valid'
+                ).count()
+                if current_valid_count >= requirement.max_files:
+                    return JsonResponse({
+                        'error': f'Limite massimo di {requirement.max_files} file già raggiunto per questo documento. Elimina un file prima di aggiungerne un altro.'
+                    }, status=400)
+
+            # SECURE SAVE: atomic write, safe paths, restrictive permissions
+            upload = save_uploaded_file_secure(
+                file,
+                locked_assignment,
+                requirement,
+                nas_project_path,
+                request=request
+            )
+
             # Always supersede any previous 'not_available' justification records for this requirement
             DocumentUpload.objects.filter(
-                form_assignment=assignment,
+                form_assignment=locked_assignment,
                 document_requirement=requirement,
                 availability_status='not_available'
             ).exclude(id=upload.id).update(status='superseded')
 
             if requirement.max_files == 1:
                 DocumentUpload.objects.filter(
-                    form_assignment=assignment,
+                    form_assignment=locked_assignment,
                     document_requirement=requirement,
                     status='valid'
                 ).exclude(id=upload.id).update(status='superseded')
-            else:
-                valid_uploads = DocumentUpload.objects.filter(
-                    form_assignment=assignment,
-                    document_requirement=requirement,
-                    status='valid'
-                ).exclude(id=upload.id).order_by('upload_datetime')
-                if valid_uploads.count() >= requirement.max_files:
-                    excess = valid_uploads.count() - requirement.max_files + 1
-                    oldest_ids = list(valid_uploads.values_list('id', flat=True)[:excess])
-                    DocumentUpload.objects.filter(id__in=oldest_ids).update(status='superseded')
 
             upload.uploaded_by_ip = get_client_ip(request)
             upload.uploaded_by_user_agent = get_user_agent(request)
@@ -295,13 +316,14 @@ def upload_document_view(request, assignment_id):
                     manifest = json.load(f)
             else:
                 manifest = {
-                    'form_name': assignment.form_template.name if assignment.form_template else 'N/A',
+                    'form_name': locked_assignment.form_template.name if locked_assignment.form_template else 'N/A',
                     'customer': client_name,
                     'project': project_name,
-                    'form_assignment_id': str(assignment.id),
+                    'form_assignment_id': str(locked_assignment.id),
                     'uploads': []
                 }
 
+            file_description = request.POST.get('file_description') or request.POST.get('description', '') or requirement.description or ''
             manifest['uploads'].append({
                 'requirement_name': requirement.name,
                 'requirement_description': requirement.description,
@@ -310,12 +332,13 @@ def upload_document_view(request, assignment_id):
                 'file_size': upload.file_size,
                 'sha256': upload.sha256_checksum,
                 'mime_type': upload.mime_type_detected,
-                'upload_datetime': upload.upload_datetime.isoformat(),
-                'uploaded_by_ip': upload.uploaded_by_ip,
+                'description': file_description,
                 'status': 'uploaded',
                 'availability_status': 'uploaded',
+                'is_absence_declaration': False,
+                'upload_datetime': timezone.now().isoformat(),
+                'uploaded_by_ip': get_client_ip(request)
             })
-
             save_manifest_atomic(manifest_path, manifest)
 
         log_action(
@@ -389,10 +412,16 @@ def upload_document_view(request, assignment_id):
 @require_http_methods(["POST"])
 def skip_optional_document(request, assignment_id, requirement_id):
     """Mark a document requirement as not available with reason or formal declaration letter."""
+    assignment, err_resp = validate_assignment_access(request, assignment_id, require_writable=True)
+    if err_resp:
+        return err_resp
+
     try:
-        assignment = FormAssignment.objects.get(id=assignment_id)
-        requirement = DocumentRequirement.objects.get(id=requirement_id)
-    except (FormAssignment.DoesNotExist, DocumentRequirement.DoesNotExist):
+        requirement = DocumentRequirement.objects.select_related('form_step').get(
+            id=requirement_id,
+            form_step__form_template_id=assignment.form_template_id
+        )
+    except DocumentRequirement.DoesNotExist:
         return JsonResponse({'error': 'Documento o pratica non trovata.'}, status=404)
 
     file_obj = request.FILES.get('file') or request.FILES.get('declaration_file')
@@ -403,11 +432,7 @@ def skip_optional_document(request, assignment_id, requirement_id):
             'error': 'Per i documenti obbligatori non disponibili è necessario allegare il giustificativo o una formale dichiarazione su carta intestata timbrata e firmata.'
         }, status=400)
 
-    DocumentUpload.objects.filter(
-        form_assignment=assignment,
-        document_requirement=requirement,
-        status='valid'
-    ).update(status='superseded')
+    final_motive = justification or ('Dichiarazione formale su carta intestata timbrata e firmata' if file_obj else 'Documento non disponibile')
 
     # Case 1: Uploaded formal signed/stamped declaration file
     if file_obj:
@@ -417,13 +442,17 @@ def skip_optional_document(request, assignment_id, requirement_id):
 
         client_name = safe_get_form_data(assignment.form_data, 'client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
         project_name = safe_get_form_data(assignment.form_data, 'project_name') or (getattr(assignment.form_template, 'project_name', None) if assignment.form_template else None) or (assignment.form_template.name if assignment.form_template else None) or 'Progetto'
-        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+        nas_base = get_nas_base_path()
         nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
         os.makedirs(nas_project_path, exist_ok=True)
 
-        final_motive = justification or 'Dichiarazione formale su carta intestata timbrata e firmata'
-
         with transaction.atomic():
+            # Mark existing valid uploads as superseded ONLY after successful validation
+            DocumentUpload.objects.filter(
+                form_assignment=assignment,
+                document_requirement=requirement,
+                status='valid'
+            ).update(status='superseded')
             upload = save_uploaded_file_secure(
                 file_obj,
                 assignment,
@@ -497,10 +526,13 @@ def skip_optional_document(request, assignment_id, requirement_id):
             'is_declaration_file': True
         })
 
-    # Case 2: Declarative textual justification
-    final_motive = justification or 'Documento facoltativo non inserito'
-
+    # Case 2: Only justification text
     with transaction.atomic():
+        DocumentUpload.objects.filter(
+            form_assignment=assignment,
+            document_requirement=requirement,
+            status='valid'
+        ).update(status='superseded')
         DocumentUpload.objects.create(
             form_assignment=assignment,
             document_requirement=requirement,
@@ -530,7 +562,7 @@ def skip_optional_document(request, assignment_id, requirement_id):
 
         client_name = safe_get_form_data(assignment.form_data, 'client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
         project_name = safe_get_form_data(assignment.form_data, 'project_name') or ''
-        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+        nas_base = get_nas_base_path()
         manifest_path = os.path.join(nas_base, client_name, project_name, 'manifest.json')
         if os.path.exists(manifest_path):
             with open(manifest_path, 'r', encoding='utf-8') as f:
@@ -565,10 +597,13 @@ def skip_optional_document(request, assignment_id, requirement_id):
 @require_http_methods(["POST"])
 def delete_upload_view(request, assignment_id, upload_id):
     """Delete or mark superseded an uploaded file from an assignment."""
+    assignment, err_resp = validate_assignment_access(request, assignment_id, require_writable=True)
+    if err_resp:
+        return err_resp
+
     try:
-        assignment = FormAssignment.objects.get(id=assignment_id)
         upload = DocumentUpload.objects.get(id=upload_id, form_assignment=assignment)
-    except (FormAssignment.DoesNotExist, DocumentUpload.DoesNotExist):
+    except DocumentUpload.DoesNotExist:
         return JsonResponse({'error': 'File o pratica non trovata.'}, status=404)
 
     req_id = upload.document_requirement_id

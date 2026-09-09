@@ -1,0 +1,99 @@
+# Isolated Test Environment for EHModuli
+# Uses real PostgreSQL 15 and Redis 7 on Docker with named volumes.
+# Zero production data or Synology paths used.
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: "no"
+    environment:
+      POSTGRES_DB: test_document_collector
+      POSTGRES_USER: test_collector_user
+      POSTGRES_PASSWORD: test_db_password_2026
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: Europe/Rome
+    volumes:
+      - test_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_collector_user -d test_document_collector"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - test-network
+
+  redis:
+    image: redis:7-alpine
+    restart: "no"
+    command: ["redis-server", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+    volumes:
+      - test_redisdata:/data
+    networks:
+      - test-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APPUSER_UID: 1000
+        APPUSER_GID: 1000
+    restart: "no"
+    environment:
+      DEBUG: "False"
+      ENVIRONMENT: test
+      SECRET_KEY: test_secret_key_isolated_docker_collaudo_2026_xyz_safe
+      USE_SQLITE: "False"
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: test_document_collector
+      POSTGRES_USER: test_collector_user
+      POSTGRES_PASSWORD: test_db_password_2026
+      REDIS_URL: redis://redis:6379/0
+      RATELIMIT_ENABLE: "True"
+      ALLOWED_HOSTS: localhost,127.0.0.1,app,0.0.0.0
+      CSRF_TRUSTED_ORIGINS: http://localhost:6060,http://127.0.0.1:6060
+      APP_PORT: 6060
+      APP_VERSION: 3.0.0-test
+      GUNICORN_WORKERS: 3
+      GUNICORN_TIMEOUT: 60
+      CUSTOMER_DOCUMENTS_PATH: /storage/clienti
+      CUSTOMER_DOCUMENTS_CONTAINER_PATH: /storage/clienti
+      APP_DATA_PATH: /app/data
+      APP_LOGS_PATH: /app/data/logs
+      CREATE_SUPERUSER: "true"
+      DJANGO_SUPERUSER_USERNAME: admin
+      DJANGO_SUPERUSER_EMAIL: admin@etichub.com
+      DJANGO_SUPERUSER_PASSWORD: etichub26
+      SECURE_SSL_REDIRECT: "False"
+      SESSION_COOKIE_SECURE: "False"
+      CSRF_COOKIE_SECURE: "False"
+    ports:
+      - "6060:8000"
+    volumes:
+      - test_appdata:/app/data
+      - test_clienti:/storage/clienti
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  test_pgdata:
+  test_redisdata:
+  test_appdata:
+  test_clienti:

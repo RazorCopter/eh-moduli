@@ -27,6 +27,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-me-in-production')
 DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+is_production = ENVIRONMENT == 'production'
+
+if is_production and (not os.getenv('SECRET_KEY') or os.getenv('SECRET_KEY') in ('django-insecure-change-me-in-production', 'change-me-in-production')):
+    raise RuntimeError("CRITICAL SECURITY CONFIGURATION: In production (ENVIRONMENT=production), SECRET_KEY must be explicitly set and cannot be the default insecure placeholder.")
 
 logger = logging.getLogger('django')
 
@@ -77,13 +81,27 @@ WSGI_APPLICATION = 'app.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+import sys
+_is_running_tests = 'test' in sys.argv
 
-if ENVIRONMENT == 'development' and os.getenv('USE_SQLITE', 'False').lower() == 'true':
+_has_postgres_driver = False
+try:
+    import psycopg  # type: ignore
+    _has_postgres_driver = True
+except ImportError:
+    try:
+        import psycopg2  # type: ignore
+        _has_postgres_driver = True
+    except ImportError:
+        _has_postgres_driver = False
+
+if (_is_running_tests and os.getenv('USE_POSTGRES_FOR_TESTS', 'False').lower() != 'true') or (ENVIRONMENT == 'development' and os.getenv('USE_SQLITE', 'False').lower() == 'true') or not _has_postgres_driver:
+    if not _has_postgres_driver and not _is_running_tests:
+        logger.warning("PostgreSQL driver (psycopg/psycopg2) not detected on host. Falling back to SQLite for local execution.")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': ':memory:' if _is_running_tests else (BASE_DIR / 'db.sqlite3'),
         }
     }
 else:
@@ -295,23 +313,64 @@ _csrf_set.update([
 CSRF_TRUSTED_ORIGINS = sorted(list(_csrf_set))
 
 # ==========================================================
-# Caches & Rate Limiting
+# Caches & Rate Limiting (Multi-worker support with atomic Redis backend)
 # ==========================================================
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'ehmoduli-cache',
-    }
-}
-
 import sys
 _is_running_tests = 'test' in sys.argv
-RATELIMIT_ENABLE = (not _is_running_tests) and (os.getenv('RATELIMIT_ENABLE', 'True' if is_production else 'False').lower() == 'true')
+
+REDIS_URL = os.getenv('REDIS_URL', '').strip()
+_use_redis_for_tests = os.getenv('USE_REDIS_FOR_TESTS', 'False').lower() == 'true'
+if REDIS_URL and (not _is_running_tests or _use_redis_for_tests):
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+            'TIMEOUT': 300,
+        },
+        'ratelimit': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+            'TIMEOUT': 300,
+        },
+    }
+    RATELIMIT_USE_CACHE = 'ratelimit'
+elif is_production and not _is_running_tests:
+    logger.warning(
+        'REDIS_URL is not set in production! Multi-worker rate limiting requires '
+        'a shared atomic backend like Redis. Falling back to LocMemCache.'
+    )
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'ehmoduli-prod-default',
+        },
+        'ratelimit': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'ehmoduli-prod-ratelimit',
+        },
+    }
+    RATELIMIT_USE_CACHE = 'ratelimit'
+else:
+    # Test runner or local development fallback
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'ehmoduli-local-default',
+        },
+        'ratelimit': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'ehmoduli-local-ratelimit',
+        },
+    }
+    RATELIMIT_USE_CACHE = 'ratelimit'
+
+RATELIMIT_ENABLE = (not _is_running_tests or _use_redis_for_tests) and (os.getenv('RATELIMIT_ENABLE', 'True' if is_production else 'False').lower() == 'true')
+
 
 # ==========================================================
 # Session & Cookie Security
 # ==========================================================
-SESSION_COOKIE_SECURE = is_production and os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+SESSION_COOKIE_SECURE = is_production and os.getenv('SESSION_COOKIE_SECURE', 'True' if is_production else 'False').lower() == 'true'
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = 'Lax'
 
@@ -322,7 +381,7 @@ try:
 except (ValueError, TypeError):
     SESSION_COOKIE_AGE = _default_session_age
 
-CSRF_COOKIE_SECURE = is_production and os.getenv('CSRF_COOKIE_SECURE', 'False').lower() == 'true'
+CSRF_COOKIE_SECURE = is_production and os.getenv('CSRF_COOKIE_SECURE', 'True' if is_production else 'False').lower() == 'true'
 CSRF_COOKIE_HTTPONLY = False  # Allows standard Django CSRF token synchronization
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_FAILURE_VIEW = 'modules.views_client.csrf_failure_view'
@@ -334,7 +393,7 @@ LOGIN_REDIRECT_URL = 'admin_dashboard'
 # ==========================================================
 # Version & Build Info
 # ==========================================================
-APP_VERSION = os.getenv('APP_VERSION', '2.2.0')
+APP_VERSION = os.getenv('APP_VERSION', '3.0.0')
 GIT_COMMIT = os.getenv('GIT_COMMIT', 'unknown')
 BUILD_DATE = os.getenv('BUILD_DATE', 'unknown')
 

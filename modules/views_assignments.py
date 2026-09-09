@@ -17,7 +17,8 @@ from .models import (
 )
 from .utils import (
     log_action, get_client_ip, get_user_agent,
-    generate_secure_token, safe_get_form_data, is_ajax_request
+    generate_secure_token, safe_get_form_data, is_ajax_request,
+    get_nas_base_path
 )
 from .upload_security import safe_join_paths, save_manifest_atomic
 
@@ -107,7 +108,7 @@ def assign_form_to_customer(request):
 
         expiry_date = timezone.now() + timezone.timedelta(days=days)
 
-        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+        nas_base = get_nas_base_path()
         nas_project_path = str(safe_join_paths(nas_base, customer.nas_folder_name, project_name))
         try:
             os.makedirs(nas_project_path, exist_ok=True)
@@ -417,12 +418,12 @@ def assignment_update_status(request, pk):
     if new_status == 'completed':
         try:
             from .report_generator import generate_form_receipt_pdf
-            nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+            nas_base = get_nas_base_path()
             client_name = safe_get_form_data(assignment.form_data, 'client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
             project_name = safe_get_form_data(assignment.form_data, 'project_name') or (getattr(assignment.form_template, 'project_name', None) if assignment.form_template else None) or (assignment.form_template.name if assignment.form_template else None) or 'Progetto'
             nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
             os.makedirs(nas_project_path, exist_ok=True)
-            pdf_path = str(safe_join_paths(nas_project_path, 'Report_Ricezione_Documenti.pdf'))
+            pdf_path = str(safe_join_paths(nas_project_path, f'Report_Ricezione_Documenti_{assignment.id}.pdf'))
             generate_form_receipt_pdf(assignment.form_template, assignment, pdf_path, client_ip=get_client_ip(request))
         except Exception as e:
             logger.warning(f"Could not auto-generate completed PDF receipt for assignment {assignment.id}: {e}")

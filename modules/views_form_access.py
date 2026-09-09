@@ -2,6 +2,7 @@
 Views for customer form access, token verification, step navigation, and summaries.
 """
 
+import json
 import logging
 from itertools import chain
 
@@ -9,10 +10,12 @@ from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
+from django.db import transaction
 from django.db.models import Prefetch
 from django.conf import settings
 
 from .models import FormTemplate, FormStep, FormElement, DocumentRequirement, FormAssignment
+from .permissions import validate_assignment_access
 from .client_i18n import get_translation_context
 from .utils import get_client_ip, get_user_agent, log_action, safe_get_form_data
 
@@ -151,6 +154,11 @@ def get_form_by_token(request, token):
     try:
         assignment = FormAssignment.objects.get(secure_token=token)
 
+        if assignment.customer and not assignment.customer.active:
+            is_staff = request.user.is_authenticated and (request.user.is_staff or getattr(request.user, 'role', '') in ('admin', 'operator'))
+            if not is_staff:
+                return render(request, 'modules/form_not_found.html', {'error': "L'anagrafica cliente associata a questa pratica è disattivata.", 'is_public_form': True}, status=403)
+
         if assignment.is_expired():
             assignment.status = 'expired'
             assignment.save()
@@ -232,17 +240,12 @@ def get_form_by_token(request, token):
 @require_http_methods(["GET", "POST"])
 def form_step_view(request, assignment_id, step_order):
     """View and navigate specific step of an assigned form."""
-    try:
-        assignment = FormAssignment.objects.get(id=assignment_id)
-    except FormAssignment.DoesNotExist:
-        return JsonResponse({'error': 'Assignment not found'}, status=404)
+    assignment, err_resp = validate_assignment_access(request, assignment_id, require_writable=(request.method == 'POST'), allow_password_redirect=(request.method == 'GET'))
+    if err_resp:
+        return err_resp
 
-    # Password check
-    token_key = f'assignment_access_{assignment.id}_{assignment.secure_token}'
-    legacy_key = f'assignment_access_{assignment.id}'
-    has_access = request.session.get(token_key, False) or request.session.get(legacy_key, False)
-    if assignment.has_access_password() and not has_access:
-        return redirect('get_form_by_token', token=assignment.secure_token)
+    if request.method == 'GET' and assignment.status in ('submitted', 'in_processing', 'completed'):
+        return redirect('form_summary_view', assignment_id=assignment.id)
 
     steps = list(assignment.form_template.formstep_set.all().prefetch_related(
         Prefetch('formelement_set', queryset=FormElement.objects.order_by('order')),
@@ -277,10 +280,29 @@ def form_step_view(request, assignment_id, step_order):
     combined_items = sorted(chain(elements, documents), key=lambda x: x.order)
 
     if request.method == 'POST':
-        assignment.last_completed_step = step
-        assignment.status = 'in_progress'
-        assignment.save()
-        return JsonResponse({'status': 'ok'})
+        with transaction.atomic():
+            locked_assignment = FormAssignment.objects.select_for_update().get(id=assignment.id)
+            form_data = locked_assignment.form_data or {}
+            answers = form_data.setdefault('answers', {})
+            for key, val in request.POST.items():
+                if key.startswith('element_'):
+                    elem_id = key.replace('element_', '')
+                    answers[elem_id] = val
+                elif key == 'answers':
+                    try:
+                        parsed = json.loads(val) if isinstance(val, str) else val
+                        if isinstance(parsed, dict):
+                            answers.update(parsed)
+                    except Exception:
+                        pass
+                elif key not in ('csrfmiddlewaretoken', 'action_type'):
+                    answers[key] = val
+            locked_assignment.form_data = form_data
+            locked_assignment.last_completed_step = step
+            if locked_assignment.status == 'draft':
+                locked_assignment.status = 'in_progress'
+            locked_assignment.save(update_fields=['form_data', 'last_completed_step', 'status'])
+            return JsonResponse({'status': 'ok', 'saved_answers': answers})
 
     # GET: Prepare context
     try:
@@ -307,6 +329,7 @@ def form_step_view(request, assignment_id, step_order):
         existing_uploads_grouped[req_id_str].append(upload)
 
     trans_ctx = get_translation_context(request)
+    saved_answers = (assignment.form_data or {}).get('answers', {})
     context = {
         'assignment': assignment,
         'step': step,
@@ -319,6 +342,7 @@ def form_step_view(request, assignment_id, step_order):
         'next_step': next_step,
         'existing_uploads': existing_uploads,
         'existing_uploads_grouped': existing_uploads_grouped,
+        'saved_answers': saved_answers,
         'is_public_form': True,
         **trans_ctx,
     }
@@ -329,17 +353,9 @@ def form_step_view(request, assignment_id, step_order):
 @require_http_methods(["GET"])
 def form_summary_view(request, assignment_id):
     """Review all uploaded documents and absence declarations before final submission."""
-    try:
-        assignment = FormAssignment.objects.get(id=assignment_id)
-    except FormAssignment.DoesNotExist:
-        return JsonResponse({'error': 'Assignment not found'}, status=404)
-
-    # Password protection check
-    token_key = f'assignment_access_{assignment.id}_{assignment.secure_token}'
-    legacy_key = f'assignment_access_{assignment.id}'
-    has_access = request.session.get(token_key, False) or request.session.get(legacy_key, False)
-    if assignment.has_access_password() and not has_access:
-        return redirect('get_form_by_token', token=assignment.secure_token)
+    assignment, err_resp = validate_assignment_access(request, assignment_id, require_writable=False, allow_password_redirect=True)
+    if err_resp:
+        return err_resp
 
     uploads = assignment.documentupload_set.filter(status='valid')
     declarations = assignment.awarenessdeclaration_set.filter(accepted=True)

@@ -9,10 +9,11 @@ import secrets
 import tempfile
 import traceback
 import logging
+from datetime import datetime
 from itertools import chain
 
 from django.shortcuts import render, redirect
-from django.http import JsonResponse, HttpResponseForbidden, Http404, FileResponse
+from django.http import JsonResponse, HttpResponseForbidden, Http404, FileResponse, HttpResponseBadRequest, HttpResponseNotFound
 from django.views.decorators.http import require_http_methods
 from django.utils import timezone
 from django.contrib import messages
@@ -23,7 +24,8 @@ from .models import (
     FormTemplate, FormStep, FormElement, DocumentRequirement,
     FormAssignment, AwarenessDeclaration, NotificationLog
 )
-from .utils import get_client_ip, get_user_agent, log_action, safe_get_form_data, is_ajax_request
+from .permissions import validate_assignment_access
+from .utils import get_client_ip, get_user_agent, log_action, safe_get_form_data, is_ajax_request, get_nas_base_path
 from .upload_security import safe_join_paths, save_manifest_atomic
 from .report_generator import generate_form_receipt_pdf, generate_submission_pdf
 
@@ -38,21 +40,35 @@ def published_form_receipt(request, form_id):
     except (FormTemplate.DoesNotExist, ValueError):
         raise Http404("Modulo non trovato")
 
-    is_staff = request.user.is_authenticated and (request.user.is_staff or getattr(request.user, 'role', '') == 'admin')
-    has_assignment_access = any(k.startswith('assignment_access_') and v is True for k, v in request.session.items())
+    is_staff = request.user.is_authenticated and (request.user.is_staff or getattr(request.user, 'role', '') in ('admin', 'operator'))
     session_key = f'form_access_{form_id}'
+    has_form_access = bool(request.session.get(session_key, False))
 
-    if not request.session.get(session_key, False) and not is_staff and not has_assignment_access:
+    # Check if user has access via assignment for this specific form
+    has_assignment_access = False
+    for k, v in request.session.items():
+        if k.startswith('assignment_access_') and v:
+            parts = k.split('_')
+            if len(parts) >= 3:
+                try:
+                    ass_id = int(parts[2])
+                    if FormAssignment.objects.filter(id=ass_id, form_template_id=form_id).exists():
+                        has_assignment_access = True
+                        break
+                except (ValueError, TypeError):
+                    pass
+
+    if not is_staff and not has_form_access and not has_assignment_access:
         return HttpResponseForbidden("Accesso non autorizzato. Effettua prima l'accesso con password.")
 
-    nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+    nas_base = get_nas_base_path()
     customer_folder = form.customer.nas_folder_name if form.customer else '_generic'
     project_folder = form.project_name if form.project_name else str(form.id)
     nas_project_path = os.path.join(nas_base, customer_folder, project_folder)
     pdf_path = os.path.join(nas_project_path, 'Report_Ricezione_Documenti.pdf')
 
     if not os.path.exists(pdf_path):
-        raise Http404("Il report PDF non è stato ancora generato per questo modulo.")
+        raise Http404("Il report PDF non è stato ancora generato.")
 
     try:
         safe_title = "".join(c for c in form.name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
@@ -66,24 +82,18 @@ def published_form_receipt(request, form_id):
 @require_http_methods(["GET"])
 def assignment_receipt(request, assignment_id):
     """Download the official PDF report receipt for a submitted assignment."""
-    try:
-        assignment = FormAssignment.objects.get(id=assignment_id)
-    except (FormAssignment.DoesNotExist, ValueError):
-        raise Http404("Pratica non trovata")
+    assignment, err_resp = validate_assignment_access(request, assignment_id, require_writable=False)
+    if err_resp:
+        return err_resp
 
-    is_staff = request.user.is_authenticated and (request.user.is_staff or getattr(request.user, 'role', '') == 'admin')
-    token_session_key = f'assignment_access_{assignment.id}_{assignment.secure_token}'
-    legacy_session_key = f'assignment_access_{assignment.id}'
-    has_access = bool(request.session.get(token_session_key, False) or request.session.get(legacy_session_key, False))
-
-    if assignment.has_access_password() and not has_access and not is_staff:
-        return HttpResponseForbidden("Accesso non autorizzato. Effettua prima l'accesso con password.")
-
-    nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+    nas_base = get_nas_base_path()
     client_name = safe_get_form_data(assignment.form_data, 'client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
     project_name = safe_get_form_data(assignment.form_data, 'project_name') or ''
     nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
-    pdf_path = str(safe_join_paths(nas_project_path, 'Report_Ricezione_Documenti.pdf'))
+
+    pdf_filename = f'Report_Ricezione_Documenti_{assignment.id}.pdf'
+    pdf_path = str(safe_join_paths(nas_project_path, pdf_filename))
+    legacy_pdf_path = str(safe_join_paths(nas_project_path, 'Report_Ricezione_Documenti.pdf'))
 
     try:
         os.makedirs(nas_project_path, exist_ok=True)
@@ -91,14 +101,15 @@ def assignment_receipt(request, assignment_id):
     except Exception as e:
         logger.warning(f"Could not generate/update PDF receipt on demand: {e}")
 
-    if not os.path.exists(pdf_path):
+    actual_pdf_path = pdf_path if os.path.exists(pdf_path) else (legacy_pdf_path if os.path.exists(legacy_pdf_path) else None)
+    if not actual_pdf_path:
         raise Http404("Il report PDF non è stato ancora generato per questa pratica.")
 
     try:
         template_name = assignment.form_template.name if assignment.form_template else "Modulo"
         safe_title = "".join(c for c in template_name if c.isalnum() or c in (' ', '_', '-')).strip().replace(' ', '_')
         filename = f"Ricevuta_{safe_title}.pdf"
-        return FileResponse(open(pdf_path, 'rb'), content_type='application/pdf', as_attachment=True, filename=filename)
+        return FileResponse(open(actual_pdf_path, 'rb'), content_type='application/pdf', as_attachment=True, filename=filename)
     except (IOError, OSError) as e:
         logger.error(f'File download error for assignment_receipt {assignment_id}: {e}')
         raise Http404("Il file PDF non può essere scaricato. Per favore, contatta l'amministratore.")
@@ -107,23 +118,38 @@ def assignment_receipt(request, assignment_id):
 @require_http_methods(["POST"])
 def form_submission_view(request, assignment_id):
     """Complete or partial submission of an assignment by the customer."""
-    try:
-        assignment = FormAssignment.objects.get(id=assignment_id)
-    except FormAssignment.DoesNotExist:
-        return JsonResponse({'error': 'Assignment not found'}, status=404)
+    assignment, err_resp = validate_assignment_access(request, assignment_id, require_writable=True)
+    if err_resp:
+        return err_resp
 
-    # Password protection check
-    token_key = f'assignment_access_{assignment.id}_{assignment.secure_token}'
-    legacy_key = f'assignment_access_{assignment.id}'
-    has_access = request.session.get(token_key, False) or request.session.get(legacy_key, False)
-    if assignment.has_access_password() and not has_access:
-        return redirect('get_form_by_token', token=assignment.secure_token)
+    action_type = request.POST.get('action_type')
+    if not action_type:
+        if is_ajax_request(request):
+            return JsonResponse({'error': 'Azione non valida. Specificare action_type partial o complete.'}, status=400)
+        action_type = 'complete'
 
-    action_type = request.POST.get('action_type', 'complete')
+    action_type = action_type.strip()
+    if action_type not in ('partial', 'complete'):
+        return JsonResponse({'error': 'Azione non valida. Specificare action_type partial o complete.'}, status=400) if is_ajax_request(request) else HttpResponseBadRequest("Azione non valida.")
 
     # Partial / Draft save
     if action_type == 'partial':
         try:
+            form_data = assignment.form_data or {}
+            answers = form_data.setdefault('answers', {})
+            for key, val in request.POST.items():
+                if key.startswith('element_'):
+                    elem_id = key.replace('element_', '')
+                    answers[elem_id] = val
+                elif key == 'answers':
+                    try:
+                        parsed = json.loads(val) if isinstance(val, str) else val
+                        if isinstance(parsed, dict):
+                            answers.update(parsed)
+                    except Exception:
+                        pass
+            assignment.form_data = form_data
+
             if assignment.status != 'submitted':
                 assignment.status = 'in_progress'
                 total_reqs_qs = DocumentRequirement.objects.filter(form_step__form_template=assignment.form_template)
@@ -135,7 +161,7 @@ def form_submission_view(request, assignment_id):
                     assignment.completion_percentage = min(45, max(10, int((valid_count / total_reqs) * 50)))
                 else:
                     assignment.completion_percentage = 10
-                assignment.save(update_fields=['status', 'completion_percentage'])
+                assignment.save(update_fields=['status', 'completion_percentage', 'form_data'])
 
             try:
                 cust_id_str = str(assignment.customer.id) if assignment.customer else ''
@@ -164,10 +190,58 @@ def form_submission_view(request, assignment_id):
 
     # Final Complete Submission
     awareness_accepted = request.POST.get('awareness_declaration') in ('true', '1', 'on', True)
-    if request.POST.get('action_type') == 'complete' and not awareness_accepted:
+    if not awareness_accepted:
         if is_ajax_request(request):
             return JsonResponse({'error': 'La dichiarazione di consapevolezza documentale è obbligatoria per l\'invio definitivo.'}, status=400)
-        messages.error(request, 'È necessario confermare la dichiarazione di consapevolezza prima di inviare i documenti.')
+        if 'action_type' in request.POST:
+            messages.error(request, 'È necessario confermare la dichiarazione di consapevolezza prima di inviare i documenti.')
+            return redirect(f'/modules/form/{assignment.id}/summary/')
+
+    # Validate all mandatory DocumentRequirements are fulfilled (uploaded or declared absent)
+    mandatory_reqs = DocumentRequirement.objects.filter(
+        form_step__form_template=assignment.form_template,
+        form_step__active=True,
+        required=True
+    )
+    fulfilled_req_ids = set(
+        assignment.documentupload_set.filter(
+            status='valid',
+            document_requirement__isnull=False
+        ).values_list('document_requirement_id', flat=True)
+    )
+    missing_reqs = [req for req in mandatory_reqs if req.id not in fulfilled_req_ids]
+    if missing_reqs:
+        req_names = ", ".join(f'"{r.name}"' for r in missing_reqs)
+        msg = f'Documenti obbligatori mancanti: {req_names}. Caricare i documenti richiesti o allegare la relativa dichiarazione di assenza prima dell\'invio.'
+        if is_ajax_request(request):
+            return JsonResponse({'error': msg, 'missing_requirements': [str(r.id) for r in missing_reqs]}, status=400)
+        messages.error(request, msg)
+        return redirect(f'/modules/form/{assignment.id}/summary/')
+
+    # Validate all mandatory FormElements are filled
+    elements = FormElement.objects.filter(
+        form_step__form_template=assignment.form_template,
+        form_step__active=True
+    )
+    saved_answers = (assignment.form_data or {}).get('answers', {})
+    missing_elements = []
+    for elem in elements:
+        elem_cfg = elem.config or {}
+        if elem_cfg.get('required') in (True, 'true', '1', 1):
+            elem_key = str(elem.id)
+            elem_name = elem_cfg.get('name')
+            val = request.POST.get(f'element_{elem_key}') or saved_answers.get(elem_key)
+            if not val and elem_name:
+                val = request.POST.get(f'element_{elem_name}') or saved_answers.get(str(elem_name))
+            if val is None or (isinstance(val, str) and not val.strip()):
+                missing_elements.append(elem_cfg.get('label') or elem_cfg.get('name') or elem.element_type)
+
+    if missing_elements:
+        elem_names = ", ".join(f'"{name}"' for name in missing_elements)
+        msg = f'Campi obbligatori non compilati: {elem_names}. Completare tutti i campi obbligatori prima dell\'invio definitivo.'
+        if is_ajax_request(request):
+            return JsonResponse({'error': msg, 'missing_elements': missing_elements}, status=400)
+        messages.error(request, msg)
         return redirect(f'/modules/form/{assignment.id}/summary/')
 
     try:
@@ -199,12 +273,12 @@ def form_submission_view(request, assignment_id):
             logger.warning(f"Could not create notification log on submit: {notif_err}")
 
         try:
-            nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+            nas_base = get_nas_base_path()
             client_name = safe_get_form_data(assignment.form_data, 'client_name') or (assignment.customer.nas_folder_name if assignment.customer else '_generic')
             project_name = safe_get_form_data(assignment.form_data, 'project_name') or ''
             nas_project_path = str(safe_join_paths(nas_base, client_name, project_name))
             os.makedirs(nas_project_path, exist_ok=True)
-            pdf_path = str(safe_join_paths(nas_project_path, 'Report_Ricezione_Documenti.pdf'))
+            pdf_path = str(safe_join_paths(nas_project_path, f'Report_Ricezione_Documenti_{assignment.id}.pdf'))
             generate_form_receipt_pdf(assignment.form_template, assignment, pdf_path, client_ip=get_client_ip(request))
         except Exception as e:
             logger.warning(f"Could not generate PDF receipt on assignment submit: {e}")
@@ -250,7 +324,7 @@ def published_form_submit(request, form_id):
         }, status=401)
 
     try:
-        nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+        nas_base = get_nas_base_path()
         customer_folder = form.customer.nas_folder_name if form.customer else '_generic'
         project_folder = form.project_name if form.project_name else str(form.id)
         nas_project_path = os.path.join(nas_base, customer_folder, project_folder)

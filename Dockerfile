@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Build arguments for user customization (especially for Synology UID alignment)
 ARG APPUSER_UID=1000
@@ -34,7 +34,7 @@ RUN if ! getent group ${APPUSER_GID} >/dev/null; then \
 # Create and set permissions on necessary directories
 # These will be overridden by bind mounts, but need to exist with correct permissions
 RUN mkdir -p /app/data /app/staticfiles /storage/clienti && \
-    chown -R ${APPUSER_UID}:${APPUSER_GID} /app
+    chown -R ${APPUSER_UID}:${APPUSER_GID} /app /storage/clienti
 
 # Switch to non-root user
 USER appuser

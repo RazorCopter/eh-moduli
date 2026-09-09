@@ -9,13 +9,33 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         :root {
-            --primary: #0d6efd;
+            --primary: #BA3D30;
+            --primary-hover: #96261B;
+            --primary-focus: rgba(186, 61, 48, 0.2);
             --secondary: #6c757d;
             --success: #198754;
             --danger: #dc3545;
             --warning: #ffc107;
             --light: #f8f9fa;
             --dark: #212529;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        textarea:focus-visible,
+        a:focus-visible {
+            outline: 2px solid var(--primary) !important;
+            outline-offset: 2px !important;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spin {
+            display: inline-block;
+            animation: spin 1s linear infinite;
         }
 
         * {
@@ -150,16 +170,16 @@
         }
 
         .btn-save {
-            background: linear-gradient(135deg, var(--primary), #0b5ed7);
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
             color: white;
             border-color: var(--primary);
-            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+            box-shadow: 0 2px 8px rgba(186, 61, 48, 0.25);
         }
 
         .btn-save:hover {
-            background: linear-gradient(135deg, #0b5ed7, #0a58ca);
+            background: linear-gradient(135deg, var(--primary-hover), #7a1d13);
             transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(13, 110, 253, 0.4);
+            box-shadow: 0 4px 16px rgba(186, 61, 48, 0.35);
         }
 
         .btn-save:active {
@@ -170,13 +190,13 @@
             background: white;
             color: var(--primary);
             border: 2px solid var(--primary);
-            box-shadow: 0 2px 8px rgba(13, 110, 253, 0.1);
+            box-shadow: 0 2px 8px rgba(186, 61, 48, 0.1);
         }
 
         .btn-preview:hover {
-            background: #e7f1ff;
+            background: #fdf2f2;
             transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(13, 110, 253, 0.2);
+            box-shadow: 0 4px 16px rgba(186, 61, 48, 0.2);
         }
 
         .btn-preview:active {
@@ -677,10 +697,20 @@
                 <input type="text" class="form-title-inline" x-model="form.name" placeholder="Form Title" @blur="autoSave()">
                 <span class="form-status" :class="form.status">
                     <i :class="form.status === 'published' ? 'bi-check-circle' : 'bi-pencil'"></i>
-                    <span x-text="form.status === 'published' ? 'Published' : 'Draft'"></span>
+                    <span x-text="form.status === 'published' ? 'Pubblicato' : 'Bozza'"></span>
                 </span>
+                <template x-if="form.status === 'published'">
+                    <span class="badge bg-secondary-subtle text-secondary border d-inline-flex align-items-center gap-1 px-2 py-1 rounded-pill" style="font-size: 0.78rem; font-weight: 600;" title="I moduli pubblicati con assegnazioni attive sono protetti contro modifiche accidentali">
+                        <i class="bi bi-lock-fill text-muted"></i> Versione Immutabile
+                    </span>
+                </template>
+                <div class="save-status-indicator d-inline-flex align-items-center gap-1 ms-2 px-2 py-1 rounded" style="font-size: 0.8rem; min-width: 90px;" aria-live="polite">
+                    <span x-show="saveStatus === 'saving'" class="text-muted"><i class="bi bi-arrow-repeat spin"></i> Salvataggio...</span>
+                    <span x-show="saveStatus === 'saved'" class="text-success"><i class="bi bi-check2-circle"></i> Salvato</span>
+                    <span x-show="saveStatus === 'error'" class="text-danger"><i class="bi bi-exclamation-circle"></i> Non salvato</span>
+                </div>
                 <div class="d-inline-flex align-items-center gap-1 px-2 py-1 rounded ms-2" style="background: #F8F7F5; border: 1px solid #EAE6E1; font-size: 0.85rem;" title="Validità predefinita della pratica (giorni) proposta quando si assegna il modulo a un cliente">
-                    <i class="bi bi-clock-history" style="color: #E8847D;"></i>
+                    <i class="bi bi-clock-history" style="color: #BA3D30;"></i>
                     <span style="color: #6c757d; font-size: 0.78rem; font-weight: 500;">TTL Pratica:</span>
                     <input type="number" min="1" max="365" style="width: 52px; height: 26px; padding: 2px 4px; border: 1px solid #D0D5DD; border-radius: 6px; font-weight: 600; text-align: center; font-size: 0.82rem;" x-model.number="form.default_expiry_days" placeholder="30">
                     <span style="color: #6c757d; font-size: 0.78rem; font-weight: 500;">gg</span>
@@ -1066,6 +1096,8 @@
                     status: '{{ template.status|escapejs }}',
                     steps: []
                 },
+                saveStatus: 'idle', // 'idle' | 'saving' | 'saved' | 'error'
+                autoSaveTimer: null,
                 selectedStep: null,
                 selectedElement: null,
                 showElementModal: false,
@@ -1367,8 +1399,9 @@
                     return mimes.join(',');
                 },
 
-                async save() {
+                async save(silent = false) {
                     try {
+                        this.saveStatus = 'saving';
                         // Sincronizza i MIME type corrispondenti alle estensioni ammesse per ogni documento
                         if (this.form && this.form.steps) {
                             this.form.steps.forEach(step => {
@@ -1395,17 +1428,33 @@
                         });
                         const result = await response.json();
                         if (result.success) {
-                            alert('Form saved successfully!');
+                            this.saveStatus = 'saved';
+                            setTimeout(() => {
+                                if (this.saveStatus === 'saved') this.saveStatus = 'idle';
+                            }, 3000);
+                            if (!silent) {
+                                // feedback visivo immediato senza alert bloccante
+                            }
                         } else {
-                            alert('Error saving form: ' + result.error);
+                            this.saveStatus = 'error';
+                            if (!silent) alert('Errore durante il salvataggio: ' + result.error);
                         }
                     } catch (e) {
-                        alert('Error: ' + e.message);
+                        this.saveStatus = 'error';
+                        if (!silent) alert('Errore: ' + e.message);
                     }
                 },
 
                 async publish() {
                     if (!confirm('Pubblica questo modulo? Diventerà read-only e creerà la struttura delle cartelle NAS.')) return;
+                    // Persist any pending changes before publishing
+                    try {
+                        await this.saveForm();
+                    } catch (saveErr) {
+                        alert('Errore durante il salvataggio preliminare: ' + saveErr.message);
+                        return;
+                    }
+
                     try {
                         const response = await fetch(`/modules/api/v1/forms/{{ template.id|escapejs }}/publish/`, {
                             method: 'POST',
@@ -1468,6 +1517,19 @@
                         if (result.success) {
                             this.form.status = 'draft';
                             alert('✓ ' + result.data.message);
+                        } else if (result.is_immutable) {
+                            if (confirm(result.error + '\n\nVuoi creare una nuova bozza duplicando questo modulo adesso?')) {
+                                const dupResp = await fetch(`/modules/api/v1/forms/{{ template.id|escapejs }}/duplicate/`, {
+                                    method: 'POST',
+                                    headers: { 'X-CSRFToken': this.csrfToken }
+                                });
+                                const dupResult = await dupResp.json();
+                                if (dupResult.success) {
+                                    window.location.href = `/modules/admin/forms/${dupResult.data.id}/builder/`;
+                                } else {
+                                    alert('Errore duplicazione: ' + dupResult.error);
+                                }
+                            }
                         } else {
                             alert('Errore: ' + result.error);
                         }
@@ -1519,9 +1581,9 @@
                 },
 
                 autoSave() {
-                    // Debounced auto-save on blur
+                    // Debounced auto-save on blur / input
                     clearTimeout(this.autoSaveTimer);
-                    this.autoSaveTimer = setTimeout(() => this.save(), 1000);
+                    this.autoSaveTimer = setTimeout(() => this.save(true), 800);
                 }
             };
         }

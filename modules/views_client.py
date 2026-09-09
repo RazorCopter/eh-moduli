@@ -9,6 +9,7 @@ from django.http import HttpResponseForbidden
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 try:
     from django_ratelimit.decorators import ratelimit
 except ImportError:
@@ -70,15 +71,12 @@ def set_client_language(request, lang_code=None):
 
     # Determine safe redirect target
     next_url = request.POST.get('next') or request.GET.get('next') or request.META.get('HTTP_REFERER')
-    # Fallback if no referrer or external url
-    if not next_url or not next_url.startswith('/'):
-        if next_url and ('/modules/client/' in next_url or '/modules/form/' in next_url):
-            pass
+    # Fallback if no referrer or external url (prevent open redirect SEC-04)
+    if not next_url or not url_has_allowed_host_and_scheme(url=next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        if request.session.get('customer_id'):
+            next_url = redirect('client_dashboard').url
         else:
-            if request.session.get('customer_id'):
-                next_url = redirect('client_dashboard').url
-            else:
-                next_url = redirect('client_login').url
+            next_url = redirect('client_login').url
 
     response = redirect(next_url)
     if code in SUPPORTED_LANGUAGE_CODES:
@@ -193,8 +191,10 @@ def client_logout(request):
             ip=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
-    # Clear only customer-related session keys (don't destroy language or admin session)
-    for key in ['customer_id', 'customer_code', 'customer_name']:
+    # Clear customer portal keys and all assignment/form token access keys
+    keys_to_remove = [k for k in list(request.session.keys()) if k.startswith('assignment_access_') or k.startswith('form_access_')]
+    keys_to_remove.extend(['customer_id', 'customer_code', 'customer_name'])
+    for key in keys_to_remove:
         request.session.pop(key, None)
     request.session['client_language'] = current_lang
     request.session.modified = True

@@ -560,8 +560,19 @@ class PublicAssignmentFlowTests(TestCase):
 
     def test_form_submission_view_success_and_pdf_generation(self):
         """Form submission completes successfully, generates receipt, updates status, and redirects without 500 error."""
+        from .models import DocumentUpload
+        DocumentUpload.objects.create(
+            form_assignment=self.assignment,
+            document_requirement=self.doc_req1,
+            original_filename="carta_identita.pdf",
+            stored_filename="carta_identita.pdf",
+            status="valid",
+            availability_status="uploaded",
+            file_size=1024,
+            uploaded_by_ip="127.0.0.1"
+        )
         submit_url = reverse('form_submission_view', kwargs={'assignment_id': self.assignment.id})
-        response = self.client.post(submit_url)
+        response = self.client.post(submit_url, {'action_type': 'complete', 'awareness_declaration': 'true'})
 
         # Must redirect to success page, not crash with 500
         self.assertEqual(response.status_code, 302)
@@ -602,6 +613,16 @@ class PublicAssignmentFlowTests(TestCase):
         self.assertNotEqual(self.assignment.status, 'submitted')
 
         # 2. Attempt complete submission with awareness declaration -> succeeds
+        DocumentUpload.objects.create(
+            form_assignment=self.assignment,
+            document_requirement=self.doc_req1,
+            original_filename="carta_identita.pdf",
+            stored_filename="carta_identita.pdf",
+            status="valid",
+            availability_status="uploaded",
+            file_size=1024,
+            uploaded_by_ip="127.0.0.1"
+        )
         resp_ok = self.client.post(submit_url, {
             'action_type': 'complete',
             'awareness_declaration': 'true',
@@ -790,8 +811,18 @@ class PublicAssignmentFlowTests(TestCase):
         self.assertTemplateUsed(resp_detail, 'modules/form_detail.html')
 
         # 5. Submit form
+        DocumentUpload.objects.create(
+            form_assignment=self.assignment,
+            document_requirement=self.doc_req1,
+            original_filename="carta_identita.pdf",
+            stored_filename="carta_identita.pdf",
+            status="valid",
+            availability_status="uploaded",
+            file_size=1024,
+            uploaded_by_ip="127.0.0.1"
+        )
         submit_url = reverse('form_submission_view', kwargs={'assignment_id': self.assignment.id})
-        resp_submit = self.client.post(submit_url)
+        resp_submit = self.client.post(submit_url, {'action_type': 'complete', 'awareness_declaration': 'true'})
         self.assertEqual(resp_submit.status_code, 302)
         self.assertIn('/modules/form/success/', resp_submit.url)
 
@@ -1295,15 +1326,18 @@ class ApiCustomerCreateAndDashboardTests(TestCase):
             self.assertEqual(resp2.status_code, 200)
 
     def test_upload_security_mime_fallback_warning(self):
-        """Verifies M4: fallback MIME detection logs a warning."""
+        """Verifies M4: fallback MIME detection logs a warning when python-magic is unavailable."""
+        from . import upload_security
         from .upload_security import get_mime_type_from_content
         from django.core.files.uploadedfile import SimpleUploadedFile
+        from unittest.mock import patch
 
         fake_file = SimpleUploadedFile("test.txt", b"plain text content", content_type="text/plain")
-        with self.assertLogs('modules.upload_security', level='WARNING') as log_cm:
-            mime = get_mime_type_from_content(fake_file)
-            self.assertEqual(mime, 'text/plain')
-            self.assertTrue(any('python-magic' in msg for msg in log_cm.output))
+        with patch.object(upload_security, 'HAS_MAGIC', False):
+            with self.assertLogs('modules.upload_security', level='WARNING') as log_cm:
+                mime = get_mime_type_from_content(fake_file)
+                self.assertEqual(mime, 'text/plain')
+                self.assertTrue(any('python-magic' in msg for msg in log_cm.output))
 
 
 class TestFormTemplateDefaultExpiryTTL(TestCase):
@@ -1407,7 +1441,7 @@ class TestPDFReceiptGeneration(TestCase):
             first_name='Badedas',
             last_name='SPA',
             email='test@badedas.it',
-            vat_number='IT12345678901'
+            vat_number='12345678901'
         )
         self.template = FormTemplate.objects.create(
             name='Modulo Documentale Test',
@@ -1700,8 +1734,8 @@ class TestPDFReceiptGeneration(TestCase):
                 customer_data = call_args[0][2] if len(call_args[0]) > 2 else {}
 
                 # Should use vat_number when available
-                self.assertEqual(customer_data.get('vat'), 'IT12345678901')
-                self.assertEqual(customer_data.get('vat_number'), 'IT12345678901')
+                self.assertEqual(customer_data.get('vat'), '12345678901')
+                self.assertEqual(customer_data.get('vat_number'), '12345678901')
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
@@ -2795,7 +2829,6 @@ class MaintenanceAndBackupTests(TestCase):
         dl_response = self.client.get(download_url)
         self.assertEqual(dl_response.status_code, 200)
         self.assertEqual(dl_response.headers.get('Content-Disposition'), f'attachment; filename="{backup_file.name}"')
-        dl_response.close()
 
     def test_backup_download_traversal_prevention(self):
         self.client.force_login(self.admin_user)
@@ -2962,6 +2995,7 @@ class XlsxUploadAndMimeSyncTestCase(TestCase):
         with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
             zf.writestr('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"></Types>')
             zf.writestr('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>')
+            zf.writestr('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"></workbook>')
         xlsx_content = buf.getvalue()
 
         file_obj = SimpleUploadedFile(

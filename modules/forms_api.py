@@ -14,7 +14,7 @@ import json
 import secrets
 import string
 from .models import FormTemplate, FormStep, FormElement, DocumentRequirement, FormAssignment, Customer
-from .utils import log_action, get_client_ip, get_user_agent
+from .utils import log_action, get_client_ip, get_user_agent, get_nas_base_path
 from .validators import validate_folder_name, get_mimes_for_extensions
 from .upload_security import safe_join_paths, save_manifest_atomic
 
@@ -181,6 +181,14 @@ def api_form_save(request, form_id):
     if form.status != 'draft':
         return JsonResponse({'success': False, 'error': 'Only draft forms can be edited'}, status=400)
 
+    # Immutable versioning check (DATA-01): protect assigned templates from destructive modification
+    if form.formassignment_set.exists():
+        return JsonResponse({
+            'success': False,
+            'error': 'Impossibile modificare la struttura di un modulo già assegnato a pratiche clienti. Crea una nuova versione esplicita.',
+            'is_immutable': True
+        }, status=400)
+
     try:
         data = json.loads(request.body)
 
@@ -307,7 +315,7 @@ def api_form_publish(request, form_id):
             nas_path = None
             if form.customer and form.project_name:
                 # If specific customer and project are defined, create NAS folder structure
-                nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+                nas_base = get_nas_base_path()
                 nas_path = str(safe_join_paths(nas_base, form.customer.nas_folder_name, form.project_name))
                 os.makedirs(nas_path, exist_ok=True)
 
@@ -404,6 +412,14 @@ def api_form_revert_to_draft(request, form_id):
 
     if form.status != 'published':
         return JsonResponse({'success': False, 'error': 'Only published forms can be reverted'}, status=400)
+
+    # Immutable versioning check (DATA-01): protect assigned templates
+    if form.formassignment_set.exists():
+        return JsonResponse({
+            'success': False,
+            'error': 'Questo modulo è già stato assegnato a pratiche clienti ed è immutabile per proteggere i documenti storici. Per modificarlo, crea una nuova bozza / versione.',
+            'is_immutable': True
+        }, status=400)
 
     try:
         form.status = 'draft'

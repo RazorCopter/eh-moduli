@@ -100,7 +100,7 @@ def admin_maintenance(request):
         'backups': backups,
         'backup_count': len(backups),
         'last_backup': backups[0]['created_at'] if backups else None,
-        'app_version': getattr(settings, 'APP_VERSION', '2.2.0'),
+        'app_version': getattr(settings, 'APP_VERSION', '3.0.0'),
         'nas_base_path': get_nas_base_path(),
     }
     return render(request, 'modules/admin/maintenance.html', context)

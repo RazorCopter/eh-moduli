@@ -7,6 +7,77 @@
 {% block extra_css %}
 <!-- JSZip for client-side seamless folder bundling into ZIP -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
+<style>
+.btn-delete-upload {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    background-color: #dc3545 !important;
+    color: #ffffff !important;
+    border: 1px solid #dc3545 !important;
+    border-radius: var(--bs-badge-border-radius, 6px) !important;
+    padding: 0.35rem 0.75rem !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+    line-height: 1.2 !important;
+    cursor: pointer !important;
+    text-decoration: none !important;
+    vertical-align: middle !important;
+    transition: background-color 0.15s ease-in-out, transform 0.1s ease, box-shadow 0.15s ease !important;
+}
+.btn-delete-upload:hover {
+    background-color: #bb2d3b !important;
+    border-color: #b02a37 !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+}
+.btn-delete-upload:focus-visible, .btn-delete-upload:focus {
+    background-color: #b02a37 !important;
+    color: #ffffff !important;
+    outline: 2px solid #0d6efd !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25) !important;
+}
+.btn-delete-upload:active {
+    background-color: #b02a37 !important;
+    transform: translateY(0);
+}
+.btn-delete-upload i {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 0.82rem !important;
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+.btn-primary-brand {
+    background: linear-gradient(135deg, #BA3D30 0%, #96261B 100%) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(186, 61, 48, 0.25) !important;
+    transition: all 0.2s ease !important;
+}
+.btn-primary-brand:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 14px rgba(186, 61, 48, 0.38) !important;
+    color: #FFFFFF !important;
+}
+.btn-primary-brand:focus-visible, .btn-primary-brand:focus {
+    outline: 2px solid #BA3D30 !important;
+    outline-offset: 2px !important;
+    color: #FFFFFF !important;
+}
+.upload-dropzone {
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+.upload-dropzone:hover, .upload-dropzone:focus-visible, .upload-dropzone.dragover {
+    border-color: #BA3D30 !important;
+    background-color: #FFFDF9 !important;
+    box-shadow: 0 0 0 3px rgba(186, 61, 48, 0.12) !important;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -20,10 +91,10 @@
                 <span class="small fw-semibold text-muted text-uppercase tracking-wider">
                     Passaggio {{ current_index }} di {{ step_count }}
                 </span>
-                <span class="small fw-bold text-primary">{{ progress_pct }}% Completato</span>
+                <span class="small fw-bold" style="color: #BA3D30;">{{ progress_pct }}% Completato</span>
             </div>
             <div class="progress" style="height: 8px; border-radius: 4px; background-color: #E2E8F0;">
-                <div class="progress-bar" role="progressbar" style="width: {{ progress_pct }}%; background: linear-gradient(90deg, #E8847D 0%, #2D8A4E 100%); border-radius: 4px; transition: width 0.4s ease;" aria-valuenow="{{ progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                <div class="progress-bar" role="progressbar" style="width: {{ progress_pct }}%; background: linear-gradient(90deg, #BA3D30 0%, #2D8A4E 100%); border-radius: 4px; transition: width 0.4s ease;" aria-valuenow="{{ progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
         </div>
 
@@ -127,8 +198,8 @@
                                                 </div>
                                                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
                                                     <span class="badge bg-success doc-status-indicator" data-status="uploaded">Salvato</span>
-                                                    <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1 d-flex align-items-center justify-content-center" style="width: 26px; height: 26px;" onclick="deleteUploadedFile('{{ upload.id }}', '{{ item.id }}')" title="Rimuovi questo file">
-                                                        <i class="bi bi-trash3"></i>
+                                                    <button type="button" class="btn-delete-upload" onclick="deleteUploadedFile('{{ upload.id }}', '{{ item.id }}')" aria-label="Elimina file {{ upload.original_filename|escapejs }}" title="Elimina file {{ upload.original_filename }}">
+                                                        <i class="bi bi-trash3" aria-hidden="true"></i> <span>Elimina</span>
                                                     </button>
                                                 </div>
                                             </div>
@@ -182,45 +253,45 @@
 
                         {% elif item.element_type == 'text_field' %}
                         <div class="mb-3">
-                            <label class="form-label fw-semibold text-dark">
+                            <label for="elem_{{ item.id }}" class="form-label fw-semibold text-dark">
                                 {{ item.config.label|default:"Campo di Testo" }}
                                 {% if item.config.required %}<span class="text-danger">*</span>{% endif %}
                             </label>
-                            <input type="text" class="form-control form-control-lg fs-6" placeholder="{{ item.config.placeholder|default:'' }}" {% if item.config.required %}required{% endif %}>
+                            <input type="text" name="element_{{ item.id }}" id="elem_{{ item.id }}" class="form-control form-control-lg fs-6 form-data-input" value="{{ saved_answers|get_item:item.id|default:'' }}" placeholder="{{ item.config.placeholder|default:'' }}" {% if item.config.required %}data-required="true"{% endif %}>
                         </div>
 
                         {% elif item.element_type == 'email_field' %}
                         <div class="mb-3">
-                            <label class="form-label fw-semibold text-dark">
+                            <label for="elem_{{ item.id }}" class="form-label fw-semibold text-dark">
                                 {{ item.config.label|default:"Email" }}
                                 {% if item.config.required %}<span class="text-danger">*</span>{% endif %}
                             </label>
-                            <input type="email" class="form-control form-control-lg fs-6" placeholder="{{ item.config.placeholder|default:'nome@esempio.it' }}" {% if item.config.required %}required{% endif %}>
+                            <input type="email" name="element_{{ item.id }}" id="elem_{{ item.id }}" class="form-control form-control-lg fs-6 form-data-input" value="{{ saved_answers|get_item:item.id|default:'' }}" placeholder="{{ item.config.placeholder|default:'nome@esempio.it' }}" {% if item.config.required %}data-required="true"{% endif %}>
                         </div>
 
                         {% elif item.element_type == 'phone_field' %}
                         <div class="mb-3">
-                            <label class="form-label fw-semibold text-dark">
+                            <label for="elem_{{ item.id }}" class="form-label fw-semibold text-dark">
                                 {{ item.config.label|default:"Telefono" }}
                                 {% if item.config.required %}<span class="text-danger">*</span>{% endif %}
                             </label>
-                            <input type="tel" class="form-control form-control-lg fs-6" placeholder="{{ item.config.placeholder|default:'+39 ...' }}" {% if item.config.required %}required{% endif %}>
+                            <input type="tel" name="element_{{ item.id }}" id="elem_{{ item.id }}" class="form-control form-control-lg fs-6 form-data-input" value="{{ saved_answers|get_item:item.id|default:'' }}" placeholder="{{ item.config.placeholder|default:'+39 ...' }}" {% if item.config.required %}data-required="true"{% endif %}>
                         </div>
 
                         {% elif item.element_type == 'date_field' %}
                         <div class="mb-3">
-                            <label class="form-label fw-semibold text-dark">
+                            <label for="elem_{{ item.id }}" class="form-label fw-semibold text-dark">
                                 {{ item.config.label|default:"Data" }}
                                 {% if item.config.required %}<span class="text-danger">*</span>{% endif %}
                             </label>
-                            <input type="date" class="form-control form-control-lg fs-6" {% if item.config.required %}required{% endif %}>
+                            <input type="date" name="element_{{ item.id }}" id="elem_{{ item.id }}" class="form-control form-control-lg fs-6 form-data-input" value="{{ saved_answers|get_item:item.id|default:'' }}" {% if item.config.required %}data-required="true"{% endif %}>
                         </div>
 
                         {% elif item.element_type == 'awareness_declaration' %}
                         <div class="p-3 rounded-3 mb-3 border bg-light">
                             <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="aware-{{ item.id }}" {% if item.config.required %}required{% endif %}>
-                                <label class="form-check-label fw-semibold text-dark" for="aware-{{ item.id }}">
+                                <input type="checkbox" name="element_{{ item.id }}" class="form-check-input form-data-input" id="elem_{{ item.id }}" value="1" {% if saved_answers|get_item:item.id %}checked{% endif %} {% if item.config.required %}data-required="true"{% endif %}>
+                                <label class="form-check-label fw-semibold text-dark" for="elem_{{ item.id }}">
                                     {{ item.config.text|default:"Dichiaro di aver preso visione e di accettare" }}
                                 </label>
                             </div>
@@ -233,25 +304,25 @@
                 <!-- Navigation Controls -->
                 <div class="mt-5 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
                     {% if prev_step %}
-                        <a href="{% url 'form_step_view' assignment.id prev_step.order %}" class="btn btn-outline-secondary px-3 py-2 rounded-3">
+                        <button type="button" onclick="navigateStep('{% url 'form_step_view' assignment.id prev_step.order %}')" class="btn btn-outline-secondary px-3 py-2 rounded-3">
                             <i class="bi bi-arrow-left me-1"></i> Indietro
-                        </a>
+                        </button>
                     {% else %}
-                        <a href="{% url 'get_form_by_token' assignment.secure_token %}" class="btn btn-outline-secondary px-3 py-2 rounded-3">
+                        <button type="button" onclick="navigateStep('{% url 'get_form_by_token' assignment.secure_token %}')" class="btn btn-outline-secondary px-3 py-2 rounded-3">
                             <i class="bi bi-arrow-left me-1"></i> Inizio
-                        </a>
+                        </button>
                     {% endif %}
 
-                    <a href="{% url 'form_success_view' %}?assignment_id={{ assignment.id }}&mode=partial" class="btn btn-light border px-3 py-2 rounded-3 text-nowrap d-flex align-items-center justify-content-center text-dark text-decoration-none" title="Salva i progressi fatti finora e torna alla pagina di gestione">
-                        <i class="bi bi-save me-1 text-primary"></i> Salva Bozza ed Esci
-                    </a>
+                    <button type="button" id="saveDraftBtn" onclick="saveDraft()" class="btn btn-outline-secondary px-3 py-2 rounded-3 text-nowrap d-flex align-items-center justify-content-center text-dark" title="Salva i progressi fatti finora senza richiedere il completamento di tutti i campi">
+                        <i class="bi bi-bookmark me-1" style="color: #BA3D30;"></i> Salva Bozza ed Esci
+                    </button>
 
                     {% if next_step %}
-                        <button type="button" class="btn btn-primary px-4 py-2 rounded-3 fw-semibold" id="nextStepBtn" onclick="proceedToNextStep('{% url 'form_step_view' assignment.id next_step.order %}')">
+                        <button type="button" class="btn btn-primary-brand px-4 py-2 rounded-3 fw-semibold text-white" id="nextStepBtn" onclick="proceedToNextStep('{% url 'form_step_view' assignment.id next_step.order %}')">
                             Avanti (Passaggio {{ current_index|add:1 }}) <i class="bi bi-arrow-right ms-1"></i>
                         </button>
                     {% else %}
-                        <button type="button" class="btn btn-success px-4 py-2 rounded-3 fw-semibold" id="nextStepBtn" onclick="proceedToNextStep('{% url 'form_summary_view' assignment.id %}')" style="box-shadow: 0 4px 12px rgba(25, 135, 84, 0.25);">
+                        <button type="button" class="btn btn-success px-4 py-2 rounded-3 fw-semibold text-white" id="nextStepBtn" onclick="proceedToNextStep('{% url 'form_summary_view' assignment.id %}')" style="background: linear-gradient(135deg, #10B981, #059669); border: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
                             Vai al Riepilogo e Invia <i class="bi bi-check2-circle ms-1"></i>
                         </button>
                     {% endif %}
@@ -653,8 +724,17 @@ async function handleFilesSelected(reqId, files) {
                 absenceBox.innerHTML = '';
             }
 
-            // Append newly uploaded card to uploads-list
-            appendUploadedFileCard(reqId, data.upload_id, data.filename || file.name, data.size || file.size, data);
+            // Append newly uploaded card(s) to uploads-list
+            if (data.is_bulk && Array.isArray(data.files) && data.files.length > 0) {
+                for (const item of data.files) {
+                    const itemUploadId = item.id || item.upload_id || '';
+                    const itemName = item.name || item.original_filename || item.filename || 'File estratto';
+                    const itemSize = item.size || item.file_size || 0;
+                    appendUploadedFileCard(reqId, itemUploadId, itemName, itemSize, item);
+                }
+            } else {
+                appendUploadedFileCard(reqId, data.upload_id || data.id, data.filename || file.name, data.size || file.size, data);
+            }
 
         } catch (err) {
             console.error(`Upload error for ${file.name}:`, err);
@@ -710,7 +790,6 @@ function uploadFilePromise(reqId, file, assignmentId, onProgress) {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('requirement_id', reqId);
-        formData.append('file_' + reqId, file);
         formData.append('availability_' + reqId, 'uploaded');
 
         const uploadUrl = `/modules/form/${assignmentId}/upload/`;
@@ -784,8 +863,8 @@ function appendUploadedFileCard(reqId, uploadId, filename, fileSize, data) {
         <div class="d-flex align-items-center gap-2 flex-shrink-0">
             <span class="badge bg-success doc-status-indicator" data-status="uploaded">Salvato</span>
             ${uploadId ? `
-            <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-1 d-flex align-items-center justify-content-center" style="width: 26px; height: 26px;" onclick="deleteUploadedFile('${uploadId}', '${reqId}')" title="Rimuovi questo file">
-                <i class="bi bi-trash3"></i>
+            <button type="button" class="btn-delete-upload" onclick="deleteUploadedFile('${uploadId}', '${reqId}')" aria-label="Elimina file ${escapeHtml(filename)}" title="Elimina file: ${escapeHtml(filename)}">
+                <i class="bi bi-trash3" aria-hidden="true"></i> <span>Elimina</span>
             </button>
             ` : ''}
         </div>
@@ -875,7 +954,7 @@ function escapeHtml(text) {
 // Validate if all mandatory documents and required inputs on this step are satisfied
 function validateMandatoryDocuments() {
     // 1. Check required documents
-    const requiredDocs = document.querySelectorAll('[data-required="true"]');
+    const requiredDocs = document.querySelectorAll('.card[data-req-id][data-required="true"]');
     for (let i = 0; i < requiredDocs.length; i++) {
         const status = requiredDocs[i].getAttribute('data-status') || '';
         if (status !== 'uploaded' && status !== 'not_available') {
@@ -884,7 +963,7 @@ function validateMandatoryDocuments() {
     }
 
     // 2. Check required form inputs (text, email, phone, date, awareness checkboxes)
-    const requiredInputs = document.querySelectorAll('.card-body input[required], .card-body select[required], .card-body textarea[required]');
+    const requiredInputs = document.querySelectorAll('.card-body input[data-required="true"], .card-body select[data-required="true"], .card-body textarea[data-required="true"]');
     for (let i = 0; i < requiredInputs.length; i++) {
         const el = requiredInputs[i];
         if (el.type === 'checkbox') {
@@ -895,6 +974,92 @@ function validateMandatoryDocuments() {
     }
 
     return true;
+}
+
+function collectStepFormData() {
+    const data = {};
+    document.querySelectorAll('.form-data-input').forEach(input => {
+        if (!input.name) return;
+        if (input.type === 'checkbox') {
+            data[input.name] = input.checked ? '1' : '';
+        } else {
+            data[input.name] = input.value !== undefined ? input.value : '';
+        }
+    });
+    return data;
+}
+
+async function saveDraft(redirectUrl) {
+    const btn = document.getElementById('saveDraftBtn');
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Salvataggio...';
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', getCsrfToken());
+        formData.append('action_type', 'partial');
+
+        const stepData = collectStepFormData();
+        for (const [k, v] of Object.entries(stepData)) {
+            formData.append(k, v);
+        }
+
+        const response = await fetch('/modules/form/{{ assignment.id }}/submit/', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: formData
+        });
+
+        const result = await response.json().catch(() => ({}));
+        if (response.ok) {
+            const targetUrl = redirectUrl || (result.redirect || '/modules/form/success/?assignment_id={{ assignment.id }}&mode=partial');
+            window.location.href = targetUrl;
+        } else {
+            alert('Errore salvataggio bozza: ' + (result.error || 'Errore sconosciuto'));
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+    } catch (e) {
+        console.error('Save draft error:', e);
+        alert('Errore durante il salvataggio della bozza: ' + e.message);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+}
+
+async function navigateStep(targetUrl) {
+    try {
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', getCsrfToken());
+        formData.append('action_type', 'partial');
+
+        const stepData = collectStepFormData();
+        for (const [k, v] of Object.entries(stepData)) {
+            formData.append(k, v);
+        }
+
+        await fetch(window.location.pathname, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: formData
+        });
+    } catch (e) {
+        console.warn('Could not auto-save fields before navigating:', e);
+    }
+    window.location.href = targetUrl;
 }
 
 // Update next/summary button state based on document and field validation
@@ -917,12 +1082,52 @@ function updateNextButtonState() {
 }
 
 // Navigate to next step or summary after validation
-function proceedToNextStep(nextUrl) {
+async function proceedToNextStep(nextUrl) {
     if (!validateMandatoryDocuments()) {
-        alert('Carica tutti i documenti obbligatori o compila i campi richiesti prima di procedere.');
+        alert('Carica tutti i documenti obbligatori o compila i campi richiesti prima di procedere al passaggio successivo.');
         return;
     }
-    window.location.href = nextUrl;
+
+    const btn = document.getElementById('nextStepBtn');
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Salvataggio...';
+    }
+
+    try {
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', getCsrfToken());
+        formData.append('action_type', 'step_complete');
+
+        const stepData = collectStepFormData();
+        for (const [k, v] of Object.entries(stepData)) {
+            formData.append(k, v);
+        }
+
+        const response = await fetch(window.location.pathname, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: formData
+        });
+
+        if (response.ok) {
+            window.location.href = nextUrl;
+        } else {
+            const result = await response.json().catch(() => ({}));
+            alert('Errore durante il salvataggio: ' + (result.error || 'Impossibile avanzare'));
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        }
+    } catch (e) {
+        console.error('Next step navigation error:', e);
+        window.location.href = nextUrl;
+    }
 }
 
 // Initialize button state on page load and attach input listeners

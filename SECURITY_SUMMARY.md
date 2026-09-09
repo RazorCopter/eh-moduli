@@ -380,4 +380,4 @@ req.full_clean()  # Will raise ValidationError
 
 ---
 
-*Document version 2.2.0 | Last updated: 2026-09-09*
+*Document version 3.0.0 | Last updated: 2026-09-10*

@@ -28,7 +28,7 @@ from typing import Tuple, List
 from django.db import transaction
 from django.utils import timezone
 from .models import DocumentUpload
-from .utils import get_client_ip, get_user_agent
+from .utils import get_client_ip, get_user_agent, get_nas_base_path
 from .validators import get_mimes_for_extensions
 
 logger = logging.getLogger(__name__)
@@ -581,7 +581,7 @@ def save_uploaded_file_secure(file_obj, form_assignment, document_requirement,
         subfolder = ''
 
     # Check if storage_base already points to project folder (contains customer NAS folder)
-    nas_base = os.getenv('CUSTOMER_DOCUMENTS_CONTAINER_PATH', os.getenv('CUSTOMER_DOCUMENTS_PATH', '/volume1/Clienti'))
+    nas_base = get_nas_base_path()
     try:
         rel = storage_base.relative_to(Path(nas_base).resolve())
         is_project_folder = cust_folder_name in rel.parts
@@ -833,31 +833,68 @@ def delete_document_secure(upload_obj, storage_base_path: str) -> bool:
         return False
 
 
+@contextmanager
+def file_lock(lock_path: str, timeout: float = 10.0):
+    """
+    Cross-platform file locking using atomic OS-level exclusive file creation.
+    Protects manifest.json and shared files from race conditions across processes (DATA-03).
+    """
+    lock_file = Path(str(lock_path) + '.lock')
+    start_time = time.time()
+    fd = None
+    while True:
+        try:
+            fd = os.open(str(lock_file), os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            break
+        except (FileExistsError, OSError):
+            if time.time() - start_time > timeout:
+                try:
+                    if lock_file.exists() and (time.time() - lock_file.stat().st_mtime > 30):
+                        lock_file.unlink()
+                except OSError:
+                    pass
+                if time.time() - start_time > timeout + 1:
+                    logger.warning(f"Timeout waiting for lock on {lock_path}, proceeding anyway.")
+                    break
+            time.sleep(0.05)
+    try:
+        yield
+    finally:
+        if fd is not None:
+            try:
+                os.close(fd)
+                if lock_file.exists():
+                    lock_file.unlink()
+            except OSError:
+                pass
+
+
 def save_manifest_atomic(manifest_path: str, manifest_data: dict) -> None:
     """
-    Atomically write manifest.json using tempfile and os.replace.
-    Guarantees no partial writes and prevents data corruption on unexpected failures.
+    Atomically write manifest.json using tempfile and os.replace with process lock.
+    Guarantees no partial writes and prevents data corruption on concurrent requests (DATA-03).
 
     Args:
         manifest_path: Destination path for manifest.json
         manifest_data: Dictionary content to serialize
     """
-    manifest_dest = Path(manifest_path).resolve()
-    manifest_dir = manifest_dest.parent
-    manifest_dir.mkdir(parents=True, exist_ok=True)
+    with file_lock(manifest_path):
+        manifest_dest = Path(manifest_path).resolve()
+        manifest_dir = manifest_dest.parent
+        manifest_dir.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.NamedTemporaryFile('w', encoding='utf-8', dir=str(manifest_dir), delete=False) as tmp:
-        tmp_name = tmp.name
+        with tempfile.NamedTemporaryFile('w', encoding='utf-8', dir=str(manifest_dir), delete=False) as tmp:
+            tmp_name = tmp.name
 
-    try:
-        with open(tmp_name, 'w', encoding='utf-8') as f:
-            json.dump(manifest_data, f, indent=2, ensure_ascii=False)
-        os.replace(tmp_name, str(manifest_dest))
-    except Exception:
-        if os.path.exists(tmp_name):
-            try:
-                os.remove(tmp_name)
-            except OSError:
-                pass
-        raise
+        try:
+            with open(tmp_name, 'w', encoding='utf-8') as f:
+                json.dump(manifest_data, f, indent=2, ensure_ascii=False)
+            os.replace(tmp_name, str(manifest_dest))
+        except Exception:
+            if os.path.exists(tmp_name):
+                try:
+                    os.remove(tmp_name)
+                except OSError:
+                    pass
+            raise
 

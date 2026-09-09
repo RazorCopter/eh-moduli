@@ -1,0 +1,144 @@
+name: ehmoduli-collaudo
+
+x-app-environment: &app-environment
+  ENVIRONMENT: collaudo
+  DEBUG: "False"
+  SECRET_KEY: collaudo-only-not-for-production-2026
+  POSTGRES_DB: ehmoduli_collaudo
+  POSTGRES_USER: ehmoduli_collaudo
+  POSTGRES_PASSWORD: collaudo-only-postgres-password
+  POSTGRES_HOST: db
+  POSTGRES_PORT: "5432"
+  REDIS_URL: redis://redis:6379/14
+  RATELIMIT_ENABLE: "True"
+  ALLOWED_HOSTS: localhost,127.0.0.1,app
+  CSRF_TRUSTED_ORIGINS: http://localhost:16060,http://app:8000
+  CUSTOMER_DOCUMENTS_CONTAINER_PATH: /storage/clienti
+  CUSTOMER_DOCUMENTS_PATH: /storage/clienti
+  CREATE_SUPERUSER: "false"
+  GUNICORN_WORKERS: "3"
+  GUNICORN_TIMEOUT: "60"
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ehmoduli_collaudo
+      POSTGRES_USER: ehmoduli_collaudo
+      POSTGRES_PASSWORD: collaudo-only-postgres-password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - collaudo_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ehmoduli_collaudo -d ehmoduli_collaudo"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [collaudo]
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - collaudo_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    networks: [collaudo]
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APPUSER_UID: 1000
+        APPUSER_GID: 1000
+    environment:
+      <<: *app-environment
+    ports:
+      - "127.0.0.1:16060:8000"
+    volumes:
+      - collaudo_app_data:/app/data
+      - collaudo_documents:/storage/clienti
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/ready/"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    networks: [collaudo]
+
+  suite:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APPUSER_UID: 1000
+        APPUSER_GID: 1000
+    entrypoint: ["python", "manage.py", "test", "accounts", "modules", "--noinput", "--verbosity", "2"]
+    environment:
+      <<: *app-environment
+      USE_POSTGRES_FOR_TESTS: "True"
+      USE_REDIS_FOR_TESTS: "True"
+      REDIS_URL: redis://redis:6379/15
+    volumes:
+      - collaudo_suite_data:/app/data
+      - collaudo_suite_documents:/storage/clienti
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [collaudo]
+    profiles: [test]
+
+  probe:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APPUSER_UID: 1000
+        APPUSER_GID: 1000
+    entrypoint: ["python", "collaudo/verify_runtime.py"]
+    environment:
+      <<: *app-environment
+      BASE_URL: http://app:8000
+    depends_on:
+      app:
+        condition: service_healthy
+    networks: [collaudo]
+    profiles: [test]
+
+  ui:
+    image: mcr.microsoft.com/playwright:v1.55.0-noble
+    working_dir: /work
+    entrypoint: ["node", "/work/collaudo/verify_ui.mjs"]
+    environment:
+      BASE_URL: http://app:8000
+      SCREENSHOT_DIR: /work/collaudo/evidenze/ui
+    volumes:
+      - ./:/work
+    depends_on:
+      app:
+        condition: service_healthy
+    networks: [collaudo]
+    profiles: [ui]
+
+networks:
+  collaudo:
+    driver: bridge
+
+volumes:
+  collaudo_postgres:
+  collaudo_redis:
+  collaudo_app_data:
+  collaudo_documents:
+  collaudo_suite_data:
+  collaudo_suite_documents:
