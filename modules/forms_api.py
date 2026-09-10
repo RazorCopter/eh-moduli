@@ -464,27 +464,31 @@ def api_form_delete(request, form_id):
 
         # Protect against cascading delete: archive if assignments exist (M2)
         has_assignments = form.formassignment_set.exists()
-        if has_assignments:
+        force = request.GET.get('force') == '1'
+
+        if has_assignments and not force and form.status != 'archived':
             form.status = 'archived'
             form.save(update_fields=['status', 'updated_at'])
             action_name = 'archive'
             message = f'Modulo "{form_name}" archiviato con successo (le pratiche e i file dei clienti sono stati protetti).'
+            is_archived = True
         else:
             form.delete()
             action_name = 'delete'
-            message = f'Modulo "{form_name}" eliminato'
+            message = f'Modulo "{form_name}" eliminato definitivamente'
+            is_archived = False
 
         log_action(
             request.user,
             action_name,
             'FormTemplate',
             form_id,
-            {'name': form_name, 'status': form_status, 'via': 'api', 'archived': has_assignments},
+            {'name': form_name, 'status': form_status, 'via': 'api', 'archived': is_archived},
             ip=get_client_ip(request),
             user_agent=get_user_agent(request)
         )
 
-        return JsonResponse({'success': True, 'message': message, 'archived': has_assignments})
+        return JsonResponse({'success': True, 'message': message, 'archived': is_archived})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 

@@ -315,7 +315,7 @@
                     <button type="button" class="btn-duplicate" onclick="duplicateForm('{{ form.id }}')">
                         <i class="bi bi-files"></i> Duplica
                     </button>
-                    <button type="button" class="btn-delete" onclick="deleteForm('{{ form.id }}')">
+                    <button type="button" class="btn-delete" onclick="deleteForm('{{ form.id }}', '{{ form.status }}')">
                         <i class="bi bi-trash3"></i> Elimina
                     </button>
                 </div>
@@ -340,11 +340,10 @@
         if (!choice) return;
         const choiceUpper = choice.trim().toUpperCase();
         if (choiceUpper !== 'V' && choiceUpper !== 'C') {
-            alert("Scelta non valida. Operazione annullata.");
+            alert("Scelta non valida.");
             return;
         }
-        const isNewVersion = (choiceUpper === 'V');
-
+        const isNewVersion = choiceUpper === 'V';
         try {
             const response = await fetch(`/modules/api/v1/forms/${formId}/duplicate/`, {
                 method: 'POST',
@@ -356,7 +355,8 @@
             });
             const result = await response.json();
             if (result.success) {
-                window.location.reload();
+                alert('✓ ' + (isNewVersion ? 'Nuova versione creata con successo!' : 'Copia indipendente creata con successo!'));
+                window.location.href = `/modules/admin/builder/${result.data.id}/edit/`;
             } else {
                 alert('Errore: ' + result.error);
             }
@@ -365,10 +365,22 @@
         }
     }
 
-    async function deleteForm(formId) {
-        if (!confirm('⚠️ Sei sicuro di voler eliminare questo modulo? Questa azione non può essere annullata.\n\nVerranno eliminati anche:\n- Tutti gli step e gli elementi\n- Tutte le assegnazioni a clienti\n- Tutti i documenti caricati')) return;
+    async function deleteForm(formId, status) {
+        let confirmMsg = '';
+        let isForce = false;
+
+        if (status === 'archived') {
+            confirmMsg = '⚠️ Questo modulo è attualmente archiviato.\n\nVuoi eliminarlo DEFINITIVAMENTE dal database rimuovendo anche i record storici collegati?\nQuesta operazione è irreversibile.';
+            isForce = true;
+        } else {
+            confirmMsg = '⚠️ Vuoi eliminare questo modulo?\n\n- Se il modulo non ha pratiche collegate, verrà eliminato definitivamente dal database.\n- Se ha già pratiche clienti collegate, verrà archiviato in sicurezza (le pratiche e i file dei clienti rimarranno protetti).';
+        }
+
+        if (!confirm(confirmMsg)) return;
+
         try {
-            const response = await fetch(`/modules/api/v1/forms/${formId}/delete/`, {
+            const url = isForce ? `/modules/api/v1/forms/${formId}/delete/?force=1` : `/modules/api/v1/forms/${formId}/delete/`;
+            const response = await fetch(url, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'
