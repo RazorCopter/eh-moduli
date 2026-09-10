@@ -25,3 +25,15 @@ class RateLimitedLoginView(auth_views.LoginView):
 
 def placeholder(request):
     return render(request, 'accounts/login.html')
+
+
+def logout_view(request):
+    """
+    Log out the user, flush the session, and redirect to the login page.
+    Supports both GET (e.g. from top navigation dropdown links) and POST
+    to prevent HTTP 405 Method Not Allowed errors.
+    """
+    from django.contrib.auth import logout
+    from django.shortcuts import redirect
+    logout(request)
+    return redirect('login')

@@ -1655,7 +1655,7 @@
                                 });
                                 const dupResult = await dupResp.json();
                                 if (dupResult.success) {
-                                    window.location.href = `/modules/admin/forms/${dupResult.data.id}/builder/`;
+                                    window.location.href = `/modules/admin/builder/${dupResult.data.id}/edit/`;
                                 } else {
                                     alert('Errore duplicazione: ' + dupResult.error);
                                 }

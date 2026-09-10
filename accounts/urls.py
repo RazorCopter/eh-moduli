@@ -1,8 +1,7 @@
 from django.urls import path
-from django.contrib.auth import views as auth_views
-from .views import RateLimitedLoginView
+from .views import RateLimitedLoginView, logout_view
 
 urlpatterns = [
     path('login/', RateLimitedLoginView.as_view(), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
+    path('logout/', logout_view, name='logout'),
 ]
