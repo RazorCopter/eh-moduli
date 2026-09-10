@@ -87,6 +87,54 @@
     background-color: #FFFDF9 !important;
     box-shadow: 0 0 0 3px rgba(186, 61, 48, 0.12) !important;
 }
+.form-navigation-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 1020;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid #E2E8F0;
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.08);
+    padding: 1rem 1.75rem;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    transition: all 0.2s ease;
+}
+.form-navigation-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+}
+.nav-slot-start {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+.nav-slot-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.nav-slot-end {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+@media (max-width: 576px) {
+    .form-navigation-bar {
+        padding: 0.75rem 0.85rem;
+    }
+    .form-navigation-grid {
+        gap: 0.4rem;
+    }
+    .form-navigation-bar .btn {
+        padding: 0.45rem 0.65rem !important;
+        font-size: 0.82rem !important;
+    }
+}
 </style>
 {% endblock %}
 
@@ -108,8 +156,8 @@
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm mb-5" style="border-radius: 16px; overflow: hidden;">
-            <div class="card-body p-4 p-md-5">
+        <div class="card border-0 shadow-sm mb-5 position-relative" style="border-radius: 16px;">
+            <div class="card-body p-4 p-md-5 pb-4">
 
                 <!-- Step Title & Description -->
                 <div class="mb-4 pb-3 border-bottom">
@@ -310,34 +358,46 @@
                     </div>
                     {% endif %}
                 {% endfor %}
+            </div> <!-- end card-body -->
 
-                <!-- Navigation Controls -->
-                <div class="mt-5 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    {% if prev_step %}
-                        <button type="button" onclick="navigateStep('{% url 'form_step_view' assignment.id prev_step.order %}')" class="btn btn-outline-secondary px-3 py-2 rounded-3">
-                            <i class="bi bi-arrow-left me-1"></i> {{ t.form_btn_back|default:"Indietro" }}
-                        </button>
-                    {% else %}
-                        <button type="button" onclick="navigateStep('{% url 'get_form_by_token' assignment.secure_token %}')" class="btn btn-outline-secondary px-3 py-2 rounded-3">
-                            <i class="bi bi-arrow-left me-1"></i> {{ t.form_btn_start|default:"Inizio" }}
-                        </button>
-                    {% endif %}
+            <!-- Fixed Sticky Navigation Action Bar with Pre-set Positions -->
+            <div class="form-navigation-bar">
+                <div class="form-navigation-grid">
+                    <!-- Left Slot: Indietro / Inizio -->
+                    <div class="nav-slot nav-slot-start">
+                        {% if prev_step %}
+                            <button type="button" onclick="navigateStep('{% url 'form_step_view' assignment.id prev_step.order %}')" class="btn btn-outline-secondary px-3 py-2 rounded-3 text-nowrap">
+                                <i class="bi bi-arrow-left me-1"></i> {{ t.form_btn_back|default:"Indietro" }}
+                            </button>
+                        {% else %}
+                            <button type="button" onclick="navigateStep('{% url 'get_form_by_token' assignment.secure_token %}')" class="btn btn-outline-secondary px-3 py-2 rounded-3 text-nowrap">
+                                <i class="bi bi-arrow-left me-1"></i> {{ t.form_btn_start|default:"Inizio" }}
+                            </button>
+                        {% endif %}
+                    </div>
 
-                    <button type="button" id="saveDraftBtn" onclick="saveDraft()" class="btn btn-outline-secondary px-3 py-2 rounded-3 text-nowrap d-flex align-items-center justify-content-center text-dark" title="{{ t.form_btn_save_draft_tooltip|default:'Salva i progressi fatti finora senza richiedere il completamento di tutti i campi' }}">
-                        <i class="bi bi-bookmark me-1" style="color: #BA3D30;"></i> {{ t.form_btn_save_draft|default:"Salva Bozza ed Esci" }}
-                    </button>
+                    <!-- Center Slot: Salva Bozza ed Esci -->
+                    <div class="nav-slot nav-slot-center">
+                        <button type="button" id="saveDraftBtn" onclick="saveDraft()" class="btn btn-outline-secondary px-3 py-2 rounded-3 text-nowrap d-flex align-items-center justify-content-center text-dark" title="{{ t.form_btn_save_draft_tooltip|default:'Salva i progressi fatti finora senza richiedere il completamento di tutti i campi' }}">
+                            <i class="bi bi-bookmark me-1" style="color: #BA3D30;"></i>
+                            <span class="d-none d-sm-inline">{{ t.form_btn_save_draft|default:"Salva Bozza ed Esci" }}</span>
+                            <span class="d-inline d-sm-none">{{ t.form_btn_save_draft_short|default:"Salva Bozza" }}</span>
+                        </button>
+                    </div>
 
-                    {% if next_step %}
-                        <button type="button" class="btn btn-primary-brand px-4 py-2 rounded-3 fw-semibold text-white" id="nextStepBtn" onclick="proceedToNextStep('{% url 'form_step_view' assignment.id next_step.order %}')">
-                            {{ t.form_btn_next|default:"Avanti" }} ({{ t.form_step_progress_prefix|default:"Passaggio" }} {{ current_index|add:1 }}) <i class="bi bi-arrow-right ms-1"></i>
-                        </button>
-                    {% else %}
-                        <button type="button" class="btn btn-success px-4 py-2 rounded-3 fw-semibold text-white" id="nextStepBtn" onclick="proceedToNextStep('{% url 'form_summary_view' assignment.id %}')" style="background: linear-gradient(135deg, #10B981, #059669); border: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
-                            {{ t.form_btn_go_summary|default:"Vai al Riepilogo e Invia" }} <i class="bi bi-check2-circle ms-1"></i>
-                        </button>
-                    {% endif %}
+                    <!-- Right Slot: Avanti / Vai al Riepilogo e Invia -->
+                    <div class="nav-slot nav-slot-end">
+                        {% if next_step %}
+                            <button type="button" class="btn btn-primary-brand px-4 py-2 rounded-3 fw-semibold text-white text-nowrap" id="nextStepBtn" onclick="proceedToNextStep('{% url 'form_step_view' assignment.id next_step.order %}')">
+                                {{ t.form_btn_next|default:"Avanti" }} <span class="d-none d-md-inline">({{ t.form_step_progress_prefix|default:"Passaggio" }} {{ current_index|add:1 }})</span> <i class="bi bi-arrow-right ms-1"></i>
+                            </button>
+                        {% else %}
+                            <button type="button" class="btn btn-success px-4 py-2 rounded-3 fw-semibold text-white text-nowrap" id="nextStepBtn" onclick="proceedToNextStep('{% url 'form_summary_view' assignment.id %}')" style="background: linear-gradient(135deg, #10B981, #059669); border: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
+                                {{ t.form_btn_go_summary|default:"Vai al Riepilogo e Invia" }} <i class="bi bi-check2-circle ms-1"></i>
+                            </button>
+                        {% endif %}
+                    </div>
                 </div>
-
             </div>
         </div>
 
