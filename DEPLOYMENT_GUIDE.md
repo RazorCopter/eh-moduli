@@ -1,9 +1,9 @@
 # EHModuli Deployment Guide - Synology NAS
 
-**Version**: 3.0.2  
+**Version**: 3.1.0  
 **Target**: Synology NAS with Docker or Container Manager  
 **Database**: PostgreSQL 15  
-**Last Updated**: 2026-09-08
+**Last Updated**: 2026-09-10
 
 ---
 

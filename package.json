@@ -1,6 +1,6 @@
 {
   "name": "eh-moduli",
-  "version": "3.0.2",
+  "version": "3.1.0",
   "description": "Applicazione web Django per la raccolta progressiva e controllata di documenti da parte dei clienti tramite moduli guidati e configurabili.",
   "main": "index.js",
   "scripts": {

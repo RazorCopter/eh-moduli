@@ -164,12 +164,16 @@ class FormTemplate(models.Model):
         return bool(self.access_password)
 
     def duplicate(self):
+        from django.db.models import Max
+        max_version = FormTemplate.objects.filter(family_id=self.family_id).aggregate(Max('version'))['version__max']
+        new_version = (max_version if max_version is not None else self.version) + 1
+
         new_form = FormTemplate.objects.create(
             family_id=self.family_id,
             name=f"{self.name} (copy)",
             description=self.description,
             intro_text=self.intro_text,
-            version=self.version + 1,
+            version=new_version,
             status='draft',
             author=self.author,
             privacy_text=self.privacy_text,

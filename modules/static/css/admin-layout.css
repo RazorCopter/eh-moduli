@@ -126,7 +126,7 @@ body {
     left: 0;
     right: 0;
     height: 2px;
-    background: #E89BA7;
+    background: #6b000f;
     border-radius: 2px;
     transform: scaleX(0);
     transform-origin: center;
@@ -315,7 +315,7 @@ body {
 }
 
 .footer-link:hover {
-    color: #E89BA7;
+    color: #6b000f;
 }
 
 /* Help Modal */

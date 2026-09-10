@@ -68,7 +68,7 @@
         font-weight: 500;
     }
     .btn-copy-link {
-        background: linear-gradient(135deg, #E89BA7, #E0849B);
+        background: linear-gradient(135deg, #6b000f, #4f000b);
         color: white;
         border: none;
         padding: 0.75rem 1.4rem;
@@ -82,7 +82,7 @@
         position: relative;
         overflow: hidden;
         transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        box-shadow: 0 2px 8px rgba(232, 155, 167, 0.3);
+        box-shadow: 0 2px 8px rgba(107, 0, 15, 0.25);
     }
     .btn-copy-link::after {
         content: '';
@@ -238,7 +238,7 @@
         margin-top: 0.5rem;
     }
     .progress-bar-fill {
-        background: linear-gradient(90deg, #E89BA7, #2D8A4E);
+        background: linear-gradient(90deg, #6b000f, #2D8A4E);
         height: 100%;
         border-radius: 10px;
     }
@@ -456,7 +456,7 @@
         <div class="info-row">
             <span class="info-label">Prodotto / Pratica</span>
             <span class="info-val" style="color: #2C2C2C; font-weight: 700;">
-                <i class="bi bi-box-seam" style="color: #E89BA7;"></i>
+                <i class="bi bi-box-seam" style="color: #6b000f;"></i>
                 {{ assignment.form_template.name }}
             </span>
         </div>
@@ -633,7 +633,7 @@
         <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary" style="border-radius: 8px;">
             <i class="bi bi-arrow-left"></i> Dashboard
         </a>
-        <a href="{% url 'assign_form_to_customer' %}" class="btn btn-primary" style="background: linear-gradient(135deg, #E89BA7, #E0849B); border: none; border-radius: 8px;">
+        <a href="{% url 'assign_form_to_customer' %}" class="btn btn-primary" style="background: linear-gradient(135deg, #6b000f, #4f000b); border: none; border-radius: 8px;">
             <i class="bi bi-plus-lg"></i> Nuova Assegnazione
         </a>
     </div>

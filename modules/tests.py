@@ -1372,6 +1372,14 @@ class TestFormTemplateDefaultExpiryTTL(TestCase):
         dup = template.duplicate()
         self.assertEqual(dup.default_expiry_days, 45)
         self.assertEqual(dup.name, 'Dossier Formula Complessa (copy)')
+        self.assertEqual(dup.version, 2)
+
+        # Duplicate again from original or copy: must increment to v3
+        dup2 = template.duplicate()
+        self.assertEqual(dup2.version, 3)
+
+        dup3 = dup2.duplicate()
+        self.assertEqual(dup3.version, 4)
 
     def test_api_form_create_and_detail_default_expiry(self):
         """Verify api_form_create and api_form_detail serialize default_expiry_days."""

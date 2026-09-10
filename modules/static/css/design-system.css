@@ -5,14 +5,19 @@
 
 :root {
   /* ========== STANDARDIZED COLOR SYSTEM ==========*/
-  /* Primary Color (Blue) - Used for buttons, links, focus states */
-  --color-primary: #0284c7;
-  --color-primary-light: #0ea5e9;
-  --color-primary-lighter: #e0f2fe;
+  /* Primary Color (Intense Rust) - Used for buttons, links, focus states */
+  --color-primary: #6b000f;
+  --color-primary-light: #8c0a1a;
+  --color-primary-lighter: #fbf2f3;
+  --color-primary-hover: #4f000b;
 
-  /* Secondary Color (Indigo) */
-  --color-secondary: #6366f1;
-  --color-secondary-light: #818cf8;
+  /* Secondary Color (Blue Aura) */
+  --color-secondary: #b1d0e1;
+  --color-secondary-light: #d8e7f0;
+
+  /* Regolatorio Color */
+  --color-regolatorio: #c5bed8;
+  --color-regolatorio-light: #e6e2f0;
 
   /* Status Colors */
   --color-success: #10b981;
@@ -21,8 +26,8 @@
   --color-error-light: #fee2e2;
   --color-warning: #f59e0b;
   --color-warning-light: #fef3c7;
-  --color-info: #3b82f6;
-  --color-info-light: #dbeafe;
+  --color-info: #b1d0e1;
+  --color-info-light: #eaf2f7;
 
   /* Neutral Colors (Gray) */
   --color-neutral: #6b7280;
@@ -30,18 +35,18 @@
   --color-neutral-lighter: #d1d5db;
 
   /* Background Colors */
-  --color-bg: #f9fafb;
+  --color-bg: #F8F7F5;
   --color-bg-light: #ffffff;
-  --color-bg-dark: #f3f4f6;
+  --color-bg-dark: #F2EFE9;
 
   /* Text Colors */
-  --color-text: #111827;
+  --color-text: #2C2C2C;
   --color-text-light: #6b7280;
   --color-text-lighter: #9ca3af;
 
   /* Border Colors */
-  --color-border: #e5e7eb;
-  --color-border-light: #f3f4f6;
+  --color-border: #EAE6E1;
+  --color-border-light: #F2EFE9;
 
   /* Typography */
   --font-primary: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

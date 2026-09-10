@@ -53,25 +53,25 @@
     justify-content: center !important;
 }
 .btn-primary-brand {
-    background: linear-gradient(135deg, #BA3D30 0%, #96261B 100%) !important;
+    background: linear-gradient(135deg, #6b000f 0%, #400009 100%) !important;
     color: #FFFFFF !important;
     border: none !important;
     font-weight: 600 !important;
-    box-shadow: 0 2px 8px rgba(186, 61, 48, 0.25) !important;
+    box-shadow: 0 2px 8px rgba(107, 0, 15, 0.25) !important;
     transition: all 0.2s ease !important;
 }
 .btn-primary-brand:hover:not(:disabled):not(.disabled) {
     transform: translateY(-1px) !important;
-    box-shadow: 0 4px 14px rgba(186, 61, 48, 0.38) !important;
+    box-shadow: 0 4px 14px rgba(107, 0, 15, 0.38) !important;
     color: #FFFFFF !important;
 }
 .btn-primary-brand:focus-visible, .btn-primary-brand:focus {
-    outline: 2px solid #BA3D30 !important;
+    outline: 2px solid #6b000f !important;
     outline-offset: 2px !important;
     color: #FFFFFF !important;
 }
 .btn-primary-brand:disabled, .btn-primary-brand.disabled {
-    background: linear-gradient(135deg, #d37369 0%, #b86057 100%) !important;
+    background: linear-gradient(135deg, #a15560 0%, #7d353f 100%) !important;
     color: rgba(255, 255, 255, 0.85) !important;
     border: none !important;
     box-shadow: none !important;
@@ -83,9 +83,9 @@
     transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease !important;
 }
 .upload-dropzone:hover, .upload-dropzone:focus-visible, .upload-dropzone.dragover {
-    border-color: #BA3D30 !important;
+    border-color: #6b000f !important;
     background-color: #FFFDF9 !important;
-    box-shadow: 0 0 0 3px rgba(186, 61, 48, 0.12) !important;
+    box-shadow: 0 0 0 3px rgba(107, 0, 15, 0.12) !important;
 }
 .form-navigation-bar {
     position: sticky;
@@ -149,10 +149,10 @@
                 <span class="small fw-semibold text-muted text-uppercase tracking-wider">
                     {{ t.form_step_progress_prefix|default:"Passaggio" }} {{ current_index }} {{ t.form_step_of|default:"di" }} {{ step_count }}
                 </span>
-                <span class="small fw-bold" style="color: #BA3D30;">{{ progress_pct }}% {{ t.form_step_completed|default:"Completato" }}</span>
+                <span class="small fw-bold" style="color: #6b000f;">{{ progress_pct }}% {{ t.form_step_completed|default:"Completato" }}</span>
             </div>
             <div class="progress" style="height: 8px; border-radius: 4px; background-color: #E2E8F0;">
-                <div class="progress-bar" role="progressbar" style="width: {{ progress_pct }}%; background: linear-gradient(90deg, #BA3D30 0%, #2D8A4E 100%); border-radius: 4px; transition: width 0.4s ease;" aria-valuenow="{{ progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                <div class="progress-bar" role="progressbar" style="width: {{ progress_pct }}%; background: linear-gradient(90deg, #6b000f 0%, #2D8A4E 100%); border-radius: 4px; transition: width 0.4s ease;" aria-valuenow="{{ progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
         </div>
 
@@ -379,7 +379,7 @@
                     <!-- Center Slot: Salva Bozza ed Esci -->
                     <div class="nav-slot nav-slot-center">
                         <button type="button" id="saveDraftBtn" onclick="saveDraft()" class="btn btn-outline-secondary px-3 py-2 rounded-3 text-nowrap d-flex align-items-center justify-content-center text-dark" title="{{ t.form_btn_save_draft_tooltip|default:'Salva i progressi fatti finora senza richiedere il completamento di tutti i campi' }}">
-                            <i class="bi bi-bookmark me-1" style="color: #BA3D30;"></i>
+                            <i class="bi bi-bookmark me-1" style="color: #6b000f;"></i>
                             <span class="d-none d-sm-inline">{{ t.form_btn_save_draft|default:"Salva Bozza ed Esci" }}</span>
                             <span class="d-inline d-sm-none">{{ t.form_btn_save_draft_short|default:"Salva Bozza" }}</span>
                         </button>
