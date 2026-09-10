@@ -89,9 +89,9 @@
         <div class="mb-4">
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="small fw-semibold text-muted text-uppercase tracking-wider">
-                    Passaggio {{ current_index }} di {{ step_count }}
+                    {{ t.form_step_progress_prefix|default:"Passaggio" }} {{ current_index }} {{ t.form_step_of|default:"di" }} {{ step_count }}
                 </span>
-                <span class="small fw-bold" style="color: #BA3D30;">{{ progress_pct }}% Completato</span>
+                <span class="small fw-bold" style="color: #BA3D30;">{{ progress_pct }}% {{ t.form_step_completed|default:"Completato" }}</span>
             </div>
             <div class="progress" style="height: 8px; border-radius: 4px; background-color: #E2E8F0;">
                 <div class="progress-bar" role="progressbar" style="width: {{ progress_pct }}%; background: linear-gradient(90deg, #BA3D30 0%, #2D8A4E 100%); border-radius: 4px; transition: width 0.4s ease;" aria-valuenow="{{ progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
@@ -130,9 +130,9 @@
                                     {% endif %}
                                 </div>
                                 {% if item.required %}
-                                <span class="badge" style="background: rgba(220, 53, 69, 0.1); color: #dc3545; font-weight: 600;">Obbligatorio</span>
+                                <span class="badge" style="background: rgba(220, 53, 69, 0.1); color: #dc3545; font-weight: 600;">{{ t.form_doc_mandatory|default:"Obbligatorio" }}</span>
                                 {% else %}
-                                <span class="badge" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; font-weight: 500;">Facoltativo</span>
+                                <span class="badge" style="background: rgba(108, 117, 125, 0.1); color: #6c757d; font-weight: 500;">{{ t.form_doc_optional|default:"Facoltativo" }}</span>
                                 {% endif %}
                             </div>
 
@@ -151,15 +151,15 @@
                                      ondragleave="handleDragLeave(event, this)"
                                      ondrop="handleDrop(event, '{{ item.id }}', this)">
                                     <i class="bi bi-cloud-arrow-up fs-3 text-secondary mb-1 d-block"></i>
-                                    <span class="small fw-semibold text-dark">Clicca qui o trascina il file / archivio ZIP</span>
-                                    <div class="text-muted" style="font-size: 0.75rem;">Formati ammessi: {{ item.allowed_extensions|default:'pdf, docx, jpg, png' }}, ZIP</div>
+                                    <span class="small fw-semibold text-dark">{{ t.form_dropzone_title|default:"Clicca qui o trascina il file / archivio ZIP" }}</span>
+                                    <div class="text-muted" style="font-size: 0.75rem;">{{ t.form_dropzone_formats|default:"Formati ammessi" }}: {{ item.allowed_extensions|default:'pdf, docx, jpg, png' }}, ZIP</div>
                                 </div>
                                 <div class="d-flex align-items-center justify-content-center gap-2 mt-2">
                                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1" onclick="triggerFileInput('{{ item.id }}', event)" style="font-size: 0.78rem;">
-                                        <i class="bi bi-file-earmark me-1"></i> File o Archivio ZIP
+                                        <i class="bi bi-file-earmark me-1"></i> {{ t.form_btn_select_file|default:"File o Archivio ZIP" }}
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1" onclick="triggerFolderPicker('{{ item.id }}', event)" style="font-size: 0.78rem;" title="Carica un'intera cartella dal tuo computer con tutte le relative sottocartelle">
-                                        <i class="bi bi-folder-plus me-1"></i> Carica intera Cartella
+                                    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1" onclick="triggerFolderPicker('{{ item.id }}', event)" style="font-size: 0.78rem;" title="{{ t.form_btn_folder_tooltip|default:"Carica un'intera cartella dal tuo computer con tutte le relative sottocartelle" }}">
+                                        <i class="bi bi-folder-plus me-1"></i> {{ t.form_btn_select_folder|default:"Carica intera Cartella" }}
                                     </button>
                                 </div>
 
@@ -174,14 +174,14 @@
                                                 <i class="bi bi-file-earmark-check-fill text-warning fs-5"></i>
                                                 <div>
                                                     {% if upload.stored_filename and upload.original_filename != 'NON_DISPONIBILE' %}
-                                                    <span class="small"><strong>Dichiarazione formale acquisita:</strong> {{ upload.original_filename }} ({{ upload.file_size|filesizeformat }})</span>
-                                                    <div class="text-muted" style="font-size: 0.72rem;">Carta intestata timbrata e firmata{% if upload.motivazione_indisponibilita and upload.motivazione_indisponibilita != 'Dichiarazione formale su carta intestata timbrata e firmata' %} · <em>{{ upload.motivazione_indisponibilita }}</em>{% endif %}</div>
+                                                    <span class="small"><strong>{{ t.form_absence_acquired|default:"Dichiarazione formale acquisita:" }}</strong> {{ upload.original_filename }} ({{ upload.file_size|filesizeformat }})</span>
+                                                    <div class="text-muted" style="font-size: 0.72rem;">{{ t.form_absence_letterhead_hint|default:"Carta intestata timbrata e firmata" }}{% if upload.motivazione_indisponibilita and upload.motivazione_indisponibilita != 'Dichiarazione formale su carta intestata timbrata e firmata' %} · <em>{{ upload.motivazione_indisponibilita }}</em>{% endif %}</div>
                                                     {% else %}
-                                                    <span class="small"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> <strong>Non disponibile:</strong> <em>{{ upload.motivazione_indisponibilita }}</em></span>
+                                                    <span class="small"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> <strong>{{ t.form_absence_not_avail|default:"Non disponibile:" }}</strong> <em>{{ upload.motivazione_indisponibilita }}</em></span>
                                                     {% endif %}
                                                 </div>
                                             </div>
-                                            <span class="badge bg-warning text-dark doc-status-indicator" data-status="not_available">Dichiarazione Acquisita</span>
+                                            <span class="badge bg-warning text-dark doc-status-indicator" data-status="not_available">{{ t.form_absence_badge|default:"Dichiarazione Acquisita" }}</span>
                                         </div>
                                         {% endif %}
                                         {% endwith %}
@@ -191,15 +191,15 @@
                                     <div id="uploads-list-{{ item.id }}" class="d-flex flex-column gap-2">
                                         {% for upload in existing_uploads_grouped|get_item:item.id %}
                                             {% if upload.availability_status != 'not_available' %}
-                                            <div class="alert alert-success py-2 px-3 mb-0 d-flex align-items-center justify-content-between rounded-3" id="upload-item-{{ upload.id }}">
+                                             <div class="alert alert-success py-2 px-3 mb-0 d-flex align-items-center justify-content-between rounded-3" id="upload-item-{{ upload.id }}">
                                                 <div class="d-flex align-items-center gap-2 text-truncate me-2">
                                                     <i class="bi bi-file-earmark-check-fill text-success fs-5 flex-shrink-0"></i>
                                                     <span class="small text-truncate"><strong>{{ upload.original_filename }}</strong> ({{ upload.file_size|filesizeformat }})</span>
                                                 </div>
                                                 <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                                                    <span class="badge bg-success doc-status-indicator" data-status="uploaded">Salvato</span>
-                                                    <button type="button" class="btn-delete-upload" onclick="deleteUploadedFile('{{ upload.id }}', '{{ item.id }}')" aria-label="Elimina file {{ upload.original_filename|escapejs }}" title="Elimina file {{ upload.original_filename }}">
-                                                        <i class="bi bi-trash3" aria-hidden="true"></i> <span>Elimina</span>
+                                                    <span class="badge bg-success doc-status-indicator" data-status="uploaded">{{ t.form_status_saved|default:"Salvato" }}</span>
+                                                    <button type="button" class="btn-delete-upload" onclick="deleteUploadedFile('{{ upload.id }}', '{{ item.id }}')" aria-label="{{ t.form_btn_delete|default:'Elimina' }} {{ upload.original_filename|escapejs }}" title="{{ t.form_btn_delete|default:'Elimina' }} {{ upload.original_filename }}">
+                                                        <i class="bi bi-trash3" aria-hidden="true"></i> <span>{{ t.form_btn_delete|default:"Elimina" }}</span>
                                                     </button>
                                                 </div>
                                             </div>
@@ -215,9 +215,9 @@
                                         <div class="d-flex align-items-center justify-content-between mb-1">
                                             <div class="d-flex align-items-center gap-2">
                                                 <div class="spinner-border spinner-border-sm text-primary" role="status">
-                                                    <span class="visually-hidden">Caricamento...</span>
+                                                    <span class="visually-hidden">{{ t.submitting_spinner|default:"Caricamento..." }}</span>
                                                 </div>
-                                                <small class="text-muted upload-loading-text fw-medium">Caricamento file in corso...</small>
+                                                <small class="text-muted upload-loading-text fw-medium">{{ t.form_uploading_title|default:"Caricamento file in corso..." }}</small>
                                             </div>
                                             <small class="upload-progress-percent fw-bold text-primary">0%</small>
                                         </div>
@@ -230,7 +230,7 @@
                                 <!-- Unavailability trigger -->
                                 <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
                                     <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-secondary" onclick="openAbsenceDeclarationModal('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.required|yesno:'true,false' }})">
-                                        <i class="bi bi-file-earmark-medical me-1 text-warning"></i> Non hai questo documento? <strong class="text-decoration-underline">Carica dichiarazione formale (timbrata e firmata)</strong>
+                                        <i class="bi bi-file-earmark-medical me-1 text-warning"></i> {{ t.form_missing_doc_prompt|default:"Non hai questo documento?" }} <strong class="text-decoration-underline">{{ t.form_upload_absence_link|default:"Carica dichiarazione formale (timbrata e firmata)" }}</strong>
                                     </button>
                                 </div>
                             </div>
@@ -244,7 +244,7 @@
                         <div class="alert alert-info border-0 rounded-3 p-3" style="background-color: #f0f7ff; color: #0c4a6e;">
                             <div class="d-flex gap-2">
                                 <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
-                                <div>{% if item.config.text %}{{ item.config.text }}{% elif item.config.label and item.config.label != 'text_info' and item.config.label != 'TEXT INFO' %}{{ item.config.label }}{% elif item.config.placeholder %}{{ item.config.placeholder }}{% else %}Informazione{% endif %}</div>
+                                <div>{% if item.config.text %}{{ item.config.text }}{% elif item.config.label and item.config.label != 'text_info' and item.config.label != 'TEXT INFO' %}{{ item.config.label }}{% elif item.config.placeholder %}{{ item.config.placeholder }}{% else %}{{ t.form_elem_info|default:"Informazione" }}{% endif %}</div>
                             </div>
                         </div>
 
@@ -254,7 +254,7 @@
                         {% elif item.element_type == 'text_field' %}
                         <div class="mb-3">
                             <label for="elem_{{ item.id }}" class="form-label fw-semibold text-dark">
-                                {{ item.config.label|default:"Campo di Testo" }}
+                                {{ item.config.label|default:t.form_elem_text_field|default:"Campo di Testo" }}
                                 {% if item.config.required %}<span class="text-danger">*</span>{% endif %}
                             </label>
                             <input type="text" name="element_{{ item.id }}" id="elem_{{ item.id }}" class="form-control form-control-lg fs-6 form-data-input" value="{{ saved_answers|get_item:item.id|default:'' }}" placeholder="{{ item.config.placeholder|default:'' }}" {% if item.config.required %}data-required="true"{% endif %}>
@@ -263,7 +263,7 @@
                         {% elif item.element_type == 'email_field' %}
                         <div class="mb-3">
                             <label for="elem_{{ item.id }}" class="form-label fw-semibold text-dark">
-                                {{ item.config.label|default:"Email" }}
+                                {{ item.config.label|default:t.form_elem_email|default:"Email" }}
                                 {% if item.config.required %}<span class="text-danger">*</span>{% endif %}
                             </label>
                             <input type="email" name="element_{{ item.id }}" id="elem_{{ item.id }}" class="form-control form-control-lg fs-6 form-data-input" value="{{ saved_answers|get_item:item.id|default:'' }}" placeholder="{{ item.config.placeholder|default:'nome@esempio.it' }}" {% if item.config.required %}data-required="true"{% endif %}>
@@ -272,7 +272,7 @@
                         {% elif item.element_type == 'phone_field' %}
                         <div class="mb-3">
                             <label for="elem_{{ item.id }}" class="form-label fw-semibold text-dark">
-                                {{ item.config.label|default:"Telefono" }}
+                                {{ item.config.label|default:t.form_elem_phone|default:"Telefono" }}
                                 {% if item.config.required %}<span class="text-danger">*</span>{% endif %}
                             </label>
                             <input type="tel" name="element_{{ item.id }}" id="elem_{{ item.id }}" class="form-control form-control-lg fs-6 form-data-input" value="{{ saved_answers|get_item:item.id|default:'' }}" placeholder="{{ item.config.placeholder|default:'+39 ...' }}" {% if item.config.required %}data-required="true"{% endif %}>
@@ -281,7 +281,7 @@
                         {% elif item.element_type == 'date_field' %}
                         <div class="mb-3">
                             <label for="elem_{{ item.id }}" class="form-label fw-semibold text-dark">
-                                {{ item.config.label|default:"Data" }}
+                                {{ item.config.label|default:t.form_elem_date|default:"Data" }}
                                 {% if item.config.required %}<span class="text-danger">*</span>{% endif %}
                             </label>
                             <input type="date" name="element_{{ item.id }}" id="elem_{{ item.id }}" class="form-control form-control-lg fs-6 form-data-input" value="{{ saved_answers|get_item:item.id|default:'' }}" {% if item.config.required %}data-required="true"{% endif %}>
@@ -305,25 +305,25 @@
                 <div class="mt-5 pt-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
                     {% if prev_step %}
                         <button type="button" onclick="navigateStep('{% url 'form_step_view' assignment.id prev_step.order %}')" class="btn btn-outline-secondary px-3 py-2 rounded-3">
-                            <i class="bi bi-arrow-left me-1"></i> Indietro
+                            <i class="bi bi-arrow-left me-1"></i> {{ t.form_btn_back|default:"Indietro" }}
                         </button>
                     {% else %}
                         <button type="button" onclick="navigateStep('{% url 'get_form_by_token' assignment.secure_token %}')" class="btn btn-outline-secondary px-3 py-2 rounded-3">
-                            <i class="bi bi-arrow-left me-1"></i> Inizio
+                            <i class="bi bi-arrow-left me-1"></i> {{ t.form_btn_start|default:"Inizio" }}
                         </button>
                     {% endif %}
 
-                    <button type="button" id="saveDraftBtn" onclick="saveDraft()" class="btn btn-outline-secondary px-3 py-2 rounded-3 text-nowrap d-flex align-items-center justify-content-center text-dark" title="Salva i progressi fatti finora senza richiedere il completamento di tutti i campi">
-                        <i class="bi bi-bookmark me-1" style="color: #BA3D30;"></i> Salva Bozza ed Esci
+                    <button type="button" id="saveDraftBtn" onclick="saveDraft()" class="btn btn-outline-secondary px-3 py-2 rounded-3 text-nowrap d-flex align-items-center justify-content-center text-dark" title="{{ t.form_btn_save_draft_tooltip|default:'Salva i progressi fatti finora senza richiedere il completamento di tutti i campi' }}">
+                        <i class="bi bi-bookmark me-1" style="color: #BA3D30;"></i> {{ t.form_btn_save_draft|default:"Salva Bozza ed Esci" }}
                     </button>
 
                     {% if next_step %}
                         <button type="button" class="btn btn-primary-brand px-4 py-2 rounded-3 fw-semibold text-white" id="nextStepBtn" onclick="proceedToNextStep('{% url 'form_step_view' assignment.id next_step.order %}')">
-                            Avanti (Passaggio {{ current_index|add:1 }}) <i class="bi bi-arrow-right ms-1"></i>
+                            {{ t.form_btn_next|default:"Avanti" }} ({{ t.form_step_progress_prefix|default:"Passaggio" }} {{ current_index|add:1 }}) <i class="bi bi-arrow-right ms-1"></i>
                         </button>
                     {% else %}
                         <button type="button" class="btn btn-success px-4 py-2 rounded-3 fw-semibold text-white" id="nextStepBtn" onclick="proceedToNextStep('{% url 'form_summary_view' assignment.id %}')" style="background: linear-gradient(135deg, #10B981, #059669); border: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
-                            Vai al Riepilogo e Invia <i class="bi bi-check2-circle ms-1"></i>
+                            {{ t.form_btn_go_summary|default:"Vai al Riepilogo e Invia" }} <i class="bi bi-check2-circle ms-1"></i>
                         </button>
                     {% endif %}
                 </div>
@@ -346,7 +346,7 @@
                         <i class="bi bi-file-earmark-medical text-warning-emphasis fs-5"></i>
                     </div>
                     <div>
-                        <h6 class="modal-title fw-bold text-dark mb-0" id="absenceModalLabel">Dichiarazione Formale di Assenza</h6>
+                        <h6 class="modal-title fw-bold text-dark mb-0" id="absenceModalLabel">{{ t.form_absence_modal_title|default:"Dichiarazione Formale di Assenza" }}</h6>
                         <small class="text-muted" id="absenceModalReqName">Documento</small>
                     </div>
                 </div>
@@ -358,7 +358,7 @@
                     <div class="d-flex gap-2">
                         <i class="bi bi-info-circle-fill flex-shrink-0 mt-0 fs-6"></i>
                         <div>
-                            Per procedere in assenza di un documento obbligatorio è <strong>tassativo allegare una dichiarazione formale redatta su carta intestata aziendale</strong>, debitamente <strong>timbrata e firmata</strong> dal legale rappresentante o referente tecnico autorizzato.
+                            {{ t.form_absence_modal_notice|safe|default:"Per procedere in assenza di un documento obbligatorio è <strong>tassativo allegare una dichiarazione formale redatta su carta intestata aziendale</strong>, debitamente <strong>timbrata e firmata</strong> dal legale rappresentante o referente tecnico autorizzato." }}
                         </div>
                     </div>
                 </div>
@@ -369,11 +369,11 @@
 
                 <!-- File Upload Area -->
                 <div class="mb-3">
-                    <label class="form-label small fw-bold text-dark">File della Dichiarazione (Carta intestata timbrata e firmata) <span class="text-danger" id="absenceFileRequiredAsterisk">*</span></label>
+                    <label class="form-label small fw-bold text-dark">{{ t.form_absence_file_label|default:"File della Dichiarazione (Carta intestata timbrata e firmata)" }} <span class="text-danger" id="absenceFileRequiredAsterisk">*</span></label>
                     <div class="border rounded-3 p-3 text-center bg-light" id="absenceDropArea" style="border: 2px dashed #cbd5e1 !important; cursor: pointer;" onclick="document.getElementById('absenceFileInput').click()">
                         <i class="bi bi-cloud-arrow-up text-secondary fs-2 mb-1 d-block"></i>
-                        <span class="small fw-semibold text-dark d-block" id="absenceFilePrompt">Clicca qui o trascina la dichiarazione firmata</span>
-                        <span class="text-muted d-block" style="font-size: 0.75rem;">Formati ammessi: PDF, DOCX, DOC, JPG, PNG (max 10MB)</span>
+                        <span class="small fw-semibold text-dark d-block" id="absenceFilePrompt">{{ t.form_absence_drop_prompt|default:"Clicca qui o trascina la dichiarazione firmata" }}</span>
+                        <span class="text-muted d-block" style="font-size: 0.75rem;">{{ t.form_absence_formats_hint|default:"Formati ammessi: PDF, DOCX, DOC, JPG, PNG (max 10MB)" }}</span>
                         <div id="absenceFileSelected" class="mt-2 d-none">
                             <span class="badge bg-white text-dark border p-2 text-start d-inline-flex align-items-center gap-2 shadow-xs">
                                 <i class="bi bi-file-earmark-check text-success fs-6"></i>
@@ -387,8 +387,8 @@
 
                 <!-- Motivazione / Note aggiuntive -->
                 <div class="mb-3">
-                    <label class="form-label small fw-bold text-dark">Motivazione o Note Aggiuntive <span class="text-muted fw-normal">(opzionale)</span></label>
-                    <textarea id="absenceNotesInput" class="form-control form-control-sm rounded-3" rows="2" placeholder="Es. Documento non applicabile per specifica formulazione / estremi della dichiarazione..." oninput="validateAbsenceForm()"></textarea>
+                    <label class="form-label small fw-bold text-dark">{{ t.form_absence_notes_label|default:"Motivazione o Note Aggiuntive" }} <span class="text-muted fw-normal">({{ t.form_doc_optional|default:"opzionale"|lower }})</span></label>
+                    <textarea id="absenceNotesInput" class="form-control form-control-sm rounded-3" rows="2" placeholder="{{ t.form_absence_notes_placeholder|default:'Es. Documento non applicabile per specifica formulazione / estremi della dichiarazione...' }}" oninput="validateAbsenceForm()"></textarea>
                 </div>
 
                 <!-- Checkbox attestazione legale ad Alta Visibilità -->
@@ -397,16 +397,16 @@
                      style="background-color: #fffbeb; border: 2px solid #f59e0b; cursor: pointer; transition: all 0.25s ease; display: flex; align-items: flex-start; gap: 14px; position: relative;">
                     <div style="flex: 0 0 24px; width: 24px; height: 24px; margin-top: 1px; display: flex; align-items: center; justify-content: center;">
                         <input type="checkbox" id="absenceLegalCheck" 
-                               style="width: 22px; height: 22px; cursor: pointer; accent-color: #2D8A4E; border-radius: 5px; margin: 0; display: block;"
-                               onclick="event.stopPropagation(); validateAbsenceForm();"
-                               onchange="validateAbsenceForm()">
+                                style="width: 22px; height: 22px; cursor: pointer; accent-color: #2D8A4E; border-radius: 5px; margin: 0; display: block;"
+                                onclick="event.stopPropagation(); validateAbsenceForm();"
+                                onchange="validateAbsenceForm()">
                     </div>
                     <div style="flex: 1; min-width: 0;">
                         <label class="small text-dark m-0 d-block" for="absenceLegalCheck" style="cursor: pointer; user-select: none; line-height: 1.5; font-size: 0.86rem;">
-                            <strong>Dichiaro e attesto</strong> che il documento allegato costituisce formalizzazione su <strong>carta intestata aziendale</strong>, provvisto di <strong>timbro e firma</strong> valida del referente autorizzato.
+                            {{ t.form_absence_legal_statement|safe|default:"<strong>Dichiaro e attesto</strong> che il documento allegato costituisce formalizzazione su <strong>carta intestata aziendale</strong>, provvisto di <strong>timbro e firma</strong> valida del referente autorizzato." }}
                         </label>
                         <div id="absenceCheckBadge" class="mt-2 small fw-semibold text-warning" style="font-size: 0.74rem;">
-                            <i class="bi bi-info-circle me-1"></i> Spunta la casella o clicca sul riquadro per confermare
+                            <i class="bi bi-info-circle me-1"></i> {{ t.form_absence_check_prompt|default:"Spunta la casella o clicca sul riquadro per confermare" }}
                         </div>
                     </div>
                 </div>
@@ -415,9 +415,9 @@
                 <div id="absenceStatusAlert" class="mt-3 d-none"></div>
             </div>
             <div class="modal-footer bg-light border-top py-3 px-4 d-flex justify-content-between">
-                <button type="button" class="btn btn-sm btn-outline-secondary px-3 rounded-3" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3 rounded-3" data-bs-dismiss="modal">{{ t.form_absence_btn_cancel|default:"Annulla" }}</button>
                 <button type="button" class="btn btn-sm btn-warning px-4 fw-bold rounded-3 shadow-sm" id="btnSubmitAbsence" onclick="submitAbsenceDeclaration()" disabled>
-                    <i class="bi bi-upload me-1"></i> Salva Dichiarazione Formale
+                    <i class="bi bi-upload me-1"></i> {{ t.form_absence_btn_save|default:"Salva Dichiarazione Formale" }}
                 </button>
             </div>
         </div>
@@ -427,6 +427,50 @@
 
 {% block extra_js %}
 <script>
+const FORM_T = {
+    js_library_loading: "{{ t.js_library_loading|default:'Libreria di compressione in caricamento. Riprova tra un istante.'|escapejs }}",
+    js_folder_scanning: "{{ t.js_folder_scanning|default:'Scansione cartella \"{name}\" in corso...'|escapejs }}",
+    js_folder_empty: "{{ t.js_folder_empty|default:'La cartella \"{name}\" è vuota. Seleziona una cartella contenente file.'|escapejs }}",
+    js_compressing_folder: "{{ t.js_compressing_folder|default:'Compressione cartella \"{name}\" ({count} file)...'|escapejs }}",
+    js_compressing_progress: "{{ t.js_compressing_progress|default:'Compressione cartella in corso ({count} file)...'|escapejs }}",
+    js_uploading_bulk: "{{ t.js_uploading_bulk|default:'Caricamento archivio massivo ({count} file)...'|escapejs }}",
+    js_folder_read_error: "{{ t.js_folder_read_error|default:'Errore durante la lettura della cartella: '|escapejs }}",
+    js_folder_compress_error: "{{ t.js_folder_compress_error|default:'Errore durante la compressione della cartella: '|escapejs }}",
+    js_uploading_file_of: "{{ t.js_uploading_file_of|default:'Caricamento file {current} di {total}: {name}...'|escapejs }}",
+    js_uploading_file: "{{ t.js_uploading_file|default:'Caricamento file: {name}...'|escapejs }}",
+    js_uploading_generic: "{{ t.js_uploading_generic|default:'Caricamento file in corso...'|escapejs }}",
+    js_network_error: "{{ t.js_network_error|default:'Connessione interrotta o errore di rete. Verifica il collegamento.'|escapejs }}",
+    js_timeout_error: "{{ t.js_timeout_error|default:'Timeout di connessione: il caricamento ha impiegato più di 5 minuti.'|escapejs }}",
+    js_confirm_delete_file: "{{ t.js_confirm_delete_file|default:'Sei sicuro di voler rimuovere questo file?'|escapejs }}",
+    js_delete_file_fail: "{{ t.js_delete_file_fail|default:'Errore durante l\'eliminazione del file.'|escapejs }}",
+    js_delete_file_error: "{{ t.js_delete_file_error|default:'Impossibile rimuovere il file: '|escapejs }}",
+    btn_retry: "{{ t.btn_retry|default:'Riprova'|escapejs }}",
+    btn_delete: "{{ t.btn_delete|default:'Elimina'|escapejs }}",
+    btn_delete_file: "{{ t.btn_delete_file|default:'Elimina file'|escapejs }}",
+    status_saved: "{{ t.status_saved|default:'Salvato'|escapejs }}",
+    badge_mandatory: "{{ t.badge_mandatory|default:'Obbligatorio'|escapejs }}",
+    badge_optional: "{{ t.badge_optional|default:'Facoltativo'|escapejs }}",
+    js_saving_progress: "{{ t.js_saving_progress|default:'Salvataggio...'|escapejs }}",
+    js_save_draft_error: "{{ t.js_save_draft_error|default:'Errore salvataggio bozza: '|escapejs }}",
+    form_btn_next_disabled_tooltip: "{{ t.form_btn_next_disabled_tooltip|default:'Completa tutti i documenti e i campi obbligatori prima di procedere'|escapejs }}",
+    js_mandatory_warning: "{{ t.js_mandatory_warning|default:'Carica tutti i documenti obbligatori o compila i campi richiesti prima di procedere al passaggio successivo.'|escapejs }}",
+    form_absence_drop_prompt: "{{ t.form_absence_drop_prompt|default:'Clicca qui o trascina la dichiarazione firmata'|escapejs }}",
+    form_absence_check_prompt: "{{ t.form_absence_check_prompt|default:'Spunta la casella o clicca sul riquadro per confermare'|escapejs }}",
+    form_absence_check_confirmed: "{{ t.form_absence_check_confirmed|default:'Attestazione confermata'|escapejs }}",
+    form_absence_btn_save: "{{ t.form_absence_btn_save|default:'Salva Dichiarazione Formale'|escapejs }}",
+    js_absence_file_selected: "{{ t.js_absence_file_selected|default:'File selezionato:'|escapejs }}",
+    js_absence_file_required: "{{ t.js_absence_file_required|default:'È obbligatorio selezionare il file della dichiarazione su carta intestata timbrata e firmata.'|escapejs }}",
+    js_absence_attest_required: "{{ t.js_absence_attest_required|default:'È necessario spuntare la casella di attestazione di carta intestata timbrata e firmata.'|escapejs }}",
+    js_absence_saving: "{{ t.js_absence_saving|default:'Caricamento e archiviazione sicura della dichiarazione in corso...'|escapejs }}",
+    js_absence_saved_feedback: "{{ t.js_absence_saved_feedback|default:'Salvataggio dichiarazione formale in corso...'|escapejs }}",
+    js_absence_acquired_title: "{{ t.js_absence_acquired_title|default:'Dichiarazione formale acquisita:'|escapejs }}",
+    js_absence_acquired_badge: "{{ t.js_absence_acquired_badge|default:'Dichiarazione Acquisita'|escapejs }}",
+    js_absence_justified_badge: "{{ t.js_absence_justified_badge|default:'Giustificato'|escapejs }}",
+    js_absence_declared_unavail: "{{ t.js_absence_declared_unavail|default:'Documento dichiarato non disponibile:'|escapejs }}",
+    error_unknown: "{{ t.error_unknown|default:'Errore sconosciuto'|escapejs }}",
+    error_network: "{{ t.network_error|default:'Errore di connessione'|escapejs }}",
+};
+
 // Prevent default drag and drop behavior across window
 window.addEventListener('dragover', function(e) {
     e.preventDefault();
@@ -526,12 +570,12 @@ async function handleDirectoryHandleUpload(reqId, dirHandle) {
     if (loadingEl) {
         loadingEl.classList.remove('d-none');
         const textEl = loadingEl.querySelector('small');
-        if (textEl) textEl.textContent = `Scansione cartella "${dirHandle.name}" in corso...`;
+        if (textEl) textEl.textContent = FORM_T.js_folder_scanning.replace('{name}', dirHandle.name);
     }
 
     try {
         if (typeof JSZip === 'undefined') {
-            alert("Libreria di compressione in caricamento. Riprova tra un istante.");
+            alert(FORM_T.js_library_loading);
             if (loadingEl) loadingEl.classList.add('d-none');
             return;
         }
@@ -557,26 +601,26 @@ async function handleDirectoryHandleUpload(reqId, dirHandle) {
 
         if (fileCount === 0) {
             if (loadingEl) loadingEl.classList.add('d-none');
-            alert(`La cartella "${dirHandle.name}" è vuota. Seleziona una cartella contenente file.`);
+            alert(FORM_T.js_folder_empty.replace('{name}', dirHandle.name));
             return;
         }
 
         if (loadingEl && loadingEl.querySelector('small')) {
-            loadingEl.querySelector('small').textContent = `Compressione cartella "${dirHandle.name}" (${fileCount} file)...`;
+            loadingEl.querySelector('small').textContent = FORM_T.js_compressing_folder.replace('{name}', dirHandle.name).replace('{count}', fileCount);
         }
 
         const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
         const zipFile = new File([zipBlob], `${dirHandle.name}.zip`, { type: 'application/zip' });
 
         if (loadingEl && loadingEl.querySelector('small')) {
-            loadingEl.querySelector('small').textContent = `Caricamento archivio massivo (${fileCount} file)...`;
+            loadingEl.querySelector('small').textContent = FORM_T.js_uploading_bulk.replace('{count}', fileCount);
         }
 
         uploadSingleFile(reqId, zipFile);
     } catch (err) {
         console.error('Directory upload error:', err);
         if (loadingEl) loadingEl.classList.add('d-none');
-        alert("Errore durante la lettura della cartella: " + err.message);
+        alert(FORM_T.js_folder_read_error + err.message);
     }
 }
 
@@ -589,12 +633,12 @@ async function handleFolderUpload(reqId, inputElement) {
     if (loadingEl) {
         loadingEl.classList.remove('d-none');
         const textEl = loadingEl.querySelector('small');
-        if (textEl) textEl.textContent = `Compressione cartella in corso (${files.length} file)...`;
+        if (textEl) textEl.textContent = FORM_T.js_compressing_progress.replace('{count}', files.length);
     }
 
     try {
         if (typeof JSZip === 'undefined') {
-            alert("Libreria di compressione in caricamento. Riprova tra un istante.");
+            alert(FORM_T.js_library_loading);
             if (loadingEl) loadingEl.classList.add('d-none');
             return;
         }
@@ -615,7 +659,7 @@ async function handleFolderUpload(reqId, inputElement) {
         }
 
         if (loadingEl && loadingEl.querySelector('small')) {
-            loadingEl.querySelector('small').textContent = `Caricamento archivio massivo (${files.length} file)...`;
+            loadingEl.querySelector('small').textContent = FORM_T.js_uploading_bulk.replace('{count}', files.length);
         }
 
         const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
@@ -624,7 +668,7 @@ async function handleFolderUpload(reqId, inputElement) {
     } catch (err) {
         console.error('Folder packing error:', err);
         if (loadingEl) loadingEl.classList.add('d-none');
-        alert("Errore durante la compressione della cartella: " + err.message);
+        alert(FORM_T.js_folder_compress_error + err.message);
     } finally {
         inputElement.value = '';
     }
@@ -691,8 +735,8 @@ async function handleFilesSelected(reqId, files) {
         const file = files[i];
         if (loadingText) {
             loadingText.textContent = files.length > 1
-                ? `Caricamento file ${i + 1} di ${files.length}: ${file.name}...`
-                : `Caricamento file: ${file.name}...`;
+                ? FORM_T.js_uploading_file_of.replace('{current}', i + 1).replace('{total}', files.length).replace('{name}', file.name)
+                : FORM_T.js_uploading_file.replace('{name}', file.name);
         }
         if (progressBar) {
             progressBar.style.width = '0%';
@@ -745,7 +789,7 @@ async function handleFilesSelected(reqId, files) {
     // Hide loading
     if (loadingEl) {
         loadingEl.classList.add('d-none');
-        if (loadingText) loadingText.textContent = 'Caricamento file in corso...';
+        if (loadingText) loadingText.textContent = FORM_T.js_uploading_generic;
         if (progressBar) progressBar.style.width = '0%';
         if (progressPercent) progressPercent.textContent = '0%';
     }
@@ -826,18 +870,18 @@ function uploadFilePromise(reqId, file, assignmentId, onProgress) {
                     msg = Array.isArray(data.errors) ? data.errors.join(', ') : JSON.stringify(data.errors);
                 }
                 if (!msg) {
-                    msg = `Errore caricamento (${xhr.status})`;
+                    msg = `Upload error (${xhr.status})`;
                 }
                 reject(new Error(msg));
             }
         };
 
         xhr.onerror = function() {
-            reject(new Error('Connessione interrotta o errore di rete. Verifica il collegamento.'));
+            reject(new Error(FORM_T.js_network_error));
         };
 
         xhr.ontimeout = function() {
-            reject(new Error('Timeout di connessione: il caricamento ha impiegato più di 5 minuti.'));
+            reject(new Error(FORM_T.js_timeout_error));
         };
 
         xhr.send(formData);
@@ -861,10 +905,10 @@ function appendUploadedFileCard(reqId, uploadId, filename, fileSize, data) {
             <span class="small text-truncate"><strong class="upload-filename"></strong> (${formattedSize})</span>
         </div>
         <div class="d-flex align-items-center gap-2 flex-shrink-0">
-            <span class="badge bg-success doc-status-indicator" data-status="uploaded">Salvato</span>
+            <span class="badge bg-success doc-status-indicator" data-status="uploaded">${FORM_T.status_saved}</span>
             ${uploadId ? `
-            <button type="button" class="btn-delete-upload" onclick="deleteUploadedFile('${uploadId}', '${reqId}')" aria-label="Elimina file ${escapeHtml(filename)}" title="Elimina file: ${escapeHtml(filename)}">
-                <i class="bi bi-trash3" aria-hidden="true"></i> <span>Elimina</span>
+            <button type="button" class="btn-delete-upload" onclick="deleteUploadedFile('${uploadId}', '${reqId}')" aria-label="${FORM_T.btn_delete_file} ${escapeHtml(filename)}" title="${FORM_T.btn_delete_file}: ${escapeHtml(filename)}">
+                <i class="bi bi-trash3" aria-hidden="true"></i> <span>${FORM_T.btn_delete}</span>
             </button>
             ` : ''}
         </div>
@@ -875,7 +919,7 @@ function appendUploadedFileCard(reqId, uploadId, filename, fileSize, data) {
 }
 
 async function deleteUploadedFile(uploadId, reqId) {
-    if (!confirm('Sei sicuro di voler rimuovere questo file?')) {
+    if (!confirm(FORM_T.js_confirm_delete_file)) {
         return;
     }
 
@@ -896,7 +940,7 @@ async function deleteUploadedFile(uploadId, reqId) {
 
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
-            throw new Error(data.error || 'Errore durante l\'eliminazione del file.');
+            throw new Error(data.error || FORM_T.js_delete_file_fail);
         }
 
         if (itemEl) {
@@ -919,7 +963,7 @@ async function deleteUploadedFile(uploadId, reqId) {
         updateNextButtonState();
     } catch (err) {
         console.error('Delete upload error:', err);
-        alert('Impossibile rimuovere il file: ' + err.message);
+        alert(FORM_T.js_delete_file_error + err.message);
     }
 }
 
@@ -938,7 +982,7 @@ function showUploadErrors(reqId, errors) {
                 <span>${errMessages}</span>
             </span>
             <button type="button" class="btn btn-sm btn-outline-danger px-3 py-1 rounded-pill d-inline-flex align-items-center gap-1" onclick="retryUpload('${reqId}')">
-                <i class="bi bi-arrow-clockwise"></i> Riprova
+                <i class="bi bi-arrow-clockwise"></i> ${FORM_T.btn_retry}
             </button>
         </div>
     `;
@@ -994,7 +1038,7 @@ async function saveDraft(redirectUrl) {
     const originalHtml = btn ? btn.innerHTML : '';
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Salvataggio...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> ' + FORM_T.js_saving_progress;
     }
 
     try {
@@ -1021,7 +1065,7 @@ async function saveDraft(redirectUrl) {
             const targetUrl = redirectUrl || (result.redirect || '/modules/form/success/?assignment_id={{ assignment.id }}&mode=partial');
             window.location.href = targetUrl;
         } else {
-            alert('Errore salvataggio bozza: ' + (result.error || 'Errore sconosciuto'));
+            alert(FORM_T.js_save_draft_error + (result.error || FORM_T.error_unknown));
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
@@ -1029,7 +1073,7 @@ async function saveDraft(redirectUrl) {
         }
     } catch (e) {
         console.error('Save draft error:', e);
-        alert('Errore durante il salvataggio della bozza: ' + e.message);
+        alert(FORM_T.js_save_draft_error + e.message);
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = originalHtml;
@@ -1073,7 +1117,7 @@ function updateNextButtonState() {
     if (!isValid) {
         btn.classList.add('disabled');
         btn.style.cursor = 'not-allowed';
-        btn.title = 'Completa tutti i documenti e i campi obbligatori prima di procedere';
+        btn.title = FORM_T.form_btn_next_disabled_tooltip;
     } else {
         btn.classList.remove('disabled');
         btn.style.cursor = 'pointer';
@@ -1084,7 +1128,7 @@ function updateNextButtonState() {
 // Navigate to next step or summary after validation
 async function proceedToNextStep(nextUrl) {
     if (!validateMandatoryDocuments()) {
-        alert('Carica tutti i documenti obbligatori o compila i campi richiesti prima di procedere al passaggio successivo.');
+        alert(FORM_T.js_mandatory_warning);
         return;
     }
 
@@ -1092,7 +1136,7 @@ async function proceedToNextStep(nextUrl) {
     const originalHtml = btn ? btn.innerHTML : '';
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Salvataggio...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> ' + FORM_T.js_saving_progress;
     }
 
     try {
@@ -1118,7 +1162,7 @@ async function proceedToNextStep(nextUrl) {
             window.location.href = nextUrl;
         } else {
             const result = await response.json().catch(() => ({}));
-            alert('Errore durante il salvataggio: ' + (result.error || 'Impossibile avanzare'));
+            alert(FORM_T.js_save_draft_error + (result.error || FORM_T.error_unknown));
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = originalHtml;
@@ -1174,12 +1218,12 @@ function openAbsenceDeclarationModal(reqId, reqName, isRequired) {
 
     document.getElementById('absenceReqId').value = reqId;
     document.getElementById('absenceIsRequired').value = isRequired ? 'true' : 'false';
-    document.getElementById('absenceModalReqName').innerText = reqName + (isRequired ? ' · Obbligatorio' : ' · Facoltativo');
+    document.getElementById('absenceModalReqName').innerText = reqName + (isRequired ? ' · ' + FORM_T.badge_mandatory : ' · ' + FORM_T.badge_optional);
 
     // Reset input fields
     const fileInput = document.getElementById('absenceFileInput');
     fileInput.value = '';
-    document.getElementById('absenceFilePrompt').innerText = 'Clicca qui o trascina la dichiarazione firmata';
+    document.getElementById('absenceFilePrompt').innerText = FORM_T.form_absence_drop_prompt;
     document.getElementById('absenceFileSelected').classList.add('d-none');
     document.getElementById('absenceNotesInput').value = '';
     const legalCheck = document.getElementById('absenceLegalCheck');
@@ -1193,7 +1237,7 @@ function openAbsenceDeclarationModal(reqId, reqName, isRequired) {
     const checkBadge = document.getElementById('absenceCheckBadge');
     if (checkBadge) {
         checkBadge.className = 'mt-2 small fw-semibold text-warning';
-        checkBadge.innerHTML = '<i class="bi bi-info-circle me-1"></i> Spunta la casella o clicca sul riquadro per confermare';
+        checkBadge.innerHTML = '<i class="bi bi-info-circle me-1"></i> ' + FORM_T.form_absence_check_prompt;
     }
 
     // Reset alert & button
@@ -1228,12 +1272,12 @@ function handleAbsenceFileSelected(input) {
     const sizeEl = document.getElementById('absenceFileSize');
 
     if (file) {
-        promptEl.innerText = 'File selezionato:';
+        promptEl.innerText = FORM_T.js_absence_file_selected;
         nameEl.innerText = file.name;
         sizeEl.innerText = '(' + formatBytes(file.size) + ')';
         selectedDiv.classList.remove('d-none');
     } else {
-        promptEl.innerText = 'Clicca qui o trascina la dichiarazione firmata';
+        promptEl.innerText = FORM_T.form_absence_drop_prompt;
         selectedDiv.classList.add('d-none');
     }
     validateAbsenceForm();
@@ -1280,7 +1324,7 @@ function validateAbsenceForm() {
             checkContainer.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.15)';
             if (checkBadge) {
                 checkBadge.className = 'mt-2 small fw-semibold text-success';
-                checkBadge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Attestazione confermata';
+                checkBadge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> ' + FORM_T.form_absence_check_confirmed;
             }
         } else {
             checkContainer.style.backgroundColor = '#fffbeb';
@@ -1288,7 +1332,7 @@ function validateAbsenceForm() {
             checkContainer.style.boxShadow = 'none';
             if (checkBadge) {
                 checkBadge.className = 'mt-2 small fw-semibold text-warning';
-                checkBadge.innerHTML = '<i class="bi bi-info-circle me-1"></i> Spunta la casella o clicca sul riquadro per confermare';
+                checkBadge.innerHTML = '<i class="bi bi-info-circle me-1"></i> ' + FORM_T.form_absence_check_prompt;
             }
         }
     }
@@ -1322,13 +1366,13 @@ async function submitAbsenceDeclaration() {
 
     if (isRequired && !file) {
         alertDiv.className = 'alert alert-danger py-2 px-3 mt-3 rounded-3 small';
-        alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> È obbligatorio selezionare il file della dichiarazione su carta intestata timbrata e firmata.';
+        alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> ' + FORM_T.js_absence_file_required;
         return;
     }
 
     if (file && !legalCheck.checked) {
         alertDiv.className = 'alert alert-danger py-2 px-3 mt-3 rounded-3 small';
-        alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> È necessario spuntare la casella di attestazione di carta intestata timbrata e firmata.';
+        alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i> ' + FORM_T.js_absence_attest_required;
         return;
     }
 
@@ -1342,13 +1386,13 @@ async function submitAbsenceDeclaration() {
 
     // Show loading state in modal
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Salvataggio in corso...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> ' + FORM_T.js_saving_progress;
     alertDiv.className = 'alert alert-info py-2 px-3 mt-3 rounded-3 small d-flex align-items-center';
-    alertDiv.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Caricamento e archiviazione sicura della dichiarazione in corso...';
+    alertDiv.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> ' + FORM_T.js_absence_saving;
 
     const absenceBox = document.getElementById('absence-box-' + reqId);
     if (absenceBox) {
-        absenceBox.innerHTML = '<div class="alert alert-info py-2 px-3 mb-2 d-flex align-items-center rounded-3"><div class="spinner-border spinner-border-sm text-warning me-2" role="status"></div> <span class="small">Salvataggio dichiarazione formale in corso...</span></div>';
+        absenceBox.innerHTML = '<div class="alert alert-info py-2 px-3 mb-2 d-flex align-items-center rounded-3"><div class="spinner-border spinner-border-sm text-warning me-2" role="status"></div> <span class="small">' + FORM_T.js_absence_saved_feedback + '</span></div>';
     }
 
     try {
@@ -1378,18 +1422,18 @@ async function submitAbsenceDeclaration() {
                             <div class="d-flex align-items-center gap-2">
                                 <i class="bi bi-file-earmark-check-fill text-warning fs-5"></i>
                                 <div>
-                                    <span class="small"><strong>Dichiarazione formale acquisita:</strong> ${escapeHtml(data.filename)} (${formatBytes(data.file_size)})</span>
-                                    <div class="text-muted" style="font-size: 0.72rem;">Carta intestata timbrata e firmata ${data.justification && data.justification !== 'Dichiarazione formale su carta intestata timbrata e firmata' ? '· <em>' + escapeHtml(data.justification) + '</em>' : ''}</div>
+                                    <span class="small"><strong>${FORM_T.js_absence_acquired_title}</strong> ${escapeHtml(data.filename)} (${formatBytes(data.file_size)})</span>
+                                    <div class="text-muted" style="font-size: 0.72rem;">${escapeHtml(FORM_T.badge_mandatory)} ${data.justification && data.justification !== 'Dichiarazione formale su carta intestata timbrata e firmata' ? '· <em>' + escapeHtml(data.justification) + '</em>' : ''}</div>
                                 </div>
                             </div>
-                            <span class="badge bg-warning text-dark doc-status-indicator" data-status="not_available">Dichiarazione Acquisita</span>
+                            <span class="badge bg-warning text-dark doc-status-indicator" data-status="not_available">${FORM_T.js_absence_acquired_badge}</span>
                         </div>
                     `;
                 } else {
                     absenceBox.innerHTML = `
                         <div class="alert alert-warning py-2 px-3 mb-2 d-flex align-items-center justify-content-between rounded-3">
-                            <span class="small"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> <strong>Documento dichiarato non disponibile:</strong> <em>${escapeHtml(data.justification)}</em></span>
-                            <span class="badge bg-warning text-dark doc-status-indicator" data-status="not_available">Giustificato</span>
+                            <span class="small"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> <strong>${FORM_T.js_absence_declared_unavail}</strong> <em>${escapeHtml(data.justification)}</em></span>
+                            <span class="badge bg-warning text-dark doc-status-indicator" data-status="not_available">${FORM_T.js_absence_justified_badge}</span>
                         </div>
                     `;
                 }
@@ -1398,16 +1442,16 @@ async function submitAbsenceDeclaration() {
         } else {
             if (absenceBox) absenceBox.innerHTML = '';
             btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-upload me-1"></i> Salva Dichiarazione Formale';
+            btn.innerHTML = '<i class="bi bi-upload me-1"></i> ' + FORM_T.form_absence_btn_save;
             alertDiv.className = 'alert alert-danger py-2 px-3 mt-3 rounded-3 small';
             alertDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> Errore: ${data.error || 'Operazione non riuscita.'}`;
         }
     } catch (e) {
         if (absenceBox) absenceBox.innerHTML = '';
         btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-upload me-1"></i> Salva Dichiarazione Formale';
+        btn.innerHTML = '<i class="bi bi-upload me-1"></i> ' + FORM_T.form_absence_btn_save;
         alertDiv.className = 'alert alert-danger py-2 px-3 mt-3 rounded-3 small';
-        alertDiv.innerHTML = `<i class="bi bi-wifi-off me-1"></i> Errore di connessione: ${e.message}`;
+        alertDiv.innerHTML = `<i class="bi bi-wifi-off me-1"></i> ` + FORM_T.error_network + `: ${e.message}`;
     }
 }
 </script>

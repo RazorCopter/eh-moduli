@@ -13,11 +13,11 @@
                 
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                     <span class="badge" style="background: rgba(45, 138, 78, 0.12); color: #2D8A4E; font-size: 0.85rem; padding: 6px 14px; border-radius: 20px; font-weight: 600;">
-                        <i class="bi bi-file-earmark-check me-1"></i> Raccolta Documenti
+                        <i class="bi bi-file-earmark-check me-1"></i> {{ t.form_detail_badge|default:"Raccolta Documenti" }}
                     </span>
                     {% if assignment.customer %}
                     <span class="text-muted small">
-                        Destinatario: <strong class="text-dark">{{ assignment.customer.first_name }} {{ assignment.customer.last_name }}</strong>
+                        {{ t.form_detail_recipient|default:"Destinatario:" }} <strong class="text-dark">{{ assignment.customer.first_name }} {{ assignment.customer.last_name }}</strong>
                         {% if project_name %} · <span>{{ project_name }}</span>{% endif %}
                     </span>
                     {% endif %}
@@ -38,7 +38,7 @@
                 <div class="card bg-light border-0 rounded-3 p-3 mb-4">
                     <div class="d-flex gap-2 mb-2">
                         <i class="bi bi-shield-lock text-secondary"></i>
-                        <span class="small fw-semibold text-secondary text-uppercase tracking-wider">Informativa Privacy e Trattamento Dati</span>
+                        <span class="small fw-semibold text-secondary text-uppercase tracking-wider">{{ t.form_detail_privacy_title|default:"Informativa Privacy e Trattamento Dati" }}</span>
                     </div>
                     <div class="text-muted small" style="white-space: pre-wrap; line-height: 1.5;">{{ form_template.privacy_text|safe }}</div>
                 </div>
@@ -46,11 +46,11 @@
 
                 <div class="mt-4 pt-2 d-flex align-items-center justify-content-between flex-wrap gap-3">
                     <a href="{% url 'form_step_view' assignment.id first_step_order %}" class="btn btn-primary btn-lg px-4 py-2" style="border-radius: 10px; font-weight: 600; box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);">
-                        Inizia la Compilazione <i class="bi bi-arrow-right ms-2"></i>
+                        {{ t.form_detail_start_btn|default:"Inizia la Compilazione" }} <i class="bi bi-arrow-right ms-2"></i>
                     </a>
 
                     <div class="small text-muted d-flex align-items-center gap-1">
-                        <i class="bi bi-lock-fill text-success"></i> Connessione Protetta & Cifrata
+                        <i class="bi bi-lock-fill text-success"></i> {{ t.form_detail_secure_conn|default:"Connessione Protetta & Cifrata" }}
                     </div>
                 </div>
 

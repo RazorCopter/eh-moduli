@@ -213,24 +213,23 @@
             </div>
 
             <div class="status-badge">
-                <i class="bi bi-link-45deg"></i> Collegamento Non Valido
+                <i class="bi bi-link-45deg"></i> {{ t.not_found_badge|default:"Collegamento Non Valido" }}
             </div>
 
-            <h1 class="status-title">Modulo Non Trovato</h1>
+            <h1 class="status-title">{{ t.not_found_title|default:"Modulo Non Trovato" }}</h1>
 
             <p class="status-description">
-                Il link che hai utilizzato non corrisponde ad alcun modulo attivo o potrebbe essere stato revocato.
-                Verifica l'indirizzo o accedi al tuo pannello clienti.
+                {{ t.not_found_desc|default:"Il link che hai utilizzato non corrisponde ad alcun modulo attivo o potrebbe essere stato revocato. Verifica l'indirizzo o accedi al tuo pannello clienti." }}
             </p>
 
             <div class="status-actions">
                 <a href="{% url 'client_login' %}" class="action-btn primary">
                     <i class="bi bi-box-arrow-in-right"></i>
-                    Area Personale Clienti
+                    {{ t.expired_btn_portal|default:"Area Personale Clienti" }}
                 </a>
                 <a href="mailto:supporto@etichub.it?subject=Richiesta%20link%20modulo" class="action-btn secondary">
                     <i class="bi bi-headset"></i>
-                    Contatta Assistenza
+                    {{ t.contact_us|default:"Contatta Assistenza" }}
                 </a>
             </div>
 

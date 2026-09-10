@@ -31,7 +31,7 @@ def published_form_access(request, form_id):
     try:
         form = FormTemplate.objects.exclude(status='archived').get(id=form_id)
     except FormTemplate.DoesNotExist:
-        return render(request, 'modules/form_not_found.html', status=404)
+        return render(request, 'modules/form_not_found.html', {'is_public_form': True, **get_translation_context(request)}, status=404)
 
     # Check if already authenticated for this form
     session_key = f'form_access_{form_id}'
@@ -76,7 +76,8 @@ def published_form_access(request, form_id):
         else:
             return render(request, 'modules/form_password.html', {
                 'form_id': form_id,
-                'error': 'Invalid password'
+                'error': 'Invalid password',
+                **get_translation_context(request),
             })
 
     # GET request
@@ -100,7 +101,7 @@ def published_form_access(request, form_id):
         return render(request, 'modules/published_form.html', context)
 
     # Show password prompt
-    return render(request, 'modules/form_password.html', {'form_id': form_id})
+    return render(request, 'modules/form_password.html', {'form_id': form_id, **get_translation_context(request)})
 
 
 @require_http_methods(["GET"])
@@ -151,21 +152,21 @@ def form_success_view(request):
 @require_http_methods(["GET", "POST"])
 def get_form_by_token(request, token):
     """Access form through unique secure token generated for an assignment."""
+    trans_ctx = get_translation_context(request)
     try:
         assignment = FormAssignment.objects.get(secure_token=token)
 
         if assignment.customer and not assignment.customer.active:
             is_staff = request.user.is_authenticated and (request.user.is_staff or getattr(request.user, 'role', '') in ('admin', 'operator'))
             if not is_staff:
-                return render(request, 'modules/form_not_found.html', {'error': "L'anagrafica cliente associata a questa pratica è disattivata.", 'is_public_form': True}, status=403)
+                return render(request, 'modules/form_not_found.html', {'error': "L'anagrafica cliente associata a questa pratica è disattivata.", 'is_public_form': True, **trans_ctx}, status=403)
 
         if assignment.is_expired():
             assignment.status = 'expired'
             assignment.save()
-            return render(request, 'modules/form_expired.html', {'is_public_form': True})
+            return render(request, 'modules/form_expired.html', {'is_public_form': True, **trans_ctx})
 
         if assignment.status in ('submitted', 'in_processing', 'completed'):
-            trans_ctx = get_translation_context(request)
             return render(request, 'modules/form_already_submitted.html', {
                 'assignment': assignment,
                 'is_public_form': True,
@@ -187,6 +188,7 @@ def get_form_by_token(request, token):
                         'error': 'Password errata. Riprova.',
                         'assignment': assignment,
                         'form_title': assignment.form_template.name,
+                        **trans_ctx,
                     })
 
             if not request.session.get(session_key, False):
@@ -199,6 +201,7 @@ def get_form_by_token(request, token):
                     return render(request, 'modules/form_password.html', {
                         'assignment': assignment,
                         'form_title': assignment.form_template.name,
+                        **trans_ctx,
                     })
 
         assignment.last_access_date = timezone.now()
@@ -219,6 +222,7 @@ def get_form_by_token(request, token):
             'project_name': project_name,
             'is_public_form': True,
             'show_intro': show_intro,
+            **trans_ctx,
         }
 
         log_action(
@@ -234,7 +238,7 @@ def get_form_by_token(request, token):
         return render(request, 'modules/form_detail.html', context)
 
     except FormAssignment.DoesNotExist:
-        return render(request, 'modules/form_not_found.html', {'is_public_form': True}, status=404)
+        return render(request, 'modules/form_not_found.html', {'is_public_form': True, **trans_ctx}, status=404)
 
 
 @require_http_methods(["GET", "POST"])
@@ -253,14 +257,14 @@ def form_step_view(request, assignment_id, step_order):
     ).order_by('order'))
     if not steps:
         logger.warning(f'Empty form steps for assignment {assignment_id}, form_template {assignment.form_template_id}')
-        return render(request, 'modules/form_empty.html', {'assignment': assignment, 'is_public_form': True})
+        return render(request, 'modules/form_empty.html', {'assignment': assignment, 'is_public_form': True, **get_translation_context(request)})
 
     # Resilient step lookup: match order, fallback to index with defensive guard
     step = next((s for s in steps if s.order == step_order), None)
     if not step:
         if not steps:
             logger.error(f'Empty steps list despite earlier check for assignment {assignment_id}')
-            return render(request, 'modules/form_empty.html', {'assignment': assignment, 'is_public_form': True})
+            return render(request, 'modules/form_empty.html', {'assignment': assignment, 'is_public_form': True, **get_translation_context(request)})
 
         if 1 <= step_order <= len(steps):
             step = steps[step_order - 1]

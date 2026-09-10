@@ -1,6 +1,6 @@
 [project]
 name = "eh-moduli"
-version = "3.0.1"
+version = "3.0.2"
 description = "Etichub Document Collector - Modulo Raccolta Documentale"
 requires-python = ">=3.11"
 

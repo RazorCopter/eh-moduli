@@ -274,14 +274,14 @@
             {% endif %}
             {% if expiry_date %}
             <div class="detail-row">
-                <span class="detail-label">Scadenza pratica</span>
+                <span class="detail-label">{{ t.detail_expiry|default:"Scadenza pratica" }}</span>
                 <span class="detail-value" style="color: #dc2626; font-weight: 600;">{{ expiry_date }}</span>
             </div>
             {% endif %}
         </div>
 
         <p class="close-hint">
-            Puoi accedere alla tua area personale in qualsiasi momento per completare l'invio.
+            {{ t.partial_success_hint|default:"Puoi accedere alla tua area personale in qualsiasi momento per completare l'invio." }}
         </p>
 
         {% if request.session.customer_id %}
@@ -292,7 +292,7 @@
         {% elif assignment_id %}
         <a href="/modules/form/{{ assignment_id }}/summary/" class="btn-receipt" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);">
             <i class="bi bi-arrow-clockwise"></i>
-            Riapri Modulo per Continuare
+            {{ t.btn_reopen_form|default:"Riapri Modulo per Continuare" }}
         </a>
         {% endif %}
 

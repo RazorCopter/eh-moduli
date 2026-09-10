@@ -213,24 +213,23 @@
             </div>
 
             <div class="status-badge">
-                <i class="bi bi-clock-history"></i> Termine Scaduto
+                <i class="bi bi-clock-history"></i> {{ t.expired_badge|default:"Termine Scaduto" }}
             </div>
 
-            <h1 class="status-title">Modulo di Raccolta Scaduto</h1>
+            <h1 class="status-title">{{ t.expired_title|default:"Modulo di Raccolta Scaduto" }}</h1>
 
             <p class="status-description">
-                La data limite per il caricamento dei documenti di questo modulo è stata superata. 
-                I caricamenti sono al momento sospesi.
+                {{ t.expired_desc|default:"La data limite per il caricamento dei documenti di questo modulo è stata superata. I caricamenti sono al momento sospesi." }}
             </p>
 
             <div class="status-actions">
                 <a href="{% url 'client_login' %}" class="action-btn primary">
                     <i class="bi bi-box-arrow-in-right"></i>
-                    Area Personale Clienti
+                    {{ t.expired_btn_portal|default:"Area Personale Clienti" }}
                 </a>
                 <a href="mailto:supporto@etichub.it?subject=Richiesta%20riapertura%20modulo" class="action-btn secondary">
                     <i class="bi bi-envelope"></i>
-                    Richiedi Proroga
+                    {{ t.expired_btn_extension|default:"Richiedi Proroga" }}
                 </a>
             </div>
 

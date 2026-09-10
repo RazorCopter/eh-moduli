@@ -129,14 +129,13 @@
             <div class="icon-wrapper">
                 <i class="bi bi-folder2-open"></i>
             </div>
-            <h1 class="title">Modulo in Configurazione</h1>
+            <h1 class="title">{{ t.empty_title|default:"Modulo in Configurazione" }}</h1>
             <p class="message">
-                Questo modulo non contiene attualmente passaggi di compilazione attivi.
-                Puoi procedere al riepilogo finale oppure contattare l'assistenza.
+                {{ t.empty_desc|default:"Questo modulo non contiene attualmente passaggi di compilazione attivi. Puoi procedere al riepilogo finale oppure contattare l'assistenza." }}
             </p>
             <div>
                 <a href="{% url 'form_summary_view' assignment.id %}" class="btn-brand">
-                    Vai al Riepilogo <i class="bi bi-arrow-right"></i>
+                    {{ t.empty_btn_summary|default:"Vai al Riepilogo" }} <i class="bi bi-arrow-right"></i>
                 </a>
             </div>
         </div>

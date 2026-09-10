@@ -9,6 +9,7 @@ from django.conf import settings
 
 from .models import FormTemplate, FormStep, FormElement, DocumentRequirement
 from .utils import log_action, get_client_ip, get_user_agent
+from .client_i18n import get_translation_context
 
 logger = logging.getLogger('modules')
 
@@ -250,6 +251,7 @@ def builder_preview(request, pk):
         'form': template,
         'template': template,
         'steps': steps,
-        'is_preview': True
+        'is_preview': True,
+        **get_translation_context(request),
     }
     return render(request, 'modules/published_form.html', context)

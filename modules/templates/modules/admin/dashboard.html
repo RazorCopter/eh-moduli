@@ -122,27 +122,43 @@
         100% { transform: translateX(150%); }
     }
 
-    /* Side-by-side KPI Indicator Cards */
-    .kpi-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1.25rem;
+    /* KPI Section and Logical 3x2 Grid */
+    .kpi-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1.35rem;
         margin-bottom: 2rem;
     }
-
-    @media (max-width: 1200px) {
-        .kpi-row {
-            grid-template-columns: repeat(3, 1fr);
-        }
+    .kpi-group-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.65rem;
+    }
+    .kpi-group-title {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #7A726A;
+        text-transform: uppercase;
+        letter-spacing: 0.75px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 0;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 992px) {
         .kpi-row {
             grid-template-columns: repeat(2, 1fr);
         }
     }
 
-    @media (max-width: 500px) {
+    @media (max-width: 576px) {
         .kpi-row {
             grid-template-columns: 1fr;
         }
@@ -788,6 +804,105 @@
     .nested-products-table tbody tr:hover {
         background-color: #FCFBF9;
     }
+
+    /* Operational Attention Alert Banner */
+    .dashboard-alert-banner {
+        background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+        border: 1px solid #FDE68A;
+        border-left: 5px solid #D97706;
+        border-radius: 12px;
+        padding: 0.95rem 1.25rem;
+        margin-bottom: 1.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        box-shadow: 0 2px 6px rgba(217, 119, 6, 0.08);
+        animation: premiumFadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .alert-banner-left {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        flex: 1 1 300px;
+    }
+    .alert-banner-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: #FDE68A;
+        color: #B45309;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    .alert-banner-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #92400E;
+        margin-bottom: 0.15rem;
+    }
+    .alert-banner-text {
+        font-size: 0.84rem;
+        color: #B45309;
+    }
+    .btn-alert-action {
+        background: #D97706;
+        color: #FFFFFF;
+        border: none;
+        padding: 0.45rem 1rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.84rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+    .btn-alert-action:hover {
+        background: #B45309;
+        color: #FFFFFF;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(180, 83, 9, 0.25);
+    }
+
+    /* Customer List Summary Footer */
+    .customer-list-summary-footer {
+        padding: 0.95rem 1.5rem;
+        background: #FFFFFF;
+        border-top: 1px solid #F0ECE8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.85rem;
+        flex-wrap: wrap;
+        font-size: 0.83rem;
+        color: #6E665E;
+    }
+    .summary-stat {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .summary-divider {
+        color: #D5D0C9;
+        font-size: 0.85rem;
+    }
+    .badge-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .dot-red { background-color: #DC2626; }
+    .dot-orange { background-color: #EA580C; }
+    .dot-yellow { background-color: #D97706; }
+    .dot-green { background-color: #16A34A; }
 </style>
 {% endblock %}
 
@@ -799,159 +914,191 @@
         <p>Monitoraggio in tempo reale dei moduli di raccolta, clienti e avanzamento pratiche</p>
     </div>
     <div class="dashboard-actions">
-        <a href="{% url 'builder_create' %}" class="btn-action-primary">
-            <i class="bi bi-plus-lg"></i> Nuovo Modulo
-        </a>
-        <a href="{% url 'customer_list' %}" class="btn-action-secondary">
-            <i class="bi bi-people"></i> Clienti
-        </a>
-        <a href="{% url 'assign_form_to_customer' %}" class="btn-action-secondary">
-            <i class="bi bi-send"></i> Assegna Modulo
-        </a>
         <a href="{% url 'analytics_dashboard' %}" class="btn-action-secondary" title="Visualizza tempi medi di gestione, rework e statistiche operative">
             <i class="bi bi-speedometer2 text-primary"></i> Statistiche & Tempi
+        </a>
+        <a href="{% url 'builder_create' %}" class="btn-action-primary">
+            <i class="bi bi-plus-lg"></i> Nuovo Modulo
         </a>
     </div>
 </div>
 
-<!-- Side-by-Side KPI Indicators with Informative Tooltips -->
-<div class="kpi-row">
-    <!-- 1. Moduli Pubblicati -->
-    <div class="kpi-card kpi-card-pink">
-        <div>
-            <div class="kpi-card-header">
-                <div class="kpi-icon-box icon-box-pink">
-                    <i class="bi bi-folder-check"></i>
-                </div>
-                <button type="button" 
-                        class="kpi-info-btn"
-                        data-bs-toggle="tooltip" 
-                        data-bs-placement="top" 
-                        data-bs-title="Numero totale di modelli di moduli di raccolta documenti attualmente attivi e pubblicati.">
-                    <i class="bi bi-info-circle-fill"></i>
-                </button>
-            </div>
-            <div class="kpi-metric counter-val" data-target="{{ templates_count }}">{{ templates_count }}</div>
-            <h6 class="kpi-title">Moduli Pubblicati</h6>
+<!-- Operational Attention Alert (Shown when there are practices ready for review) -->
+{% if submitted_count > 0 %}
+<div class="dashboard-alert-banner">
+    <div class="alert-banner-left">
+        <div class="alert-banner-icon">
+            <i class="bi bi-bell-fill"></i>
         </div>
-        <a href="{% url 'builder_list' %}" class="kpi-footer-link">
-            Vai ai moduli <i class="bi bi-arrow-right"></i>
-        </a>
+        <div>
+            <div class="alert-banner-title">Attenzione: {{ submitted_count }} pratich{{ submitted_count|pluralize:"a,e" }} da lavorare</div>
+            <div class="alert-banner-text">Il cliente ha completato il caricamento documentale. Pratiche pronte per la verifica tecnica dell'Ufficio Regolatorio.</div>
+        </div>
+    </div>
+    <button type="button" class="btn-alert-action" onclick="document.querySelector('.filter-pill[data-filter=\'to_work\']').click();">
+        <i class="bi bi-filter"></i> Mostra da Lavorare
+    </button>
+</div>
+{% endif %}
+
+<!-- Logical KPI Sections (3 + 3) -->
+<div class="kpi-section">
+    <!-- Gruppo 1: Panoramica Piattaforma -->
+    <div class="kpi-group">
+        <div class="kpi-group-header">
+            <span class="kpi-group-title">
+                <i class="bi bi-collection"></i> Panoramica Piattaforma
+            </span>
+        </div>
+        <div class="kpi-row">
+            <!-- 1. Moduli Pubblicati -->
+            <div class="kpi-card kpi-card-pink">
+                <div>
+                    <div class="kpi-card-header">
+                        <div class="kpi-icon-box icon-box-pink">
+                            <i class="bi bi-folder-check"></i>
+                        </div>
+                        <button type="button" 
+                                class="kpi-info-btn"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                data-bs-title="Numero totale di modelli di moduli di raccolta documenti attualmente attivi e pubblicati.">
+                            <i class="bi bi-info-circle-fill"></i>
+                        </button>
+                    </div>
+                    <div class="kpi-metric counter-val" data-target="{{ templates_count }}">{{ templates_count }}</div>
+                    <h6 class="kpi-title">Moduli Pubblicati</h6>
+                </div>
+                <a href="{% url 'builder_list' %}" class="kpi-footer-link">
+                    Vai ai moduli <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+
+            <!-- 2. Clienti Attivi -->
+            <div class="kpi-card kpi-card-blue">
+                <div>
+                    <div class="kpi-card-header">
+                        <div class="kpi-icon-box icon-box-blue">
+                            <i class="bi bi-people"></i>
+                        </div>
+                        <button type="button" 
+                                class="kpi-info-btn"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                data-bs-title="Clienti con anagrafica attiva e accesso permanente all'Area Riservata (/modules/client/login/).">
+                            <i class="bi bi-info-circle-fill"></i>
+                        </button>
+                    </div>
+                    <div class="kpi-metric counter-val" data-target="{{ customers_count }}">{{ customers_count }}</div>
+                    <h6 class="kpi-title">Clienti Attivi</h6>
+                </div>
+                <a href="{% url 'customer_list' %}" class="kpi-footer-link">
+                    Gestisci clienti <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+
+            <!-- 3. Assegnazioni Totali -->
+            <div class="kpi-card kpi-card-purple">
+                <div>
+                    <div class="kpi-card-header">
+                        <div class="kpi-icon-box icon-box-purple">
+                            <i class="bi bi-send-check"></i>
+                        </div>
+                        <button type="button" 
+                                class="kpi-info-btn"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                data-bs-title="Volume complessivo di pratiche create ed erogate verso i clienti nel tempo.">
+                            <i class="bi bi-info-circle-fill"></i>
+                        </button>
+                    </div>
+                    <div class="kpi-metric counter-val" data-target="{{ assignments_count }}">{{ assignments_count }}</div>
+                    <h6 class="kpi-title">Assegnazioni Totali</h6>
+                </div>
+                <a href="{% url 'assign_form_to_customer' %}" class="kpi-footer-link">
+                    Nuova assegnazione <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
     </div>
 
-    <!-- 2. Clienti Attivi -->
-    <div class="kpi-card kpi-card-blue">
-        <div>
-            <div class="kpi-card-header">
-                <div class="kpi-icon-box icon-box-blue">
-                    <i class="bi bi-people"></i>
-                </div>
-                <button type="button" 
-                        class="kpi-info-btn"
-                        data-bs-toggle="tooltip" 
-                        data-bs-placement="top" 
-                        data-bs-title="Clienti con anagrafica attiva e accesso permanente all'Area Riservata (/modules/client/login/).">
-                    <i class="bi bi-info-circle-fill"></i>
-                </button>
-            </div>
-            <div class="kpi-metric counter-val" data-target="{{ customers_count }}">{{ customers_count }}</div>
-            <h6 class="kpi-title">Clienti Attivi</h6>
+    <!-- Gruppo 2: Pipeline Operativa Pratiche -->
+    <div class="kpi-group">
+        <div class="kpi-group-header">
+            <span class="kpi-group-title">
+                <i class="bi bi-kanban"></i> Pipeline Operativa Pratiche
+            </span>
         </div>
-        <a href="{% url 'customer_list' %}" class="kpi-footer-link">
-            Gestisci clienti <i class="bi bi-arrow-right"></i>
-        </a>
-    </div>
+        <div class="kpi-row">
+            <!-- 4. Da Lavorare -->
+            <div class="kpi-card kpi-card-amber">
+                <div>
+                    <div class="kpi-card-header">
+                        <div class="kpi-icon-box icon-box-amber">
+                            <i class="bi bi-bell-fill"></i>
+                        </div>
+                        <button type="button" 
+                                class="kpi-info-btn"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                data-bs-title="Pratiche con upload documentale completato dal cliente, pronte per la presa in carico da parte dell'Ufficio Regolatorio.">
+                            <i class="bi bi-info-circle-fill"></i>
+                        </button>
+                    </div>
+                    <div class="kpi-metric counter-val" data-target="{{ submitted_count }}" style="color: #d97706;">{{ submitted_count }}</div>
+                    <h6 class="kpi-title">Da Lavorare</h6>
+                </div>
+                <span class="kpi-footer-link" style="color: #b45309; cursor: default;">
+                    <i class="bi bi-patch-exclamation"></i> Upload Cliente Concluso
+                </span>
+            </div>
 
-    <!-- 3. Assegnazioni Totali -->
-    <div class="kpi-card kpi-card-purple">
-        <div>
-            <div class="kpi-card-header">
-                <div class="kpi-icon-box icon-box-purple">
-                    <i class="bi bi-send-check"></i>
+            <!-- 5. In Lavorazione -->
+            <div class="kpi-card kpi-card-cyan">
+                <div>
+                    <div class="kpi-card-header">
+                        <div class="kpi-icon-box icon-box-cyan">
+                            <i class="bi bi-gear-wide-connected"></i>
+                        </div>
+                        <button type="button" 
+                                class="kpi-info-btn"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                data-bs-title="Pratiche attualmente in lavorazione presso l'Ufficio Regolatorio di Etichub per verifica tecnica e redazione PIF.">
+                            <i class="bi bi-info-circle-fill"></i>
+                        </button>
+                    </div>
+                    <div class="kpi-metric counter-val" data-target="{{ in_processing_count }}" style="color: #0284c7;">{{ in_processing_count }}</div>
+                    <h6 class="kpi-title">In Lavorazione</h6>
                 </div>
-                <button type="button" 
-                        class="kpi-info-btn"
-                        data-bs-toggle="tooltip" 
-                        data-bs-placement="top" 
-                        data-bs-title="Volume complessivo di pratiche create ed erogate verso i clienti nel tempo.">
-                    <i class="bi bi-info-circle-fill"></i>
-                </button>
+                <span class="kpi-footer-link" style="color: #0369a1; cursor: default;">
+                    <i class="bi bi-hourglass-split"></i> Ufficio Regolatorio
+                </span>
             </div>
-            <div class="kpi-metric counter-val" data-target="{{ assignments_count }}">{{ assignments_count }}</div>
-            <h6 class="kpi-title">Assegnazioni Totali</h6>
-        </div>
-        <a href="{% url 'assign_form_to_customer' %}" class="kpi-footer-link">
-            Nuova assegnazione <i class="bi bi-arrow-right"></i>
-        </a>
-    </div>
 
-    <!-- 4. Da Lavorare -->
-    <div class="kpi-card kpi-card-amber">
-        <div>
-            <div class="kpi-card-header">
-                <div class="kpi-icon-box icon-box-amber">
-                    <i class="bi bi-bell-fill"></i>
+            <!-- 6. Pratiche Completate -->
+            <div class="kpi-card kpi-card-green">
+                <div>
+                    <div class="kpi-card-header">
+                        <div class="kpi-icon-box icon-box-green">
+                            <i class="bi bi-check2-all"></i>
+                        </div>
+                        <button type="button" 
+                                class="kpi-info-btn"
+                                data-bs-toggle="tooltip" 
+                                data-bs-placement="top" 
+                                data-bs-title="Pratiche interamente lavorate da Etichub con fascicolo regolatorio evaso e archiviato sul NAS.">
+                            <i class="bi bi-info-circle-fill"></i>
+                        </button>
+                    </div>
+                    <div class="kpi-metric counter-val" data-target="{{ completed_count }}" style="color: #2D8A4E;">{{ completed_count }}</div>
+                    <h6 class="kpi-title">Pratiche Completate</h6>
                 </div>
-                <button type="button" 
-                        class="kpi-info-btn"
-                        data-bs-toggle="tooltip" 
-                        data-bs-placement="top" 
-                        data-bs-title="Pratiche con upload documentale completato dal cliente, pronte per la presa in carico da parte dell'Ufficio Regolatorio.">
-                    <i class="bi bi-info-circle-fill"></i>
-                </button>
+                <span class="kpi-footer-link" style="color: #2D8A4E; cursor: default;">
+                    <i class="bi bi-patch-check"></i> Lavorate e Archiviate
+                </span>
             </div>
-            <div class="kpi-metric counter-val" data-target="{{ submitted_count }}" style="color: #d97706;">{{ submitted_count }}</div>
-            <h6 class="kpi-title">Da Lavorare</h6>
         </div>
-        <span class="kpi-footer-link" style="color: #b45309; cursor: default;">
-            <i class="bi bi-patch-exclamation"></i> Upload Cliente Concluso
-        </span>
-    </div>
-
-    <!-- 5. In Lavorazione -->
-    <div class="kpi-card kpi-card-cyan">
-        <div>
-            <div class="kpi-card-header">
-                <div class="kpi-icon-box icon-box-cyan">
-                    <i class="bi bi-gear-wide-connected"></i>
-                </div>
-                <button type="button" 
-                        class="kpi-info-btn"
-                        data-bs-toggle="tooltip" 
-                        data-bs-placement="top" 
-                        data-bs-title="Pratiche attualmente in lavorazione presso l'Ufficio Regolatorio di Etichub per verifica tecnica e redazione PIF.">
-                    <i class="bi bi-info-circle-fill"></i>
-                </button>
-            </div>
-            <div class="kpi-metric counter-val" data-target="{{ in_processing_count }}" style="color: #0284c7;">{{ in_processing_count }}</div>
-            <h6 class="kpi-title">In Lavorazione</h6>
-        </div>
-        <span class="kpi-footer-link" style="color: #0369a1; cursor: default;">
-            <i class="bi bi-hourglass-split"></i> Ufficio Regolatorio
-        </span>
-    </div>
-
-    <!-- 6. Pratiche Completate -->
-    <div class="kpi-card kpi-card-green">
-        <div>
-            <div class="kpi-card-header">
-                <div class="kpi-icon-box icon-box-green">
-                    <i class="bi bi-check2-all"></i>
-                </div>
-                <button type="button" 
-                        class="kpi-info-btn"
-                        data-bs-toggle="tooltip" 
-                        data-bs-placement="top" 
-                        data-bs-title="Pratiche interamente lavorate da Etichub con fascicolo regolatorio evaso e archiviato sul NAS.">
-                    <i class="bi bi-info-circle-fill"></i>
-                </button>
-            </div>
-            <div class="kpi-metric counter-val" data-target="{{ completed_count }}" style="color: #2D8A4E;">{{ completed_count }}</div>
-            <h6 class="kpi-title">Pratiche Completate</h6>
-        </div>
-        <span class="kpi-footer-link" style="color: #2D8A4E; cursor: default;">
-            <i class="bi bi-patch-check"></i> Lavorate e Archiviate
-        </span>
     </div>
 </div>
 
@@ -961,13 +1108,10 @@
         <!-- Section Header -->
         <div class="section-card-header">
             <div>
-                <h3>
+                <h3 class="mb-0">
                     <i class="bi bi-people-fill" style="color: #BA3D30;"></i> Gestione Clienti e Prodotti
-                    <span class="section-header-badge" id="customersCounterBadge">{{ customer_groups|length }} Clienti</span>
+                    <span class="section-header-badge ms-2" id="customersCounterBadge">{{ customer_groups|length }} Clienti</span>
                 </h3>
-                <small class="text-muted" style="font-size: 0.84rem;">
-                    Vista aggregata per anagrafica cliente con stato visivo consolidato e progetti espandibili
-                </small>
             </div>
             <div class="d-flex align-items-center gap-2">
                 <a href="{% url 'assign_form_to_customer' %}" class="btn-action-primary" style="padding: 0.5rem 1.1rem; font-size: 0.86rem;">
@@ -996,10 +1140,10 @@
 
                 <div class="toolbar-expand-btns">
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="btnExpandAll" title="Espandi tutti i clienti per vedere i prodotti">
-                        <i class="bi bi-arrows-expand"></i> Espandi Tutti
+                        <i class="bi bi-arrows-expand"></i> <span class="d-none d-sm-inline">Espandi</span>
                     </button>
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCollapseAll" title="Comprimi tutti i clienti">
-                        <i class="bi bi-arrows-collapse"></i> Comprimi
+                        <i class="bi bi-arrows-collapse"></i> <span class="d-none d-sm-inline">Comprimi</span>
                     </button>
                 </div>
             </div>
@@ -1226,6 +1370,39 @@
                 </div>
             </div>
             {% endfor %}
+        </div>
+
+        <!-- Customer List Summary Footer -->
+        <div class="customer-list-summary-footer">
+            <div class="summary-stat">
+                <i class="bi bi-people-fill text-muted"></i>
+                <span><strong>{{ customer_groups|length }}</strong> client{{ customer_groups|length|pluralize:"e,i" }}</span>
+            </div>
+            <span class="summary-divider d-none d-md-inline">•</span>
+            <div class="summary-stat">
+                <i class="bi bi-box-seam text-muted"></i>
+                <span><strong>{{ assignments_count }}</strong> pratich{{ assignments_count|pluralize:"a,e" }} total{{ assignments_count|pluralize:"e,i" }}</span>
+            </div>
+            <span class="summary-divider d-none d-md-inline">•</span>
+            <div class="summary-stat">
+                <span class="badge-dot dot-yellow"></span>
+                <span><strong>{{ filter_counts.practices_waiting_docs|default:filter_counts.waiting_docs }}</strong> in attesa cliente</span>
+            </div>
+            <span class="summary-divider d-none d-md-inline">•</span>
+            <div class="summary-stat">
+                <span class="badge-dot dot-red"></span>
+                <span><strong>{{ submitted_count }}</strong> da lavorare</span>
+            </div>
+            <span class="summary-divider d-none d-md-inline">•</span>
+            <div class="summary-stat">
+                <span class="badge-dot dot-orange"></span>
+                <span><strong>{{ in_processing_count }}</strong> in lavorazione</span>
+            </div>
+            <span class="summary-divider d-none d-md-inline">•</span>
+            <div class="summary-stat">
+                <span class="badge-dot dot-green"></span>
+                <span><strong>{{ completed_count }}</strong> lavorat{{ completed_count|pluralize:"a,e" }}</span>
+            </div>
         </div>
 
         <!-- No search/filter results message -->
