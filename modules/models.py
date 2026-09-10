@@ -163,7 +163,7 @@ class FormTemplate(models.Model):
         """Check if this template has an access password configured."""
         return bool(self.access_password)
 
-    def duplicate(self, is_new_version=False):
+    def duplicate(self, is_new_version=True):
         from django.db.models import Max
         import uuid
         from django.db import transaction
@@ -183,7 +183,7 @@ class FormTemplate(models.Model):
 
             new_form = FormTemplate.objects.create(
                 family_id=new_family_id,
-                name=f"{self.name} (copy)" if not is_new_version else self.name,
+                name=f"{self.name} (copy)",
                 description=self.description,
                 intro_text=self.intro_text,
                 version=new_version,

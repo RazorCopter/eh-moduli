@@ -109,7 +109,13 @@
 .eh-surface-rust-gradient h2,
 .eh-surface-rust-gradient h3,
 .eh-surface-rust-gradient p,
-.eh-surface-rust-gradient i {
+.eh-surface-rust-gradient i,
+.form-card-header h1,
+.form-card-header h2,
+.form-card-header h3,
+.form-card-header h4,
+.form-card-header .form-card-title,
+.form-card-title {
   color: var(--eh-on-rust) !important;
 }
 
