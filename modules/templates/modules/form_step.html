@@ -51,6 +51,7 @@
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+}
 .btn-primary-brand {
     background: linear-gradient(135deg, #BA3D30 0%, #96261B 100%) !important;
     color: #FFFFFF !important;
@@ -59,7 +60,7 @@
     box-shadow: 0 2px 8px rgba(186, 61, 48, 0.25) !important;
     transition: all 0.2s ease !important;
 }
-.btn-primary-brand:hover {
+.btn-primary-brand:hover:not(:disabled):not(.disabled) {
     transform: translateY(-1px) !important;
     box-shadow: 0 4px 14px rgba(186, 61, 48, 0.38) !important;
     color: #FFFFFF !important;
@@ -68,6 +69,15 @@
     outline: 2px solid #BA3D30 !important;
     outline-offset: 2px !important;
     color: #FFFFFF !important;
+}
+.btn-primary-brand:disabled, .btn-primary-brand.disabled {
+    background: linear-gradient(135deg, #d37369 0%, #b86057 100%) !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    border: none !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+    opacity: 0.65 !important;
+    transform: none !important;
 }
 .upload-dropzone {
     transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease !important;
