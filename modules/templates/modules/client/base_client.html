@@ -7,13 +7,16 @@
     <title>{% block title %}Area Personale - Etichub{% endblock %}</title>
     <meta name="description" content="Area Personale Cliente Etichub — gestione documenti e prodotti in lavorazione">
 
-    <!-- Google Fonts: Poppins + Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet" integrity="sha384-QuGBSgV5Im3DzL2z+8Ko9/hqNy/N0O7zwvXAtfd1MvPKWa/UbeLV65cfm4BV5Wgq" crossorigin="anonymous">
 
     <!-- Design System -->
+    <link rel="stylesheet" href="{% static 'css/brand-tokens.css' %}">
     <link rel="stylesheet" href="{% static 'css/design-system.css' %}">
 
     <style>
@@ -21,7 +24,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: var(--eh-font-brand);
         }
 
         body {

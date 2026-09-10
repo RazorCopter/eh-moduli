@@ -312,13 +312,23 @@
 
 <script>
     async function duplicateForm(formId) {
-        if (!confirm('Sei sicuro di voler duplicare questo modulo?')) return;
+        const choice = prompt("Vuoi creare una Nuova Versione o una Copia Indipendente?\n\nDigita 'V' per Nuova Versione (mantiene cliente e sale di versione).\nDigita 'C' per Copia Indipendente (nuovo modulo senza cliente).", "V");
+        if (!choice) return;
+        const choiceUpper = choice.trim().toUpperCase();
+        if (choiceUpper !== 'V' && choiceUpper !== 'C') {
+            alert("Scelta non valida. Operazione annullata.");
+            return;
+        }
+        const isNewVersion = (choiceUpper === 'V');
+
         try {
             const response = await fetch(`/modules/api/v1/forms/${formId}/duplicate/`, {
                 method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}'
-                }
+                },
+                body: JSON.stringify({ is_new_version: isNewVersion })
             });
             const result = await response.json();
             if (result.success) {

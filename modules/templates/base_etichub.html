@@ -6,28 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Etichub - Document Collector{% endblock %}</title>
 
-    <!-- Google Fonts: Poppins -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 
+    <!-- Etichub Design System -->
+    <link rel="stylesheet" href="{% static 'css/brand-tokens.css' %}">
+
     <!-- Etichub Theme -->
     <style>
         :root {
-            /* Colori Etichub */
-            --primary-beige: #F8F7F5;
-            --primary-dark: #2C2C2C;
-            --primary-gray: #9B9B9B;
-            --primary-rust: #6b000f;
-            --secondary-blue: #b1d0e1;
-            --accent-regolatorio: #c5bed8;
-            --accent-pink: #b1d0e1;
-            --accent-rose: #6b000f;
-            --secondary-light: #F5F3F0;
-            --secondary-white: #FFFFFF;
-
             /* Shadows */
             --shadow-light: 0 1px 3px rgba(0,0,0,0.05);
             --shadow-medium: 0 4px 12px rgba(0,0,0,0.1);
@@ -35,12 +28,12 @@
         }
 
         * {
-            font-family: 'Poppins', sans-serif;
+            font-family: var(--eh-font-brand);
         }
 
         body {
-            background: var(--primary-beige);
-            color: var(--primary-dark);
+            background-color: var(--eh-paper);
+            color: var(--eh-text);
             line-height: 1.6;
         }
 

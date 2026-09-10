@@ -377,7 +377,10 @@ def api_form_duplicate(request, form_id):
     form = get_object_or_404(FormTemplate, id=form_id)
 
     try:
-        new_form = form.duplicate()
+        data = json.loads(request.body) if request.body else {}
+        is_new_version = data.get('is_new_version', False)
+        
+        new_form = form.duplicate(is_new_version=is_new_version)
 
         log_action(
             request.user,

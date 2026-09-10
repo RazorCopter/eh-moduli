@@ -126,7 +126,7 @@
     .product-card:hover {
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
         transform: translateY(-2px);
-        border-color: #E8847D;
+        border-color: var(--eh-rust);
     }
 
     .product-card::before {
@@ -244,7 +244,7 @@
 
     .macro-progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, #E8847D 0%, #3B82F6 50%, #10B981 100%);
+        background: var(--eh-gradient-signature);
         border-radius: 999px;
         transition: width 0.4s ease;
     }
@@ -298,10 +298,10 @@
         transition: background-color 0.2s ease, transform 0.2s ease;
     }
     .product-progress-interactive:hover {
-        background-color: rgba(232, 132, 125, 0.06);
+        background-color: rgba(107, 0, 15, 0.06);
     }
     .product-progress-interactive:hover .macro-progress-bar {
-        box-shadow: 0 0 0 2px rgba(232, 132, 125, 0.2);
+        box-shadow: 0 0 0 2px rgba(107, 0, 15, 0.2);
     }
     .timeline-trigger-badge {
         font-size: 0.68rem;
@@ -316,8 +316,8 @@
         transition: all 0.2s ease;
     }
     .product-progress-interactive:hover .timeline-trigger-badge {
-        background: #E8847D;
-        color: #FFFFFF;
+        background: var(--eh-rust);
+        color: var(--eh-on-rust);
     }
 
     /* Modal Timeline Styles */
@@ -475,7 +475,7 @@
         padding: 10px 20px;
         border: none;
         border-radius: 10px;
-        font-family: 'Poppins', sans-serif;
+        font-family: var(--eh-font-brand);
         font-size: 0.8125rem;
         font-weight: 600;
         cursor: pointer;
@@ -484,19 +484,20 @@
     }
 
     .product-action-btn.primary {
-        background: linear-gradient(135deg, #6b000f 0%, #400009 100%);
-        color: #FFFFFF;
+        background: var(--eh-rust);
+        background-image: var(--eh-gradient-rust);
+        color: var(--eh-on-rust);
         box-shadow: 0 2px 8px rgba(107, 0, 15, 0.25);
     }
 
     .product-action-btn.primary:hover {
         transform: translateY(-1px);
         box-shadow: 0 6px 18px rgba(107, 0, 15, 0.38);
-        color: #FFFFFF;
+        color: var(--eh-on-rust);
     }
 
     .product-action-btn:focus-visible {
-        outline: 2px solid #6b000f !important;
+        outline: 2px solid var(--eh-rust) !important;
         outline-offset: 2px !important;
     }
 

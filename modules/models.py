@@ -163,25 +163,38 @@ class FormTemplate(models.Model):
         """Check if this template has an access password configured."""
         return bool(self.access_password)
 
-    def duplicate(self):
+    def duplicate(self, is_new_version=False):
         from django.db.models import Max
-        max_version = FormTemplate.objects.filter(family_id=self.family_id).aggregate(Max('version'))['version__max']
-        new_version = (max_version if max_version is not None else self.version) + 1
+        import uuid
+        from django.db import transaction
 
-        new_form = FormTemplate.objects.create(
-            family_id=self.family_id,
-            name=f"{self.name} (copy)",
-            description=self.description,
-            intro_text=self.intro_text,
-            version=new_version,
-            status='draft',
-            author=self.author,
-            privacy_text=self.privacy_text,
-            customer=self.customer,
-            project_name=self.project_name,
-            access_password=self.access_password,
-            default_expiry_days=self.default_expiry_days
-        )
+        with transaction.atomic():
+            if is_new_version:
+                new_family_id = self.family_id
+                max_version = FormTemplate.objects.filter(family_id=self.family_id).select_for_update().aggregate(Max('version'))['version__max']
+                new_version = (max_version if max_version is not None else self.version) + 1
+                new_customer = self.customer
+                new_project_name = self.project_name
+            else:
+                new_family_id = uuid.uuid4()
+                new_version = 1
+                new_customer = None
+                new_project_name = ''
+
+            new_form = FormTemplate.objects.create(
+                family_id=new_family_id,
+                name=f"{self.name} (copy)" if not is_new_version else self.name,
+                description=self.description,
+                intro_text=self.intro_text,
+                version=new_version,
+                status='draft',
+                author=self.author,
+                privacy_text=self.privacy_text,
+                customer=new_customer,
+                project_name=new_project_name,
+                access_password=self.access_password,
+                default_expiry_days=self.default_expiry_days
+            )
         # Prefetch all steps with their related elements and requirements to avoid N+1 queries
         from django.db.models import Prefetch
         steps = self.formstep_set.all().prefetch_related(

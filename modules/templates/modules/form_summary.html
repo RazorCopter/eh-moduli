@@ -8,11 +8,11 @@
     <div class="col-lg-8 col-xl-7">
         
         <div class="card border-0 shadow-sm mt-3 mb-5" style="border-radius: 16px; overflow: hidden;">
-            <div style="height: 6px; background: linear-gradient(90deg, #6b000f 0%, #2D8A4E 100%);"></div>
+            <div style="height: 6px; background: var(--eh-gradient-signature);"></div>
             <div class="card-body p-4 p-md-5">
 
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                    <span class="badge" style="background: rgba(107, 0, 15, 0.1); color: #6b000f; font-size: 0.85rem; padding: 6px 14px; border-radius: 20px; font-weight: 600;">
+                    <span class="badge" style="background: rgba(107, 0, 15, 0.1); color: var(--eh-rust); font-size: 0.85rem; padding: 6px 14px; border-radius: 20px; font-weight: 600;">
                         <i class="bi bi-clipboard-check me-1"></i> {{ t.summary_badge|default:"Riepilogo Finale" }}
                     </span>
                     <span class="text-muted small">
@@ -120,12 +120,12 @@
 
                         <div class="d-flex align-items-center gap-2 flex-wrap">
                             <!-- Tasto Invio Parziale / Salva Bozza (Sempre Attivo) -->
-                            <button type="button" id="btnOpenPartialModal" class="btn btn-outline-secondary px-3 py-2 rounded-3 fw-semibold" style="border-width: 1.5px;" title="Salva lo stato attuale della documentazione e completa l'invio in un secondo momento">
+                            <button type="button" id="btnOpenPartialModal" class="btn btn-outline-secondary px-3 py-2 rounded-3 fw-semibold" style="border-width: 1.5px; border-color: var(--eh-rust); color: var(--eh-rust);" title="Salva lo stato attuale della documentazione e completa l'invio in un secondo momento">
                                 <i class="bi bi-floppy me-1"></i> {{ t.btn_partial_submit|default:"Salva Bozza / Invio Parziale" }}
                             </button>
 
                             <!-- Tasto Invia Documenti (Attivo solo se checkbox flaggata) -->
-                            <button type="button" id="btnOpenConfirmModal" class="btn btn-success px-4 py-2 rounded-3 fw-semibold" disabled style="opacity: 0.5; cursor: not-allowed; box-shadow: none;" title="Spunta la dichiarazione di consapevolezza per abilitare l'invio definitivo">
+                            <button type="button" id="btnOpenConfirmModal" class="btn px-4 py-2 rounded-3 fw-semibold" disabled style="opacity: 0.5; cursor: not-allowed; box-shadow: none; background: var(--eh-rust); color: var(--eh-on-rust);" title="Spunta la dichiarazione di consapevolezza per abilitare l'invio definitivo">
                                 <i class="bi bi-send-check me-2"></i> {{ t.btn_send_docs|default:t.btn_confirm_submit|default:"Invia Documenti" }}
                             </button>
                         </div>

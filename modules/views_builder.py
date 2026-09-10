@@ -121,7 +121,8 @@ def form_template_edit(request, pk):
 def form_template_duplicate(request, pk):
     """Duplicate an existing form template and all its steps/requirements."""
     template = get_object_or_404(FormTemplate, id=pk)
-    new_template = template.duplicate()
+    is_new_version = request.GET.get('new_version') == '1'
+    new_template = template.duplicate(is_new_version=is_new_version)
 
     log_action(
         request.user,

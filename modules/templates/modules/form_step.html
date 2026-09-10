@@ -152,7 +152,7 @@
                 <span class="small fw-bold" style="color: #6b000f;">{{ progress_pct }}% {{ t.form_step_completed|default:"Completato" }}</span>
             </div>
             <div class="progress" style="height: 8px; border-radius: 4px; background-color: #E2E8F0;">
-                <div class="progress-bar" role="progressbar" style="width: {{ progress_pct }}%; background: linear-gradient(90deg, #6b000f 0%, #2D8A4E 100%); border-radius: 4px; transition: width 0.4s ease;" aria-valuenow="{{ progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                <div class="progress-bar" role="progressbar" style="width: {{ progress_pct }}%; background: var(--eh-gradient-signature); border-radius: 4px; transition: width 0.4s ease;" aria-valuenow="{{ progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
         </div>
 
@@ -378,10 +378,10 @@
 
                     <!-- Center Slot: Salva Bozza ed Esci -->
                     <div class="nav-slot nav-slot-center">
-                        <button type="button" id="saveDraftBtn" onclick="saveDraft()" class="btn btn-outline-secondary px-3 py-2 rounded-3 text-nowrap d-flex align-items-center justify-content-center text-dark" title="{{ t.form_btn_save_draft_tooltip|default:'Salva i progressi fatti finora senza richiedere il completamento di tutti i campi' }}">
-                            <i class="bi bi-bookmark me-1" style="color: #6b000f;"></i>
-                            <span class="d-none d-sm-inline">{{ t.form_btn_save_draft|default:"Salva Bozza ed Esci" }}</span>
-                            <span class="d-inline d-sm-none">{{ t.form_btn_save_draft_short|default:"Salva Bozza" }}</span>
+                        <button type="button" id="saveDraftBtn" onclick="saveDraft()" class="btn btn-outline-secondary px-3 py-2 rounded-3 text-nowrap d-flex align-items-center justify-content-center text-dark" style="border-color: var(--eh-rust); color: var(--eh-rust);" title="{{ t.form_btn_save_draft_tooltip|default:'Salva i progressi fatti finora senza richiedere il completamento di tutti i campi' }}">
+                            <i class="bi bi-box-arrow-right me-1" style="color: var(--eh-rust); font-size: 1.1rem;"></i>
+                            <span class="d-none d-sm-inline" style="color: var(--eh-rust);">{{ t.form_btn_save_draft|default:"Salva Bozza ed Esci" }}</span>
+                            <span class="d-inline d-sm-none" style="color: var(--eh-rust);">{{ t.form_btn_save_draft_short|default:"Salva Bozza" }}</span>
                         </button>
                     </div>
 
@@ -552,7 +552,7 @@ window.addEventListener('drop', function(e) {
 function handleDragOver(e, el) {
     e.preventDefault();
     e.stopPropagation();
-    el.style.borderColor = '#E8847D';
+    el.style.borderColor = 'var(--eh-rust)';
     el.style.backgroundColor = '#FFF5F5';
 }
 
@@ -1358,7 +1358,7 @@ const absenceDropArea = document.getElementById('absenceDropArea');
 if (absenceDropArea) {
     absenceDropArea.addEventListener('dragover', (e) => {
         e.preventDefault();
-        absenceDropArea.style.borderColor = '#E8847D';
+        absenceDropArea.style.borderColor = 'var(--eh-rust)';
         absenceDropArea.style.backgroundColor = '#fff5f5';
     });
     absenceDropArea.addEventListener('dragleave', (e) => {

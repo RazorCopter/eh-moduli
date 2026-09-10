@@ -72,7 +72,7 @@
             --shadow-lg: 0 12px 16px -4px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.03);
             --shadow-xl: 0 20px 24px -4px rgba(16, 24, 40, 0.08), 0 8px 8px -4px rgba(16, 24, 40, 0.03);
             --shadow-2xl: 0 24px 48px -12px rgba(16, 24, 40, 0.18);
-            --shadow-glow: 0 0 0 4px rgba(232, 132, 125, 0.12);
+            --shadow-glow: 0 0 0 4px rgba(107, 0, 15, 0.12);
 
             /* Radii */
             --radius-sm: 6px;
@@ -94,9 +94,9 @@
             min-height: 100vh;
             background: #f0ebe5;
             background-image:
-                radial-gradient(ellipse at 20% 50%, rgba(232, 132, 125, 0.08) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 20%, rgba(178, 72, 64, 0.05) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 100%, rgba(232, 181, 193, 0.06) 0%, transparent 40%);
+                radial-gradient(ellipse at 20% 50%, rgba(107, 0, 15, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(107, 0, 15, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 100%, rgba(107, 0, 15, 0.06) 0%, transparent 40%);
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
@@ -319,10 +319,10 @@
             align-items: flex-start;
             gap: 0.75rem;
             padding: 1rem 1.125rem;
-            background: linear-gradient(135deg, #eef4ff, #e8effd);
+            background: linear-gradient(135deg, #b1d0e1, #e8effd);
             border: 1px solid #c6d7f2;
             border-radius: var(--radius-md);
-            color: #1e40af;
+            color: #6b000f;
             font-size: 0.875rem;
             line-height: 1.55;
         }
@@ -704,8 +704,8 @@
         .btn-submit-premium .spinner {
             display: none;
             width: 18px;
-            height: 18px;
-            border: 2.5px solid rgba(255,255,255,0.3);
+            color: #6b000f;
+            border: 2px solid #6b000f;
             border-top-color: white;
             border-radius: 50%;
             animation: spin 0.7s linear infinite;
@@ -822,7 +822,7 @@
                     <span style="color: #0c4a6e; font-size: 0.85rem;">{{ t.pub_preview_banner_desc|default:"Questo è esattamente come il cliente vedrà il modulo. I dati inseriti e i file non vengono salvati." }}</span>
                 </div>
             </div>
-            <a href="{% url 'builder_edit' form.id %}" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #0284c7; color: white; padding: 0.55rem 1.25rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; text-decoration: none; white-space: nowrap; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3); transition: all 0.2s;">
+            <a href="{% url 'builder_edit' form.id %}" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #6b000f; color: white; padding: 0.55rem 1.25rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; text-decoration: none; white-space: nowrap; box-shadow: 0 2px 6px rgba(107, 0, 15, 0.3); transition: all 0.2s;">
                 <i class="bi bi-arrow-left"></i> {{ t.pub_preview_back_editor|default:"Torna all'Editor" }}
             </a>
         </div>

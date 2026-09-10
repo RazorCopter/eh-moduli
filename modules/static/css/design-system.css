@@ -3,55 +3,9 @@
    Minimalist luxury, coral/rose accent, cream backgrounds
    ======================================================== */
 
+@import url('brand-tokens.css');
+
 :root {
-  /* ========== STANDARDIZED COLOR SYSTEM ==========*/
-  /* Primary Color (Intense Rust) - Used for buttons, links, focus states */
-  --color-primary: #6b000f;
-  --color-primary-light: #8c0a1a;
-  --color-primary-lighter: #fbf2f3;
-  --color-primary-hover: #4f000b;
-
-  /* Secondary Color (Blue Aura) */
-  --color-secondary: #b1d0e1;
-  --color-secondary-light: #d8e7f0;
-
-  /* Regolatorio Color */
-  --color-regolatorio: #c5bed8;
-  --color-regolatorio-light: #e6e2f0;
-
-  /* Status Colors */
-  --color-success: #10b981;
-  --color-success-light: #d1fae5;
-  --color-error: #ef4444;
-  --color-error-light: #fee2e2;
-  --color-warning: #f59e0b;
-  --color-warning-light: #fef3c7;
-  --color-info: #b1d0e1;
-  --color-info-light: #eaf2f7;
-
-  /* Neutral Colors (Gray) */
-  --color-neutral: #6b7280;
-  --color-neutral-light: #9ca3af;
-  --color-neutral-lighter: #d1d5db;
-
-  /* Background Colors */
-  --color-bg: #F8F7F5;
-  --color-bg-light: #ffffff;
-  --color-bg-dark: #F2EFE9;
-
-  /* Text Colors */
-  --color-text: #2C2C2C;
-  --color-text-light: #6b7280;
-  --color-text-lighter: #9ca3af;
-
-  /* Border Colors */
-  --color-border: #EAE6E1;
-  --color-border-light: #F2EFE9;
-
-  /* Typography */
-  --font-primary: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-secondary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-
   /* Font Sizes */
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -222,59 +176,60 @@ p:last-child {
 
 /* Accessibility: Visible focus outline for keyboard navigation */
 .btn:focus-visible {
-  outline: 3px solid #0284c7;
+  outline: 3px solid var(--eh-rust);
   outline-offset: 2px;
 }
 
 /* Primary Button */
 .btn-primary {
-  background: transparent;
-  color: var(--color-primary);
-  border-color: var(--color-primary);
+  background: var(--eh-rust);
+  background-image: var(--eh-gradient-rust);
+  color: var(--eh-on-rust);
+  border-color: var(--eh-rust);
 }
 
 .btn-primary:hover:not(:disabled):not(.disabled) {
-  background: var(--color-primary);
-  color: white;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+  background: var(--eh-rust-hover);
+  color: var(--eh-on-rust);
+  box-shadow: 0 4px 12px rgba(107, 0, 15, 0.3);
   transform: scale(1.02);
 }
 
 .btn-primary:active:not(:disabled):not(.disabled) {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary-light);
-  color: white;
+  background: var(--eh-rust-active);
+  border-color: var(--eh-rust-active);
+  color: var(--eh-on-rust);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
   transform: scale(0.98);
 }
 
 .btn-primary:focus {
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+  box-shadow: 0 0 0 3px rgba(107, 0, 15, 0.1);
 }
 
 /* Secondary Button */
 .btn-secondary {
-  background: var(--color-primary);
-  color: white;
-  border-color: var(--color-primary);
+  background: var(--eh-surface);
+  color: var(--eh-rust);
+  border-color: var(--eh-rust);
 }
 
 .btn-secondary:hover:not(:disabled):not(.disabled) {
-  background: var(--color-primary-light);
-  border-color: var(--color-primary-light);
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+  background: var(--eh-rust-soft);
+  border-color: var(--eh-rust);
+  box-shadow: 0 4px 12px rgba(107, 0, 15, 0.1);
   transform: scale(1.02);
 }
 
 .btn-secondary:active:not(:disabled):not(.disabled) {
-  background: #0370b9;
-  border-color: #0370b9;
+  background: var(--eh-border);
+  border-color: var(--eh-rust);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
   transform: scale(0.98);
 }
 
 .btn-secondary:focus {
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+  box-shadow: 0 0 0 3px rgba(107, 0, 15, 0.1);
 }
 
 /* Ghost Button */
@@ -287,12 +242,12 @@ p:last-child {
 .btn-ghost:hover:not(:disabled):not(.disabled) {
   border-color: var(--color-primary);
   color: var(--color-primary);
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+  box-shadow: 0 4px 12px rgba(107, 0, 15, 0.15);
   transform: scale(1.02);
 }
 
 .btn-ghost:active:not(:disabled):not(.disabled) {
-  background: rgba(2, 132, 199, 0.1);
+  background: rgba(107, 0, 15, 0.1);
   border-color: var(--color-primary);
   color: var(--color-primary);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -582,30 +537,30 @@ ACCESSIBILITY NOTES:
 }
 
 /* Form Control - Focus State
-   2px solid border #0284c7, box-shadow with 10% alpha blue, outline: none
+   2px solid border #6b000f, box-shadow with 10% alpha rust, outline: none
 */
 .form-control:focus {
   outline: none;
-  border-color: #0284c7;
+  border-color: var(--eh-rust);
   border-width: 2px;
   padding: 11px 15px; /* Adjust for 2px border */
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+  box-shadow: 0 0 0 3px rgba(107, 0, 15, 0.1);
 }
 
 .form-control:focus-visible {
-  outline: 3px solid #0284c7;
+  outline: 3px solid var(--eh-rust);
   outline-offset: 1px;
-  border-color: #0284c7;
+  border-color: var(--eh-rust);
   border-width: 2px;
   padding: 11px 15px;
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+  box-shadow: 0 0 0 3px rgba(107, 0, 15, 0.1);
 }
 
 /* Form Control - Filled State
-   When input has a value: 1px solid #0284c7, background #f9fafb
+   When input has a value: 1px solid #6b000f, background #f9fafb
 */
 .form-control:not(:placeholder-shown):not(:focus) {
-  border-color: #0284c7;
+  border-color: var(--eh-rust);
   background-color: #f9fafb;
 }
 
@@ -746,12 +701,12 @@ textarea.form-control {
 }
 
 /* Checkbox & Radio - Checked State
-   Background: #0284c7, border: 2px solid #0284c7
+   Background: #6b000f, border: 2px solid #6b000f
    Checkmark displayed via pseudo-element
 */
 .form-check-input:checked {
-  border-color: #0284c7;
-  background-color: #0284c7;
+  border-color: var(--eh-rust);
+  background-color: var(--eh-rust);
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: center;
@@ -760,8 +715,8 @@ textarea.form-control {
 
 /* Checkbox & Radio - Checked Hover */
 .form-check-input:checked:hover {
-  border-color: #0370b9;
-  background-color: #0370b9;
+  border-color: var(--eh-rust-hover);
+  background-color: var(--eh-rust-hover);
 }
 
 /* Checkbox & Radio - Active/Pressed State */
@@ -770,12 +725,12 @@ textarea.form-control {
 }
 
 /* Checkbox & Radio - Focus State
-   Outline: 3px solid #0284c7, outline-offset: 2px
+   Outline: 3px solid #6b000f, outline-offset: 2px
 */
 .form-check-input:focus-visible {
-  outline: 3px solid #0284c7;
+  outline: 3px solid var(--eh-rust);
   outline-offset: 2px;
-  border-color: #0284c7;
+  border-color: var(--eh-rust);
 }
 
 /* Checkbox & Radio - Disabled State */
@@ -802,7 +757,7 @@ textarea.form-control {
 /* Label hover effect - highlight label when hovering over input */
 .form-check-input:hover + .form-check-label,
 .form-check-input:not(:disabled) + .form-check-label:hover {
-  color: #0284c7;
+  color: var(--eh-rust);
 }
 
 /* ========================================================
@@ -818,13 +773,13 @@ textarea:focus-visible,
 [role="button"]:focus-visible,
 [role="menuitem"]:focus-visible,
 [role="option"]:focus-visible {
-  outline: 3px solid #0284c7;
+  outline: 3px solid var(--eh-rust);
   outline-offset: 2px;
 }
 
 /* Link focus styles */
 a:focus-visible {
-  outline: 3px solid #0284c7;
+  outline: 3px solid var(--eh-rust);
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -832,7 +787,7 @@ a:focus-visible {
 /* Checkbox and radio focus styles */
 input[type="checkbox"]:focus-visible,
 input[type="radio"]:focus-visible {
-  outline: 3px solid #0284c7;
+  outline: 3px solid var(--eh-rust);
   outline-offset: 1px;
 }
 
@@ -848,7 +803,7 @@ textarea:focus {
 /* Ensure focus is visible even with box-shadow */
 button:focus-visible,
 .btn:focus-visible {
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1), 0 0 0 5px var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(107, 0, 15, 0.1), 0 0 0 5px var(--eh-rust);
 }
 
 /* ========================================================
@@ -963,11 +918,11 @@ button:focus-visible,
 }
 
 .text-muted {
-  color: #6b7280;  /* WCAG AA: 5.2:1 contrast ratio on light backgrounds */
+  color: var(--eh-text-muted);
 }
 
 .text-primary {
-  color: var(--color-primary);
+  color: var(--eh-rust);
 }
 
 .text-success {

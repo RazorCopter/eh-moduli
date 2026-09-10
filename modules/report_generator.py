@@ -96,7 +96,7 @@ def generate_submission_pdf(output_pdf_path, form_data, customer_data, uploads, 
     content_width = A4[0] - 72  # 595.27 - 72 = 523.27 pt
 
     # Colors
-    c_primary = colors.HexColor("#7F1718")      # Etichub Burgundy
+    c_primary = colors.HexColor("#6B000F")      # Etichub Burgundy (Rust)
     c_primary_light = colors.HexColor("#FDF2F1")
     c_dark = colors.HexColor("#1E293B")         # Main Text
     c_muted = colors.HexColor("#64748B")        # Subtitles/labels

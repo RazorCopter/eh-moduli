@@ -4,23 +4,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#7f1718">
+  <meta name="theme-color" content="#6b000f">
   <meta name="description" content="Etichub: animazione del logo e accesso area personale clienti.">
   <title>{{ t.login_page_title|default:'Accedi — Area Personale Etichub' }}</title>
   
-  <!-- Google Fonts: Poppins -->
+  <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
     :root {
       color-scheme: light;
-      --brand: #7f1718;
+      --brand: #6b000f;
+      --brand-aura: #b1d0e1;
+      --brand-lilac: #c5bed8;
       --ink: #231d1d;
       --muted: #746b6b;
       --paper: #fcfbfa;
-      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
       font-synthesis: none;
       -webkit-font-smoothing: antialiased;
     }
@@ -29,7 +31,7 @@
     etichub-intro:not(:defined) { position: fixed; inset: 0; z-index: 2147483000; background: var(--paper); }
     button, input { font: inherit; }
     button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
-    button:focus-visible, input:focus-visible { outline: 3px solid #bb7374; outline-offset: 4px; }
+    button:focus-visible, input:focus-visible { outline: 3px solid var(--brand); outline-offset: 4px; }
     
     .login-page { display: grid; grid-template-columns: 48% 52%; min-height: 100svh; }
     .brand-panel { position: relative; display: flex; flex-direction: column; overflow: hidden; padding: clamp(32px,4.2vw,68px); color: white; background: var(--brand); isolation: isolate; }
@@ -39,11 +41,11 @@
     .brand-watermark svg { width: 100%; height: 100%; }
     .brand-welcome { margin-top: auto; padding-top: 140px; padding-bottom: 76px; }
     .eyebrow { display: block; font-size: .75rem; font-weight: 600; line-height: 1.5; letter-spacing: .16em; }
-    .brand-welcome .eyebrow { color: #e7bdbd; margin-bottom: 26px; }
+    .brand-welcome .eyebrow { color: var(--brand-aura); margin-bottom: 26px; }
     h1 { margin: 0; font-size: clamp(2.5rem,4.65vw,5rem); font-weight: 450; letter-spacing: -.055em; line-height: 1.1; }
-    .heading-dot { color: #d28f8f; }
-    .brand-rule { width: 48px; height: 1px; margin-top: 40px; background: #cf8e8e; }
-    .brand-footnote { margin: 0; font-size: .75rem; line-height: 1.6; letter-spacing: .09em; color: #e4b7b7; }
+    .heading-dot { color: var(--brand-aura); }
+    .brand-rule { width: 48px; height: 1px; margin-top: 40px; background: var(--brand-lilac); }
+    .brand-footnote { margin: 0; font-size: .75rem; line-height: 1.6; letter-spacing: .09em; color: var(--brand-aura); }
     
     .access-panel { display: flex; flex-direction: column; min-width: 0; padding: 38px clamp(28px,5vw,80px) 30px; }
     .access-top { display: flex; justify-content: flex-end; }
@@ -78,8 +80,8 @@
       background: #fff;
       color: var(--brand);
       font-weight: 600;
-      box-shadow: 0 1px 4px rgba(127, 23, 24, 0.12);
-      border: 1px solid rgba(127, 23, 24, 0.2);
+      box-shadow: 0 1px 4px rgba(107, 0, 15, 0.12);
+      border: 1px solid rgba(107, 0, 15, 0.2);
     }
     .lang-flag {
       font-size: 1.05rem;
@@ -169,6 +171,11 @@
     <section class="brand-panel" aria-label="Etichub">
       <etichub-logo id="brand-mark" class="brand-mark" aria-label="Etichub, spin-off University of Pavia" role="img"></etichub-logo>
       <div class="brand-watermark" aria-hidden="true"></div>
+      
+      <!-- Curva decorativa istituzionale Blue Aura -->
+      <svg width="100%" height="40" viewBox="0 0 100 40" preserveAspectRatio="none" style="margin-top: 20px; opacity: 0.8;" aria-hidden="true">
+        <path d="M0,20 C30,40 70,0 100,20 L100,0 L0,0 Z" fill="transparent" stroke="var(--brand-aura)" stroke-width="2" />
+      </svg>
       <div class="brand-welcome">
         <span class="eyebrow">{{ t.brand_welcome_eyebrow|default:'AREA RISERVATA' }}</span>
         <h1>{{ t.brand_welcome_heading|default:'Benvenuto<br> in etichub'|safe }}<span class="heading-dot">.</span></h1>
