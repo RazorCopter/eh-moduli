@@ -102,9 +102,23 @@
         font-weight: 600;
         padding: 4px 10px;
         border-radius: 20px;
-        background: rgba(255, 255, 255, 0.22);
         backdrop-filter: blur(4px);
         color: #FFFFFF !important;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.22);
+    }
+    .form-card-status.status-published {
+        background: rgba(45, 138, 78, 0.45);
+        border-color: rgba(110, 231, 153, 0.5);
+    }
+    .form-card-status.status-draft {
+        background: rgba(245, 158, 11, 0.4);
+        border-color: rgba(253, 230, 138, 0.5);
+    }
+    .form-card-status.status-archived {
+        background: rgba(100, 116, 139, 0.4);
+        border-color: rgba(148, 163, 184, 0.5);
+        opacity: 0.9;
     }
     .form-card-status i {
         color: #FFFFFF !important;
@@ -260,7 +274,7 @@
             <div class="form-card">
                 <div class="form-card-header">
                     <h2 class="form-card-title">{{ form.name }}</h2>
-                    <span class="form-card-status">
+                    <span class="form-card-status status-{{ form.status }}">
                         {% if form.status == 'published' %}
                             <i class="bi bi-check-circle-fill"></i> Pubblicato
                         {% elif form.status == 'draft' %}
